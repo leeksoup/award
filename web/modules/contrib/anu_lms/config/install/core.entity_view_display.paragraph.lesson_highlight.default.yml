@@ -1,0 +1,33 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.lesson_highlight.field_lesson_highlight_color
+    - field.field.paragraph.lesson_highlight.field_lesson_highlight_heading
+    - field.field.paragraph.lesson_highlight.field_lesson_highlight_text
+    - paragraphs.paragraphs_type.lesson_highlight
+  module:
+    - text
+id: paragraph.lesson_highlight.default
+targetEntityType: paragraph
+bundle: lesson_highlight
+mode: default
+content:
+  field_lesson_highlight_heading:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  field_lesson_highlight_text:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 1
+    region: content
+hidden:
+  field_lesson_highlight_color: true
+  search_api_excerpt: true

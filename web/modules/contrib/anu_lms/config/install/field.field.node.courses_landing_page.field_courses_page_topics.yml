@@ -1,0 +1,28 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_courses_page_topics
+    - node.type.courses_landing_page
+    - taxonomy.vocabulary.course_topics
+id: node.courses_landing_page.field_courses_page_topics
+field_name: field_courses_page_topics
+entity_type: node
+bundle: courses_landing_page
+label: Topics
+description: 'Limit available topics to selected ones. If no topics are selected, all topics will be displayed.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      course_topics: course_topics
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

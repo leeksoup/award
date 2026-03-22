@@ -1,0 +1,28 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_courses_page_categories
+    - node.type.courses_landing_page
+    - taxonomy.vocabulary.course_category
+id: node.courses_landing_page.field_courses_page_categories
+field_name: field_courses_page_categories
+entity_type: node
+bundle: courses_landing_page
+label: Categories
+description: 'Limit available categories to selected ones. If no categories are selected, all categories will be displayed.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      course_category: course_category
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

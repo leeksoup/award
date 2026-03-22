@@ -1,0 +1,26 @@
+id: d7_achievement_storage
+label: Drupal 7 Achievement Storage.
+migration_tags:
+  - Drupal 7
+source:
+  plugin: d7_achievement_storage_source
+  track_changes: true
+process:
+  achievement_id: achievement_id
+  uid: uid
+  data: data
+destination:
+  plugin: table
+  table_name: achievement_storage
+  id_fields:
+    achievement_id:
+      type: string
+    uid:
+      type: integer
+  fields:
+    achievement_id: achievement_id
+    uid: uid
+    data: data
+migration_dependencies:
+  required:
+    - d7_user

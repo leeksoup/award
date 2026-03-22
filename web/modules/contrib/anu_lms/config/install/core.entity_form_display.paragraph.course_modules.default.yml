@@ -1,0 +1,44 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_form_mode.node.embedded
+    - field.field.paragraph.course_modules.field_module_lessons
+    - field.field.paragraph.course_modules.field_module_title
+    - paragraphs.paragraphs_type.course_modules
+  module:
+    - inline_entity_form
+id: paragraph.course_modules.default
+targetEntityType: paragraph
+bundle: course_modules
+mode: default
+content:
+  field_module_lessons:
+    type: inline_entity_form_complex
+    weight: 1
+    region: content
+    settings:
+      form_mode: embedded
+      override_labels: true
+      label_singular: lesson
+      label_plural: lessons
+      allow_new: true
+      allow_existing: true
+      match_operator: CONTAINS
+      allow_duplicate: false
+      collapsible: false
+      collapsed: false
+      revision: false
+      removed_reference: optional
+    third_party_settings: {  }
+  field_module_title:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  created: true
+  status: true

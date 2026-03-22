@@ -1,0 +1,9 @@
+anu_lms.admin_index:
+  title: 'Anu LMS'
+  route_name: 'anu_lms.admin_index'
+  parent: system.admin_config
+anu_lms.entity_labels:
+  title: 'Entity labels'
+  description: 'Change and translate entity labels.'
+  route_name: anu_lms.entity_labels
+  parent: anu_lms.admin_index

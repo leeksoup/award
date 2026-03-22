@@ -1,0 +1,32 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.courses_landing_page.field_courses_page_categories
+    - field.field.node.courses_landing_page.field_courses_page_topics
+    - node.type.courses_landing_page
+  module:
+    - user
+id: node.courses_landing_page.default
+targetEntityType: node
+bundle: courses_landing_page
+mode: default
+content:
+  field_courses_page_categories:
+    type: entity_reference_label
+    label: hidden
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  field_courses_page_topics:
+    type: entity_reference_label
+    label: hidden
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 1
+    region: content
+hidden:
+  links: true

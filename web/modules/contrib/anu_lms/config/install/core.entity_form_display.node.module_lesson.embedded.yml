@@ -1,0 +1,30 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_form_mode.node.embedded
+    - field.field.node.module_lesson.field_module_lesson_content
+    - node.type.module_lesson
+id: node.module_lesson.embedded
+targetEntityType: node
+bundle: module_lesson
+mode: embedded
+content:
+  title:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  created: true
+  field_module_lesson_content: true
+  path: true
+  promote: true
+  status: true
+  sticky: true
+  translation: true
+  uid: true
+  url_redirects: true

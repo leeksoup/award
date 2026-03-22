@@ -1,0 +1,121 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.module_assessment.field_hide_correct_answers
+    - field.field.node.module_assessment.field_module_assessment_items
+    - field.field.node.module_assessment.field_no_multiple_submissions
+    - node.type.module_assessment
+  module:
+    - field_group
+    - paragraphs_browser
+    - path
+third_party_settings:
+  field_group:
+    group_quiz_tabs:
+      children:
+        - group_content
+        - group_settings
+      label: 'Quiz tabs'
+      region: content
+      parent_name: ''
+      weight: 1
+      format_type: tabs
+      format_settings:
+        classes: ''
+        id: ''
+        direction: horizontal
+    group_content:
+      children:
+        - field_module_assessment_items
+      label: Content
+      region: content
+      parent_name: group_quiz_tabs
+      weight: 10
+      format_type: tab
+      format_settings:
+        classes: ''
+        id: ''
+        formatter: open
+        description: ''
+        required_fields: true
+    group_settings:
+      children:
+        - field_no_multiple_submissions
+        - field_hide_correct_answers
+      label: Settings
+      region: content
+      parent_name: group_quiz_tabs
+      weight: 12
+      format_type: tab
+      format_settings:
+        classes: ''
+        id: ''
+        formatter: closed
+        description: ''
+        required_fields: true
+id: node.module_assessment.default
+targetEntityType: node
+bundle: module_assessment
+mode: default
+content:
+  field_hide_correct_answers:
+    type: boolean_checkbox
+    weight: 52
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  field_module_assessment_items:
+    type: entity_reference_paragraphs_browser
+    weight: 2
+    region: content
+    settings:
+      title: block
+      title_plural: blocks
+      edit_mode: closed
+      add_mode: paragraphs_browser
+      form_display_mode: default
+      default_paragraph_type: _none
+      paragraphs_browser: anu
+      modal_width: 80%
+      modal_height: auto
+    third_party_settings: {  }
+  field_no_multiple_submissions:
+    type: boolean_checkbox
+    weight: 51
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  path:
+    type: path
+    weight: 3
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  status:
+    type: boolean_checkbox
+    weight: 2
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  title:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  url_redirects:
+    weight: 50
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  created: true
+  promote: true
+  sticky: true
+  uid: true

@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 'Courses page [DEPRECATED]'
+type: courses_page
+description: 'Content page that aggregates and displays courses.'
+help: ''
+new_revision: true
+preview_mode: 0
+display_submitted: false

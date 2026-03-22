@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies: {  }
+name: Course
+type: course
+description: 'A set of modules on a particular subject.'
+help: ''
+new_revision: true
+preview_mode: 0
+display_submitted: false

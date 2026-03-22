@@ -1,0 +1,46 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - filter.format.minimal_html
+  module:
+    - ckeditor5
+format: minimal_html
+editor: ckeditor5
+settings:
+  toolbar:
+    items:
+      - heading
+      - bulletedList
+      - numberedList
+      - bold
+      - underline
+      - italic
+      - superscript
+      - '|'
+      - link
+      - '|'
+      - removeFormat
+      - sourceEditing
+  plugins:
+    ckeditor5_heading:
+      enabled_headings:
+        - heading2
+        - heading3
+        - heading4
+        - heading5
+        - heading6
+    ckeditor5_list:
+      reversed: false
+      startIndex: false
+    ckeditor5_sourceEditing:
+      allowed_tags:
+        - '<a hreflang target>'
+image_upload:
+  status: false
+  scheme: public
+  directory: inline-images
+  max_size: ''
+  max_dimensions:
+    width: null
+    height: null

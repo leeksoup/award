@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.question_likert_scale.field_question
+    - paragraphs.paragraphs_type.question_likert_scale
+id: paragraph.question_likert_scale.default
+targetEntityType: paragraph
+bundle: question_likert_scale
+mode: default
+content:
+  field_question:
+    type: entity_reference_label
+    label: hidden
+    settings:
+      link: false
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden: {  }

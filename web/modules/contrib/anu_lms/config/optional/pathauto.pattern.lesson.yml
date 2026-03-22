@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: lesson
+label: Lesson
+type: 'canonical_entities:node'
+pattern: 'lesson/[node:title]'
+selection_criteria:
+  c1a51229-c029-43e3-8a85-05703a29b09a:
+    id: 'entity_bundle:node'
+    negate: false
+    uuid: c1a51229-c029-43e3-8a85-05703a29b09a
+    context_mapping:
+      node: node
+    bundles:
+      module_lesson: module_lesson
+selection_logic: and
+weight: -5
+relationships: {  }

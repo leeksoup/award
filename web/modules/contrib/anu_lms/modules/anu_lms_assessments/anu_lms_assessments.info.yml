@@ -1,0 +1,15 @@
+name: Anu LMS Quizzes
+description: Extends ANU LMS with quiz functionality.
+type: module
+package: Anu LMS
+core_version_requirement: ^10 || ^11
+dependencies:
+  - anu_lms:anu_lms
+  - range:range
+  - views_data_export:views_data_export
+  - xls_serialization:xls_serialization
+
+# Information added by Drupal.org packaging script on 2025-01-17
+version: '2.11.2'
+project: 'anu_lms'
+datestamp: 1737114792

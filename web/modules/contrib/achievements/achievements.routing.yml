@@ -1,0 +1,8 @@
+achievements.achievements_controller_userAchievements:
+  path: '/user/{user}/achievements'
+  defaults:
+    _controller: '\Drupal\achievements\Controller\AchievementsController::userAchievements'
+    _title_callback: '\Drupal\achievements\Controller\AchievementsController::userAchievementsTitle'
+  requirements:
+    _permission: 'access content'
+    user: \d+

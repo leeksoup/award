@@ -1,0 +1,12 @@
+achievements:
+  version: 1.x
+  css:
+    theme:
+      achievements.css: {}
+  js:
+    achievements.js: {}
+  dependencies:
+    - core/jquery
+    - core/once
+    - jquery_ui_dialog/dialog
+    - jquery_ui_effects/fade

@@ -1,0 +1,465 @@
+<?php
+// phpcs:ignoreFile
+
+/**
+ * @file
+ * Main entry point for the module.
+ */
+
+use Drupal\Core\Utility\Error;
+use Drupal\Component\Utility\DeprecationHelper;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\NodeInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\paragraphs\Entity\Paragraph;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\anu_lms\Settings;
+
+/**
+ * Implements hook_form_node_form_alter().
+ *
+ * Override title for "node edit" page.
+ */
+function anu_lms_form_node_form_alter(&$form, FormStateInterface $form_state) {
+  $settings = \Drupal::service('anu_lms.settings');
+  $entity = $form_state->getFormObject()->getEntity();
+
+  if ($entity && in_array($entity->id(), Settings::ALL_ENTITIES) && isset($form['#title'])) {
+    $args = $form['#title']->getArguments();
+
+    $form['#title'] = new TranslatableMarkup($form['#title']->getUntranslatedString(), [
+      '@type' => $settings->getEntityLabel($args['@type']),
+      '@title' => $args['@title'],
+    ]);
+  }
+
+  // Override descriptions on "courses_page" form.
+  if ($entity && $entity->bundle() === 'courses_page' && isset($form['field_courses_content']['widget']['add_more'])) {
+    $translation = $form['field_courses_content']['widget']['add_more']['add_more_button_course_category']['#value'];
+
+    $bundleName = $settings->getPhrase($translation->getArguments()['@type']);
+
+    $value = new TranslatableMarkup($translation->getUntranslatedString(), ['@type' => $bundleName]);
+    $form['field_courses_content']['widget']['add_more']['add_more_button_course_category']['#value'] = $value;
+  }
+}
+
+/**
+ * Implements hook_field_group_build_pre_render_alter().
+ */
+function anu_lms_field_group_form_process_build_alter(&$element) {
+  // Make sure form ID is present in the form element.
+  if (empty($element['form_id']['#value'])) {
+    return;
+  }
+
+  $settings = \Drupal::service('anu_lms.settings');
+
+  if ($element['form_id']['#value'] === 'node_course_form' || $element['form_id']['#value'] === 'node_course_edit_form') {
+    // Adapt field group labels.
+    if (isset($element['group_course_modules']['#title'])) {
+      $element['group_course_modules']['#title'] = $settings->getEntityLabel(Settings::ENTITY_TYPE_MODULE, TRUE);
+    }
+
+    if (isset($element['field_course_module']['widget']['#title'])) {
+      $element['field_course_module']['widget']['#title'] = $settings->getEntityLabel(Settings::ENTITY_TYPE_MODULE, TRUE);
+    }
+
+    // Adapt "Add module" button.
+    if (isset($element['field_course_module']['widget']['add_more']['add_more_button_course_modules']['#value'])) {
+      $addMore = $element['field_course_module']['widget']['add_more']['add_more_button_course_modules']['#value'];
+      $markupAddMore = new TranslatableMarkup($addMore->getUntranslatedString(), ['@type' => $settings->getEntityLabel(Settings::ENTITY_TYPE_MODULE)]);
+      $element['field_course_module']['widget']['add_more']['add_more_button_course_modules']['#value'] = $markupAddMore;
+    }
+
+    // Adapt "Enable linear progress" description.
+    if (isset($element['field_course_linear_progress']['widget']['value']['#description'])) {
+      $element['field_course_linear_progress']['widget']['value']['#description'] = $settings->getPhrase($element['field_course_linear_progress']['widget']['value']['#description']);
+    }
+
+    // Adapt "Course finish button" label.
+    if (isset($element['field_course_finish_button']['widget'][0]['uri']['#title'])) {
+      $element['field_course_finish_button']['widget'][0]['uri']['#title'] = $settings->getPhrase($element['field_course_finish_button']['widget'][0]['uri']['#title']);
+    }
+
+    // Adapt description.
+    if (isset($element['field_course_description']['widget'][0]['#description'])) {
+      $element['field_course_description']['widget'][0]['#description'] = $settings->getPhrase($element['field_course_description']['widget'][0]['#description']);
+    }
+
+    // Hide "to Modules" after "Add" button.
+    unset($element['field_course_module']['widget']['add_more']['#suffix']);
+  }
+}
+
+/**
+ * Implements hook_field_widget_WIDGET_TYPE_form_alter().
+ */
+function anu_lms_field_widget_paragraphs_form_alter(&$element, &$form_state, $context) {
+  $settings = \Drupal::service('anu_lms.settings');
+  if ($element['#paragraph_type'] === 'course_modules') {
+    // Adapt group title.
+    $element['top']['type']['label']['#markup'] = $settings->getEntityLabel(Settings::ENTITY_TYPE_MODULE);
+
+    // Adapt "Lessons" section title.
+    $element['subform']['field_module_lessons']['widget']['#field_title'] = $settings->getEntityLabel(Settings::ENTITY_TYPE_LESSON, TRUE);
+
+    // Get "Lessons" section description.
+    $element['subform']['field_module_lessons']['widget']['#description'] = $settings->getPhrase($element['subform']['field_module_lessons']['widget']['#description']);
+
+    $bundleName = strtolower($settings->getEntityLabel(Settings::ENTITY_TYPE_LESSON));
+
+    // Adapt "Add new Lesson".
+    $iefAdd = $element['subform']['field_module_lessons']['widget']['actions']['ief_add']['#value'] ?? NULL;
+    if ($iefAdd) {
+      $markup = new TranslatableMarkup($iefAdd->getUntranslatedString(), ['@type_singular' => $bundleName]);
+      $element['subform']['field_module_lessons']['widget']['actions']['ief_add']['#value'] = $markup;
+    }
+
+    // Adapt "Add existing Lesson".
+    $iefAddExisting = $element['subform']['field_module_lessons']['widget']['actions']['ief_add_existing']['#value'] ?? NULL;
+    if ($iefAddExisting) {
+      $markup = new TranslatableMarkup($iefAddExisting->getUntranslatedString(), ['@type_singular' => $bundleName]);
+      $element['subform']['field_module_lessons']['widget']['actions']['ief_add_existing']['#value'] = $markup;
+    }
+  }
+  elseif ($element['#paragraph_type'] === 'course_category') {
+    if (isset($element['top']['type']['label']['#markup'])) {
+      $element['top']['type']['label']['#markup'] = $settings->getPhrase($element['top']['type']['label']['#markup']);
+    }
+
+    if (isset($element['subform']['field_course_category']['widget']['#description'])) {
+      $element['subform']['field_course_category']['widget']['#description'] = $settings->getPhrase($element['subform']['field_course_category']['widget']['#description']);
+    }
+  }
+}
+
+/**
+ * Implements hook_inline_entity_form_entity_form_alter().
+ *
+ * Overrides "lessons" in "add new" form.
+ */
+function anu_lms_inline_entity_form_entity_form_alter(&$entity_form, &$form_state) {
+  if ($entity_form['#bundle'] === 'module_lesson' && $entity_form['#entity_type'] === 'node') {
+    $settings = \Drupal::service('anu_lms.settings');
+    $entity_form['#ief_labels']['singular'] = strtolower($settings->getEntityLabel(Settings::ENTITY_TYPE_LESSON));
+    $entity_form['#ief_labels']['plural'] = strtolower($settings->getEntityLabel(Settings::ENTITY_TYPE_LESSON, TRUE));
+  }
+}
+
+/**
+ * Implements hook_inline_entity_form_reference_form_alter().
+ *
+ * Overrides "lessons" in "add existing" form.
+ */
+function anu_lms_inline_entity_form_reference_form_alter(&$entity_form, &$form_state) {
+  if (in_array('module_lesson', $entity_form['entity_id']['#selection_settings']['target_bundles']) && $entity_form['#entity_type'] === 'node') {
+    $settings = \Drupal::service('anu_lms.settings');
+    $bundleName = $settings->getEntityLabel(Settings::ENTITY_TYPE_LESSON);
+
+    // Render title.
+    $markup = new TranslatableMarkup($entity_form['#title']->getUntranslatedString(), ['@type_singular' => strtolower($bundleName)]);
+    $entity_form['#title'] = $markup;
+    $entity_form['entity_id']['#title'] = $bundleName;
+
+    // Render Save button.
+    $iefReferenceSave = $entity_form['actions']['ief_reference_save']['#value'] ?? NULL;
+    if ($iefReferenceSave) {
+      $markup = new TranslatableMarkup($iefReferenceSave->getUntranslatedString(), ['@type_singular' => strtolower($bundleName)]);
+      $entity_form['actions']['ief_reference_save']['#value'] = $markup;
+    }
+
+    $entity_form['#ief_labels']['singular'] = $bundleName;
+    $entity_form['#ief_labels']['plural'] = $settings->getEntityLabel(Settings::ENTITY_TYPE_LESSON, TRUE);
+  }
+}
+
+/**
+ * Implements hook_link_alter().
+ */
+function anu_lms_link_alter(&$variables) {
+  $url = $variables['url'];
+
+  if ($url->isRouted() && $variables['url']->getRouteName() === 'node.add') {
+    $variables['text'] = \Drupal::service('anu_lms.settings')->getEntityLabel($variables['text']);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Updates description.
+ */
+function anu_lms_form_node_course_delete_form_alter(&$form) {
+  $form['description']['#markup'] = t('This will delete all modules and lessons in this course and the translations. Are you sure you want to delete?');
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Updates description.
+ */
+function anu_lms_form_node_module_delete_form_alter(&$form) {
+  $form['description']['#markup'] = t('This will delete all lessons in this module and the translations. Are you sure you want to delete?');
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ *
+ * Removes leftover content related to the node.
+ */
+function anu_lms_node_delete(NodeInterface $node) {
+  // Collects leftover contents IDs.
+  if ($node->getType() == 'course') {
+
+    // Collect module paragraphs IDs.
+    $modules = $node->get('field_course_module')->referencedEntities();
+
+    if (!empty($modules)) {
+      // Collect IDs of referenced lessons and quizes.
+      $nids = [];
+      foreach ($modules as $module) {
+        $nids = array_merge($nids, array_column($module->get('field_module_lessons')->getValue(), 'target_id'));
+        if ($module->hasField('field_module_assessment')) {
+          $nids = array_merge($nids, array_column($module->get('field_module_assessment')->getValue(), 'target_id'));
+        }
+
+      }
+    }
+  }
+
+  if (!empty($nids)) {
+    // Deletes nodes by chunks.
+    $storage = \Drupal::entityTypeManager()->getStorage('node');
+    foreach (array_chunk($nids, 50) as $chunk) {
+      $nodes = $storage->loadMultiple($chunk);
+      $storage->delete($nodes);
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ *
+ * Enables progress for courses that belong to a category with locking enabled.
+ */
+function anu_lms_node_presave(NodeInterface $node) {
+  if ($node->getType() !== 'course') {
+    return;
+  }
+  // Collect categories.
+  $categories = $node->get('field_course_category')->referencedEntities();
+
+  foreach ($categories as $category) {
+    if ($category->field_enable_course_sequence->value) {
+      $node->field_course_linear_progress->value = TRUE;
+      return;
+    }
+  }
+}
+
+/**
+ * Implements hook_field_widget_single_element_WIDGET_TYPE_form_alter().
+ *
+ * Case for boolean_checkbox.
+ *
+ * Disable widget when the course belongs to a category that requires
+ * progress to be enabled.
+ */
+function anu_lms_field_widget_single_element_boolean_checkbox_form_alter(&$element, FormStateInterface $form_state, $context) {
+  if ($context['items']->getName() !== 'field_course_linear_progress') {
+    return;
+  }
+  $course = $context['items']->getEntity();
+  $categories = $course->get('field_course_category')->referencedEntities();
+  foreach ($categories as $category) {
+    if (!$category->field_enable_course_sequence->value) {
+      continue;
+    }
+    $element['value']['#disabled'] = TRUE;
+    $element['value']['#default_value'] = TRUE;
+    $element['warning'] = [
+      '#markup' => t('This course belongs to a category that requires for this setting to be enabled so it can not be edited'),
+    ];
+    return;
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Add an option to enable locking.
+ */
+function anu_lms_form_views_form_sort_courses_sort_page_alter(&$form, FormStateInterface $form_state) {
+  $termId = Drupal::routeMatch()->getParameter('taxonomy_term');
+  $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($termId);
+  $form['sequence'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Courses must be completed in this order'),
+    '#default_value' => $term->field_enable_course_sequence->value,
+  ];
+  $form['#submit'][] = 'anu_lms_form_views_form_sort_courses_sort_page_submit';
+}
+
+/**
+ * Custom submit to enable locking.
+ */
+function anu_lms_form_views_form_sort_courses_sort_page_submit(&$form, FormStateInterface $form_state) {
+  if ($form_state->getValue('sequence')) {
+    anu_lms_form_views_form_sort_courses_enable_progress($form['field_weight']);
+  }
+
+  // Store the preference about the sequence.
+  $termId = Drupal::routeMatch()->getParameter('taxonomy_term');
+  $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($termId);
+  $term->field_enable_course_sequence->value = $form_state->getValue('sequence');
+  $term->save();
+}
+
+/**
+ * Enable linear progress for all courses in the form.
+ */
+function anu_lms_form_views_form_sort_courses_enable_progress($elements) {
+  foreach ($elements as $element) {
+    if (!isset($element['entity']['#value'])) {
+      continue;
+    }
+    $course = $element['entity']['#value'];
+    $course->field_course_linear_progress->value = TRUE;
+    $course->save();
+  }
+}
+
+/**
+ * Implements hook_anu_lms_sw_scripts_alter().
+ *
+ * Include custom Anu service worker script if there is at least one audio
+ * paragraph in the system.
+ */
+function anu_lms_anu_lms_sw_scripts_alter(&$data) {
+  try {
+    $query = \Drupal::entityTypeManager()->getStorage('paragraph')->getQuery();
+    $audio_paragraphs_exist = $query->accessCheck(FALSE)
+      ->condition('type', 'lesson_audio')
+      ->condition('status', TRUE)
+      ->range(0, 1)
+      ->execute();
+
+    // Inject custom Anu service worker only if at least one audio paragraph
+    // exists.
+    if (!empty($audio_paragraphs_exist)) {
+      $data[] = "/" . \Drupal::service('extension.path.resolver')->getPath('module', 'anu_lms') . '/js/dist/serviceworker.min.js';
+    }
+  }
+  catch (\Exception $exception) {
+    DeprecationHelper::backwardsCompatibleCall(\Drupal::VERSION, '10.1.0', fn() => Error::logException(\Drupal::logger('anu_lms'), $exception), fn() => watchdog_exception('anu_lms', $exception));
+  }
+}
+
+/**
+ * Implements hook_entity_insert().
+ *
+ * Adds an empty page to a lesson if there are no pages.
+ */
+function anu_lms_entity_insert(EntityInterface $entity) {
+  if ($entity->getEntityTypeId() !== 'node' || $entity->bundle() !== 'module_lesson') {
+    return;
+  }
+
+  $lesson_content = $entity->get('field_module_lesson_content');
+
+  if (!empty($lesson_content->getValue())) {
+    return;
+  }
+
+  $lesson_content->appendItem(Paragraph::create([
+    'type' => 'lesson_section',
+  ]));
+
+  $entity->save();
+}
+
+/**
+ * Implements template_preprocess_node_add_list().
+ *
+ * Hides link to create deprecated courses page node.
+ * Render name of content types as well.
+ */
+function anu_lms_preprocess_node_add_list(&$variables) {
+  unset($variables['content']['courses_page']);
+  unset($variables['types']['courses_page']);
+
+  foreach ($variables['content'] as $sysname => $type) {
+    if (in_array($sysname, Settings::ALL_ENTITIES)) {
+      $type->set('name', \Drupal::service('anu_lms.settings')->getEntityLabel($type->get('name')));
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_bundle_info_alter().
+ *
+ * Render name of content types.
+ */
+function anu_lms_entity_bundle_info_alter(array &$bundles) {
+  if (!empty($bundles['node'])) {
+    foreach ($bundles['node'] as $sysname => &$type) {
+      if (in_array($sysname, Settings::ALL_ENTITIES)) {
+        $type['label'] = \Drupal::service('anu_lms.settings')->getEntityLabel($type['label']);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_views_view_field().
+ *
+ * Render name of content types in "Content" view.
+ */
+function anu_lms_preprocess_views_view_field(&$variables) {
+  $view = $variables['view'];
+  $field = $variables['field'];
+  if (isset($view) && isset($field) && $view->storage->id() === 'content' && $field->field === 'type') {
+    $variables['output'] = \Drupal::service('anu_lms.settings')->getEntityLabel($variables['output']);
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access().
+ *
+ * Check "module_lesson" node for access.
+ */
+function anu_lms_node_access(EntityInterface $entity, $operation, AccountInterface $account) {
+  if ($entity->bundle() === 'module_lesson' && $operation === 'view') {
+    /** @var \Drupal\anu_lms\Lesson $lesson_handler */
+    $lesson_handler = \Drupal::service('anu_lms.lesson');
+    $course = $lesson_handler->getLessonCourse($entity->id());
+
+    // If the course exists, then check access.
+    if ($course) {
+      return AccessResult::forbiddenIf(!$course->access('view', $account));
+    }
+  }
+
+  return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adjustments for Anu LMS pages condition.
+ */
+function anu_lms_form_block_form_alter(&$form, FormStateInterface $form_state): void {
+  if (empty($form['visibility']['anu_lms_pages'])) {
+    return;
+  }
+
+  // Hiding context source selection field since it should always be node.
+  $form['visibility']['anu_lms_pages']['context_mapping']['#access'] = FALSE;
+  $form['visibility']['anu_lms_pages']['context_mapping']['node']['#value'] = '@node.node_route_context:node';
+
+  // Displaying the Anu LMS pages condition summary on the vertical tab.
+  $form['visibility_tabs']['#attached']['library'][] = 'anu_lms/condition';
+}

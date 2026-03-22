@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs_browser
+    - paragraphs_selection
+third_party_settings:
+  paragraphs_selection:
+    fields:
+      -
+        id: paragraph.lesson_section.field_lesson_section_content
+        weight: -46
+  paragraphs_browser:
+    image_path: 'anu-lms://assets/image.png'
+id: lesson_image
+label: 'Block: Image'
+icon_uuid: null
+icon_default: null
+description: 'Block with image & caption.'
+behavior_plugins: {  }

@@ -1,0 +1,87 @@
+services:
+  # Generic ANU LMS logger.
+  logger.channel.anu_lms:
+    parent: logger.channel_base
+    arguments: [ 'anu_lms' ]
+
+  # Route subscriber to overwrite node display for ANU LMS content types.
+  anu_lms.route_subscriber:
+    class: Drupal\anu_lms\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }
+
+  # Module's settings service.
+  anu_lms.settings:
+    class: Drupal\anu_lms\Settings
+    arguments: [ '@extension.list.module', '@module_handler', '@config.factory' ]
+
+  # Stream wrapper which points to Anu LMS folder.
+  stream_wrapper.anu_lms_readonly:
+    class: Drupal\anu_lms\StreamWrapper\AnuLmsReadonlyStreamWrapper
+    tags:
+      - { name: stream_wrapper, scheme: anu-lms }
+
+  # Helper service for Courses Page content type.
+  anu_lms.courses_page:
+    class: Drupal\anu_lms\CoursesPage
+    arguments: [ '@entity_type.manager', '@cache.default', '@language_manager', '@anu_lms.course']
+
+  # Helper service for Course content type.
+  anu_lms.course:
+    class: Drupal\anu_lms\Course
+    arguments: [ '@entity_type.manager', '@file_url_generator', '@entity.repository', '@database' ]
+
+  # Helper service for Lesson / Quiz content types.
+  anu_lms.lesson:
+    class: Drupal\anu_lms\Lesson
+    arguments: [ '@entity_type.manager', '@database', '@current_user', '@logger.channel.anu_lms', '@anu_lms.course', '@event_dispatcher', '@datetime.time', '@module_handler']
+
+  # Helper service for Course progress.
+  anu_lms.course_progress:
+    class: Drupal\anu_lms\CourseProgress
+    arguments: [ '@anu_lms.course', '@anu_lms.lesson', '@anu_lms.courses_page']
+
+  # Root normalizer which prepares optimized output by REST Entity Recursive module.
+  anu_lms.normalizer:
+    class: Drupal\anu_lms\Normalizer
+    arguments: [ '@entity.repository', '@serializer', '@cache.default', '@cache_contexts_manager', '@module_handler']
+
+  # Normalizer for Course node type.
+  anu_lms.normalizer.course:
+    class: Drupal\anu_lms\Normalizer\CourseNormalizer
+    tags:
+      - { name: normalizer, priority: 13 }
+
+  # Normalizer for Lesson and Quiz node types.
+  anu_lms.normalizer.lesson:
+    class: Drupal\anu_lms\Normalizer\LessonNormalizer
+    tags:
+      - { name: normalizer, priority: 13 }
+
+  # Normalizer for Courses Page node types.
+  anu_lms.normalizer.courses_page:
+    class: Drupal\anu_lms\Normalizer\CoursesPageNormalizer
+    tags:
+      - { name: normalizer, priority: 13 }
+
+  anu_lms.normalizer.image_file:
+    class: Drupal\anu_lms\Normalizer\ImageFileNormalizer
+    arguments: [ '@file_url_generator' ]
+    tags:
+      - { name: normalizer, priority: 12 }
+
+  anu_lms.normalizer.image_item:
+    class: Drupal\anu_lms\Normalizer\ImageItemNormalizer
+    arguments: [ '@entity.repository' ]
+    tags:
+      - { name: normalizer, priority: 11 }
+
+  anu_lms.pwa_response_subscriber:
+    class: Drupal\anu_lms\EventSubscriber\PWAResponseSubscriber
+    tags:
+      - { name: event_subscriber }
+    arguments: [ '@entity_type.manager', '@module_handler' ]
+
+  plugin.manager.anu_lms_content_type:
+    class: Drupal\anu_lms\AnuLmsContentTypePluginManager
+    parent: default_plugin_manager

@@ -1,0 +1,28 @@
+anu_lms.course.finish:
+  path: '/node/{node}/finish'
+  defaults:
+    _title: 'Finish'
+    _controller: '\Drupal\anu_lms\Controller\FinishCourse::complete'
+  requirements:
+    _entity_access: 'node.view'
+    node: \d+
+anu_lms.service_worker_settings:
+  path: /anu_lms/sw-settings
+  defaults:
+    _controller: '\Drupal\anu_lms\Controller\ServiceWorkerController::settings'
+  requirements:
+    _access: 'TRUE'
+anu_lms.admin_index:
+  path: '/admin/config/anu_lms'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'Anu LMS'
+  requirements:
+    _permission: 'administer anu lms configuration'
+anu_lms.entity_labels:
+  path: '/admin/config/anu_lms/entity_labels'
+  defaults:
+    _form: '\Drupal\anu_lms\Form\LabelsForm'
+    _title: 'Entity labels'
+  requirements:
+    _permission: 'administer anu lms configuration'

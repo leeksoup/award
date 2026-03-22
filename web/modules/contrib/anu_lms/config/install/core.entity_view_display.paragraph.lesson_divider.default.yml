@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.lesson_divider.field_lesson_divider_type
+    - paragraphs.paragraphs_type.lesson_divider
+id: paragraph.lesson_divider.default
+targetEntityType: paragraph
+bundle: lesson_divider
+mode: default
+content: {  }
+hidden:
+  field_lesson_divider_type: true
+  search_api_excerpt: true

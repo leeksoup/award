@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.lesson_custom_paragraph_example.field_example_field
+    - paragraphs.paragraphs_type.lesson_custom_paragraph_example
+id: paragraph.lesson_custom_paragraph_example.default
+targetEntityType: paragraph
+bundle: lesson_custom_paragraph_example
+mode: default
+content:
+  field_example_field:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  created: true
+  status: true

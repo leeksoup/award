@@ -1,0 +1,33 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_form_mode.node.embedded
+    - field.field.node.module_assessment.field_hide_correct_answers
+    - field.field.node.module_assessment.field_module_assessment_items
+    - field.field.node.module_assessment.field_no_multiple_submissions
+    - node.type.module_assessment
+id: node.module_assessment.embedded
+targetEntityType: node
+bundle: module_assessment
+mode: embedded
+content:
+  title:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  created: true
+  field_hide_correct_answers: true
+  field_module_assessment_items: true
+  field_no_multiple_submissions: true
+  path: true
+  promote: true
+  status: true
+  sticky: true
+  uid: true
+  url_redirects: true

@@ -1,0 +1,36 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.lesson_image_wide.field_lesson_image_caption
+    - field.field.paragraph.lesson_image_wide.field_lesson_image_image
+    - image.style.medium
+    - paragraphs.paragraphs_type.lesson_image_wide
+  module:
+    - image
+id: paragraph.lesson_image_wide.default
+targetEntityType: paragraph
+bundle: lesson_image_wide
+mode: default
+content:
+  field_lesson_image_caption:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  field_lesson_image_image:
+    type: image
+    label: hidden
+    settings:
+      image_link: ''
+      image_style: medium
+      image_loading:
+        attribute: lazy
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  search_api_excerpt: true

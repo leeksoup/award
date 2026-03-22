@@ -1,0 +1,40 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.lesson_resource.field_resource_description
+    - field.field.paragraph.lesson_resource.field_resource_file
+    - field.field.paragraph.lesson_resource.field_resource_name
+    - paragraphs.paragraphs_type.lesson_resource
+id: paragraph.lesson_resource.default
+targetEntityType: paragraph
+bundle: lesson_resource
+mode: default
+content:
+  field_resource_description:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  field_resource_file:
+    type: entity_reference_entity_view
+    label: hidden
+    settings:
+      view_mode: default
+      link: false
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  field_resource_name:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  search_api_excerpt: true

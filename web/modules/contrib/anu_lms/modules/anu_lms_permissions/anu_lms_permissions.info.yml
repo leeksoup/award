@@ -1,0 +1,15 @@
+name: Anu LMS Permissions
+description: Adds permissions separation for organizations, teachers and students.
+type: module
+package: Anu LMS
+core_version_requirement: ^10 || ^11
+dependencies:
+  - anu_lms:anu_lms
+  - group:gnode
+  - group:group
+  - groupmedia:groupmedia
+
+# Information added by Drupal.org packaging script on 2025-01-17
+version: '2.11.2'
+project: 'anu_lms'
+datestamp: 1737114792

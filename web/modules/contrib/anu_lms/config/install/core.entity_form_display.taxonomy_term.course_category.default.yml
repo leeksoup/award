@@ -1,0 +1,25 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.taxonomy_term.course_category.field_enable_course_sequence
+    - taxonomy.vocabulary.course_category
+id: taxonomy_term.course_category.default
+targetEntityType: taxonomy_term
+bundle: course_category
+mode: default
+content:
+  name:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  description: true
+  field_enable_course_sequence: true
+  path: true
+  status: true
+  translation: true

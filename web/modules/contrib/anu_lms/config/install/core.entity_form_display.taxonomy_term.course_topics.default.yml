@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.course_topics
+id: taxonomy_term.course_topics.default
+targetEntityType: taxonomy_term
+bundle: course_topics
+mode: default
+content:
+  name:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  description: true
+  path: true
+  status: true

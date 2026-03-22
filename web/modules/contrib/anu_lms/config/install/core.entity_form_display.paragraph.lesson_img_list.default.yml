@@ -1,0 +1,57 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.lesson_img_list.field_lesson_highlight_color
+    - field.field.paragraph.lesson_img_list.field_lesson_img_list_heading
+    - field.field.paragraph.lesson_img_list.field_lesson_img_list_highlight
+    - field.field.paragraph.lesson_img_list.field_lesson_img_list_items
+    - paragraphs.paragraphs_type.lesson_img_list
+  module:
+    - paragraphs
+id: paragraph.lesson_img_list.default
+targetEntityType: paragraph
+bundle: lesson_img_list
+mode: default
+content:
+  field_lesson_highlight_color:
+    weight: 0
+    settings: {  }
+    third_party_settings: {  }
+    type: options_select
+    region: content
+  field_lesson_img_list_heading:
+    weight: 1
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+    region: content
+  field_lesson_img_list_items:
+    type: paragraphs
+    weight: 2
+    settings:
+      title: Paragraph
+      title_plural: Paragraphs
+      edit_mode: open
+      add_mode: dropdown
+      form_display_mode: default
+      default_paragraph_type: ''
+      closed_mode: summary
+      autocollapse: none
+      closed_mode_threshold: 0
+      features:
+        collapse_edit_all: collapse_edit_all
+        duplicate: duplicate
+    third_party_settings: {  }
+    region: content
+  translation:
+    weight: 3
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  created: true
+  field_lesson_img_list_highlight: true
+  status: true

@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies: {  }
+name: image_bullet_list_large
+label: '[ANU LMS] Paragraph: Image bullet list (large)'
+effects:
+  7f8f3337-d705-4456-8a41-e1d0ff98e4fe:
+    uuid: 7f8f3337-d705-4456-8a41-e1d0ff98e4fe
+    id: image_scale
+    weight: 1
+    data:
+      width: 120
+      height: 120
+      upscale: false

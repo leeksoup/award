@@ -1,0 +1,33 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.lesson_table.field_lesson_table_caption
+    - field.field.paragraph.lesson_table.field_lesson_table_content
+    - field.field.paragraph.lesson_table.field_lesson_table_sticky
+    - paragraphs.paragraphs_type.lesson_table
+  module:
+    - text
+id: paragraph.lesson_table.default
+targetEntityType: paragraph
+bundle: lesson_table
+mode: default
+content:
+  field_lesson_table_caption:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  field_lesson_table_content:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  field_lesson_table_sticky: true
+  search_api_excerpt: true

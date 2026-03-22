@@ -1,0 +1,35 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.lesson_audio.field_audio_file
+    - field.field.paragraph.lesson_audio.field_audio_name
+    - paragraphs.paragraphs_type.lesson_audio
+  module:
+    - file
+id: paragraph.lesson_audio.default
+targetEntityType: paragraph
+bundle: lesson_audio
+mode: default
+content:
+  field_audio_file:
+    type: file_audio
+    label: hidden
+    settings:
+      controls: true
+      autoplay: false
+      loop: false
+      multiple_file_display_type: tags
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  field_audio_name:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+hidden:
+  search_api_excerpt: true

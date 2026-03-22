@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - group.type.anu_organization
+    - node.type.module_assessment
+  module:
+    - gnode
+    - node
+id: group_content_type_d342280e2d680
+label: 'Organization: Group node (Module&#039;s quiz)'
+description: 'Adds <em class="placeholder">Module&#039;s quiz</em> content to groups both publicly and privately.'
+group_type: anu_organization
+content_plugin: 'group_node:module_assessment'
+plugin_config:
+  group_cardinality: 0
+  entity_cardinality: 1
+  use_creation_wizard: false

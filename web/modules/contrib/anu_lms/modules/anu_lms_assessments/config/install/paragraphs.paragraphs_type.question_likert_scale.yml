@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs_selection
+third_party_settings:
+  paragraphs_selection:
+    fields:
+      -
+        id: paragraph.lesson_section.field_lesson_section_content
+        weight: -31
+  paragraphs_browser:
+    image_path: 'anu-lms://assets/question-likert-scale.png'
+id: question_likert_scale
+label: 'Question: Likert scale'
+icon_uuid: null
+icon_default: null
+description: 'Question with answers presented as a likert scale.'
+behavior_plugins: {  }

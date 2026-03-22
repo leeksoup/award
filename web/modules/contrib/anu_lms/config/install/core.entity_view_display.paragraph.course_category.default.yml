@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.course_category.field_course_category
+    - paragraphs.paragraphs_type.course_category
+id: paragraph.course_category.default
+targetEntityType: paragraph
+bundle: course_category
+mode: default
+content:
+  field_course_category:
+    type: entity_reference_label
+    label: hidden
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  search_api_excerpt: true

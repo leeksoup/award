@@ -1,0 +1,30 @@
+id: d7_achievement_unlocks
+label: Drupal 7 Achievement Unlocks.
+migration_tags:
+  - Drupal 7
+source:
+  plugin: d7_achievement_unlocks_source
+  track_changes: true
+process:
+  achievement_id: achievement_id
+  rank: rank
+  uid: uid
+  timestamp: timestamp
+  seen: seen
+destination:
+  plugin: table
+  table_name: achievement_unlocks
+  id_fields:
+    achievement_id:
+      type: string
+    uid:
+      type: integer
+  fields:
+    achievement_id: achievement_id
+    rank: rank
+    uid: uid
+    timestamp: timestamp
+    seen: seen
+migration_dependencies:
+  required:
+    - d7_user

@@ -1,0 +1,32 @@
+<?php
+
+/**
+ * @file
+ * Main entry point for the module.
+ */
+
+/**
+ * Implements hook_library_info_alter().
+ */
+function anu_lms_custom_paragraph_library_info_alter(&$libraries, $extension) {
+  // Replace paths to anu_lms js libraries with the paths to this module.
+  if ($extension === 'anu_lms') {
+    $old_js_path = 'js/dist';
+    // Since the replaced library files are no longer located in a directory
+    // relative to the original extension, specify an absolute path (relative
+    // to DRUPAL_ROOT / base_path()) to the new location.
+    $new_js_path = '/' . \Drupal::service('extension.list.module')
+      ->getPath('anu_lms_custom_paragraph') . '/js/dist';
+
+    foreach ($libraries as $library_name => $library) {
+      if (!empty($library['js'])) {
+        foreach ($library['js'] as $js_file_path => $options) {
+          $replaced_file_path = str_replace($old_js_path, $new_js_path, $js_file_path);
+          $options = $libraries[$library_name]['js'][$js_file_path];
+          $libraries[$library_name]['js'][$replaced_file_path] = $options;
+          unset($libraries[$library_name]['js'][$js_file_path]);
+        }
+      }
+    }
+  }
+}

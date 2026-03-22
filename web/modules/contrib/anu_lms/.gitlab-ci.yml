@@ -1,0 +1,64 @@
+include:
+  # This remote project centralizes our CI "golden path" https://docs.gitlab.com/ee/ci/yaml/#includefile
+  remote: 'https://gitlab.com/drupalspoons/composer-plugin/-/raw/master/templates/.gitlab-ci.yml'
+
+variables:
+  PHP_TAG: "8.1"
+  WEB_PORT: "9000"
+  DRUPAL_CORE_CONSTRAINT: "^9"
+
+# Disable irrelevant jobs.
+stylelint:
+  rules: [when: never]
+eslint:
+  rules: [when: never]
+
+# Install NPM dependencies and build the React app.
+npm:
+  stage: build
+  image: node:lts-alpine
+  script:
+    - cd js
+    - npm install
+    - npm run build
+  variables:
+    NODE_OPTIONS: --openssl-legacy-provider
+  # Use artifacts to copy dependencies and built files to subsequent jobs.
+  artifacts:
+    expire_in: 1 week
+    expose_as: 'web-js'
+    when: always
+    paths:
+      - js/node_modules/
+      - js/dist/
+
+# Force failure if PHPCS checks didn't pass.
+phpcs:
+  stage: test
+  allow_failure: false
+
+# Run ESLint for the React app.
+react-eslint:
+  stage: test
+  image: node:lts-alpine
+  script:
+    - cd js
+    - npm run lint
+
+# Fail build if there are uncommitted changes after build.
+dist-folder-outdated:
+  image: alpine/git
+  stage: test
+  script:
+    # Successful status code (0) if dist folder doesn't contain any changes.
+    - git status --porcelain | grep "js/dist/" || exit 0 && exit 123
+
+# Install required packages to run testing.
+phpunit:
+  before_script:
+    - composer require --prefer-stable drupal/range:^1.0 drupal/views_data_export:^1.0 drupal/xls_serialization:^1.0
+
+# Override SELENIUM_CHROME_TAG variable.
+.phpunit-base:
+  variables:
+    SELENIUM_CHROME_TAG: "106.0"

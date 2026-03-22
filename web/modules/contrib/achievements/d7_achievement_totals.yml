@@ -1,0 +1,28 @@
+id: d7_achievement_totals
+label: Drupal 7 Achievement Totals.
+migration_tags:
+  - Drupal 7
+source:
+  plugin: d7_achievement_totals_source
+  track_changes: true
+process:
+  uid: uid
+  points: points
+  unlocks: unlocks
+  timestamp: timestamp
+  achievement_id: achievement_id
+destination:
+  plugin: table
+  table_name: achievement_totals
+  id_fields:
+    uid:
+      type: integer
+  fields:
+    uid: uid
+    points: points
+    unlocks: unlocks
+    timestamp: timestamp
+    achievement_id: achievement_id
+migration_dependencies:
+  required:
+    - d7_user

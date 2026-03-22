@@ -1,0 +1,28 @@
+{
+    "name": "drupal/achievements",
+    "description": "The Achievements module offers the ability to create achievements and badges.",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://drupal.org/project/achievements",
+    "repositories": {
+        "drupal": {
+            "type": "composer",
+            "url": "https://packages.drupal.org/8"
+        }
+    },
+    "authors": [
+        {
+            "name": "Matthew Grasmick",
+            "homepage": "https://www.drupal.org/u/grasmash"
+        }
+    ],
+    "support": {
+        "issues": "https://drupal.org/project/issues/achievements",
+        "source": "https://cgit.drupalcode.org/achievements"
+    },
+    "minimum-stability": "dev",
+    "require": {
+        "drupal/jquery_ui_effects": "^2.0",
+        "drupal/jquery_ui_dialog": "^2.0"
+    }
+}

@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.lesson_heading.field_lesson_heading_size
+    - field.field.paragraph.lesson_heading.field_lesson_heading_value
+    - paragraphs.paragraphs_type.lesson_heading
+id: paragraph.lesson_heading.default
+targetEntityType: paragraph
+bundle: lesson_heading
+mode: default
+content:
+  field_lesson_heading_value:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  field_lesson_heading_size: true
+  search_api_excerpt: true

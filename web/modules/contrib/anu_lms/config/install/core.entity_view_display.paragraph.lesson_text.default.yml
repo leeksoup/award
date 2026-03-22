@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.lesson_text.field_lesson_text_content
+    - paragraphs.paragraphs_type.lesson_text
+  module:
+    - text
+id: paragraph.lesson_text.default
+targetEntityType: paragraph
+bundle: lesson_text
+mode: default
+content:
+  field_lesson_text_content:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  search_api_excerpt: true

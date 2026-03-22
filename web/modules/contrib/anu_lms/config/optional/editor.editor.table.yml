@@ -1,0 +1,41 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - filter.format.table
+  module:
+    - ckeditor5
+format: table
+editor: ckeditor5
+settings:
+  toolbar:
+    items:
+      - insertTable
+      - '|'
+      - bold
+      - underline
+      - italic
+      - superscript
+      - '|'
+      - bulletedList
+      - numberedList
+      - '|'
+      - link
+      - '|'
+      - removeFormat
+      - sourceEditing
+  plugins:
+    ckeditor5_list:
+      reversed: false
+      startIndex: false
+    ckeditor5_sourceEditing:
+      allowed_tags:
+        - '<a hreflang target>'
+image_upload:
+  status: false
+  scheme: public
+  directory: inline-images
+  max_size: ''
+  max_dimensions:
+    width: null
+    height: null

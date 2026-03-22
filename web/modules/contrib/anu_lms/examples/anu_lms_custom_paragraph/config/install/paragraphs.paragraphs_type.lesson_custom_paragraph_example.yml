@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs_browser
+    - paragraphs_selection
+third_party_settings:
+  paragraphs_selection:
+    fields:
+      -
+        id: paragraph.lesson_section.field_lesson_section_content
+        weight: 30
+  paragraphs_browser:
+    image_path: 'anu-lms://examples/anu_lms_custom_paragraph/assets/example.png'
+id: lesson_custom_paragraph_example
+label: 'Block: Custom paragraph example'
+icon_uuid: null
+icon_default: null
+description: 'Demo custom paragraph type with a demo field.'
+behavior_plugins: {  }

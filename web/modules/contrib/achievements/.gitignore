@@ -1,0 +1,6 @@
+.idea
+*.patch
+*.diff
+*.rej
+*.orig
+vendor

@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.course_category.field_course_category
+    - paragraphs.paragraphs_type.course_category
+id: paragraph.course_category.default
+targetEntityType: paragraph
+bundle: course_category
+mode: default
+content:
+  field_course_category:
+    type: options_select
+    weight: 0
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  created: true
+  status: true

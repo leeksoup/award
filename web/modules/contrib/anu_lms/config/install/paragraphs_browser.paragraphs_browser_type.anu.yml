@@ -1,0 +1,49 @@
+langcode: en
+status: true
+dependencies: {  }
+id: anu
+label: 'Anu LMS'
+groups:
+  simple:
+    label: Simple
+    id: simple
+    weight: '0'
+  lists:
+    label: Lists
+    id: lists
+    weight: '1'
+  media:
+    label: Media
+    id: media
+    weight: '2'
+  user:
+    label: 'User interaction'
+    id: user
+    weight: '3'
+  questions:
+    label: Questions
+    id: questions
+    weight: 4
+map:
+  lesson_checklist: user
+  lesson_divider: simple
+  lesson_embedded_video: media
+  lesson_footnotes: simple
+  lesson_heading: simple
+  lesson_text: simple
+  lesson_table: simple
+  lesson_resource: media
+  lesson_image_thumbnail: media
+  lesson_image_wide: media
+  lesson_image: media
+  lesson_highlight: simple
+  lesson_highlight_marker: simple
+  lesson_list: lists
+  lesson_img_list: lists
+  lesson_audio: media
+  question_long_answer: questions
+  question_multi_choice: questions
+  question_scale: questions
+  question_short_answer: questions
+  question_single_choice: questions
+  question_likert_scale: questions

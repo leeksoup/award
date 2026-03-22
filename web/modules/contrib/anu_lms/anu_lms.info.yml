@@ -1,0 +1,32 @@
+name: Anu LMS
+description: Deceptively simple learning management system (LMS) for individual teachers, educational organisations and businesses.
+type: module
+package: Anu LMS
+core_version_requirement: ^10 || ^11
+configure: anu_lms.entity_labels
+dependencies:
+  - allowed_formats:allowed_formats
+  - drupal:ckeditor5
+  - drupal:image
+  - drupal:link
+  - drupal:media_library
+  - drupal:node
+  - drupal:field
+  - drupal:eck
+  - drupal:options
+  - drupal:path
+  - drupal:rest
+  - drupal:taxonomy
+  - eck:eck
+  - field_group:field_group
+  - inline_entity_form:inline_entity_form
+  - paragraphs:paragraphs
+  - paragraphs_selection:paragraphs_selection
+  - paragraphs_browser:paragraphs_browser
+  - rest_entity_recursive:rest_paragraphs_recursive
+  - weight:weight
+
+# Information added by Drupal.org packaging script on 2025-01-17
+version: '2.11.2'
+project: 'anu_lms'
+datestamp: 1737114792

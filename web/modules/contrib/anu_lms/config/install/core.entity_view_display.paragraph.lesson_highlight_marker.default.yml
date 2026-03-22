@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.lesson_highlight_marker.field_highlight_marker_text
+    - field.field.paragraph.lesson_highlight_marker.field_lesson_highlight_color
+    - paragraphs.paragraphs_type.lesson_highlight_marker
+id: paragraph.lesson_highlight_marker.default
+targetEntityType: paragraph
+bundle: lesson_highlight_marker
+mode: default
+content:
+  field_highlight_marker_text:
+    type: basic_string
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  field_lesson_highlight_color: true
+  search_api_excerpt: true

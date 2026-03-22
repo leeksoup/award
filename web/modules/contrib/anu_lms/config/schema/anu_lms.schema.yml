@@ -1,0 +1,44 @@
+anu_lms.entity_labels:
+  type: config_object
+  label: 'Settings'
+  mapping:
+    courses_page_labels:
+      type: text
+      label: 'Label for "Courses page"'
+      translatable: true
+    courses_page_label_plural:
+      type: text
+      label: 'Plural form for "Courses page"'
+      translatable: true
+    course_labels:
+      type: text
+      label: 'Label for "Course"'
+      translatable: true
+    course_label_plural:
+      type: text
+      label: 'Plural form for "Course"'
+      translatable: true
+    lesson_labels:
+      type: text
+      label: 'Label for "Lesson"'
+      translatable: true
+    lesson_label_plural:
+      type: text
+      label: 'Plural form for "Lesson"'
+      translatable: true
+    assessment_labels:
+      type: text
+      label: 'Label for "Quiz"'
+      translatable: true
+    assessment_label_plural:
+      type: text
+      label: 'Plural form for "Quiz"'
+      translatable: true
+    module_labels:
+      type: text
+      label: 'Label for "Module"'
+      translatable: true
+    module_label_plural:
+      type: text
+      label: 'Plural form for "Module"'
+      translatable: true

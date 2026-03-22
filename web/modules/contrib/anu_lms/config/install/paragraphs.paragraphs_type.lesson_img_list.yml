@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs_browser
+    - paragraphs_selection
+third_party_settings:
+  paragraphs_selection:
+    fields:
+      -
+        id: paragraph.lesson_section.field_lesson_section_content
+        weight: -43
+  paragraphs_browser:
+    image_path: 'anu-lms://assets/list-with-thumbnails.png'
+id: lesson_img_list
+label: 'Block: List (thumbnails)'
+icon_uuid: null
+icon_default: null
+description: 'Highlighted list with thumbnails as bullets.'
+behavior_plugins: {  }

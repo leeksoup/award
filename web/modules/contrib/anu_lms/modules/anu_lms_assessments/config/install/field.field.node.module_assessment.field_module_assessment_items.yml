@@ -1,0 +1,129 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_module_assessment_items
+    - node.type.module_assessment
+    - paragraphs.paragraphs_type.lesson_divider
+    - paragraphs.paragraphs_type.lesson_heading
+    - paragraphs.paragraphs_type.lesson_image
+    - paragraphs.paragraphs_type.lesson_text
+    - paragraphs.paragraphs_type.question_likert_scale
+    - paragraphs.paragraphs_type.question_long_answer
+    - paragraphs.paragraphs_type.question_multi_choice
+    - paragraphs.paragraphs_type.question_scale
+    - paragraphs.paragraphs_type.question_short_answer
+    - paragraphs.paragraphs_type.question_single_choice
+  module:
+    - entity_reference_revisions
+id: node.module_assessment.field_module_assessment_items
+field_name: field_module_assessment_items
+entity_type: node
+bundle: module_assessment
+label: Questions
+description: ''
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:paragraph'
+  handler_settings:
+    target_bundles:
+      lesson_heading: lesson_heading
+      lesson_text: lesson_text
+      lesson_divider: lesson_divider
+      lesson_image: lesson_image
+      question_short_answer: question_short_answer
+      question_long_answer: question_long_answer
+      question_single_choice: question_single_choice
+      question_multi_choice: question_multi_choice
+      question_scale: question_scale
+      question_likert_scale: question_likert_scale
+    negate: 0
+    target_bundles_drag_drop:
+      checklist_item:
+        weight: -35
+        enabled: false
+      course_category:
+        weight: -48
+        enabled: false
+      course_modules:
+        weight: -47
+        enabled: false
+      lesson_audio:
+        weight: -33
+        enabled: false
+      lesson_checklist:
+        weight: -53
+        enabled: false
+      lesson_divider:
+        weight: -55
+        enabled: true
+      lesson_embedded_video:
+        weight: -40
+        enabled: false
+      lesson_footnotes:
+        weight: -32
+        enabled: false
+      lesson_heading:
+        weight: -57
+        enabled: true
+      lesson_highlight:
+        weight: -52
+        enabled: false
+      lesson_highlight_marker:
+        weight: -31
+        enabled: false
+      lesson_image:
+        weight: -54
+        enabled: true
+      lesson_image_thumbnail:
+        weight: -38
+        enabled: false
+      lesson_image_wide:
+        weight: -51
+        enabled: false
+      lesson_img_list:
+        weight: -37
+        enabled: false
+      lesson_img_list_item:
+        weight: -36
+        enabled: false
+      lesson_list:
+        weight: -50
+        enabled: false
+      lesson_resource:
+        weight: -34
+        enabled: false
+      lesson_section:
+        weight: -49
+        enabled: false
+      lesson_table:
+        weight: -30
+        enabled: false
+      lesson_text:
+        weight: -56
+        enabled: true
+      question_likert_scale:
+        weight: -41
+        enabled: true
+      question_long_answer:
+        weight: -45
+        enabled: true
+      question_multi_choice:
+        weight: -43
+        enabled: true
+      question_scale:
+        weight: -42
+        enabled: true
+      question_short_answer:
+        weight: -46
+        enabled: true
+      question_single_choice:
+        weight: -44
+        enabled: true
+      single_multi_choice_item:
+        weight: -39
+        enabled: false
+field_type: entity_reference_revisions

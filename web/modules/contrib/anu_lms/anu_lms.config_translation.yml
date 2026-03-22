@@ -1,0 +1,5 @@
+anu_lms.labels:
+  title: 'Translations for entity labels'
+  base_route_name: anu_lms.entity_labels
+  names:
+    - anu_lms.entity_labels

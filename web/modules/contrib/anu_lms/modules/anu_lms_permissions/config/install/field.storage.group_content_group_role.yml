@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - group
+id: group_roles
+field_name: group_roles
+entity_type: group_content
+type: entity_reference
+settings:
+  target_type: user_role
+  handler: default
+module: core
+locked: false

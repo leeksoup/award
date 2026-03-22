@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies: {  }
+id: course_category
+label: 'Course category'
+icon_uuid: null
+icon_default: null
+description: 'Paragraph with categories of courses presented on the courses page.'
+behavior_plugins: {  }
