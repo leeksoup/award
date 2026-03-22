@@ -1,0 +1,136 @@
+achievements_learning.settings:
+  type: config_object
+  label: 'Achievements Learning settings'
+  mapping:
+    parent_email_field:
+      type: string
+      label: 'Parent email field machine name'
+    current_title_field:
+      type: string
+      label: 'Current title field machine name'
+    forum_excluded_roles:
+      type: sequence
+      label: 'Excluded forum roles'
+      sequence:
+        type: string
+    lesson_count_milestones:
+      type: sequence
+      label: 'Lesson count milestones'
+      sequence:
+        type: mapping
+        mapping:
+          achievement_id:
+            type: string
+          threshold:
+            type: integer
+          points:
+            type: integer
+    course_count_milestones:
+      type: sequence
+      label: 'Course count milestones'
+      sequence:
+        type: mapping
+        mapping:
+          achievement_id:
+            type: string
+          threshold:
+            type: integer
+          points:
+            type: integer
+    forum_topic_milestones:
+      type: sequence
+      label: 'Forum topic milestones'
+      sequence:
+        type: mapping
+        mapping:
+          achievement_id:
+            type: string
+          threshold:
+            type: integer
+          points:
+            type: integer
+    forum_reply_milestones:
+      type: sequence
+      label: 'Forum reply milestones'
+      sequence:
+        type: mapping
+        mapping:
+          achievement_id:
+            type: string
+          threshold:
+            type: integer
+          points:
+            type: integer
+    title_priority:
+      type: sequence
+      label: 'Title priority order'
+      sequence:
+        type: string
+    milestone_rules:
+      type: sequence
+      label: 'Milestone rules'
+      sequence:
+        type: achievements_learning.milestone_rule
+    reward_rules:
+      type: sequence
+      label: 'Reward rules'
+      sequence:
+        type: achievements_learning.reward_rule
+    reward_items:
+      type: sequence
+      label: 'Reward items'
+      sequence:
+        type: achievements_learning.reward_item
+
+achievements_learning.milestone_rule:
+  type: mapping
+  label: 'Learning milestone rule'
+  mapping:
+    id:
+      type: string
+    label:
+      type: string
+    achievement_id:
+      type: string
+    trigger_type:
+      type: string
+    target_id:
+      type: string
+    threshold:
+      type: integer
+    title_enabled:
+      type: boolean
+    title:
+      type: string
+    title_priority:
+      type: integer
+    enabled:
+      type: boolean
+
+achievements_learning.reward_rule:
+  type: mapping
+  label: 'Learning reward rule'
+  mapping:
+    achievement_id:
+      type: string
+    reward_group:
+      type: string
+    enabled:
+      type: boolean
+
+achievements_learning.reward_item:
+  type: mapping
+  label: 'Learning reward item'
+  mapping:
+    id:
+      type: string
+    label:
+      type: string
+    description:
+      type: text
+    reward_group:
+      type: string
+    resource_uri:
+      type: string
+    active:
+      type: boolean

@@ -1,0 +1,7 @@
+achievements_learning.settings:
+  path: '/admin/config/people/achievements-learning'
+  defaults:
+    _form: '\Drupal\achievements_learning\Form\LearningSettingsForm'
+    _title: 'Achievements Learning settings'
+  requirements:
+    _permission: 'administer achievements learning settings'

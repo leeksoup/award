@@ -1,0 +1,124 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall hooks for the Achievements Learning module.
+ */
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Implements hook_install().
+ */
+function achievements_learning_install(): void {
+  _achievements_learning_ensure_user_field('field_learning_current_title', 'Current learning title', 'string', [
+    'max_length' => 255,
+  ]);
+  _achievements_learning_ensure_user_field('field_parent_email', 'Parent email', 'email');
+  _achievements_learning_ensure_lesson_field('field_completion_email_enabled', 'Enable completion email', 'boolean');
+  _achievements_learning_ensure_lesson_field('field_completion_email_subject', 'Completion email subject', 'string', [
+    'max_length' => 255,
+  ]);
+  _achievements_learning_ensure_lesson_field('field_completion_email_body', 'Completion email body', 'text_long');
+  _achievements_learning_ensure_lesson_field('field_parent_completion_email_subject', 'Parent completion email subject', 'string', [
+    'max_length' => 255,
+  ]);
+  _achievements_learning_ensure_lesson_field('field_parent_completion_email_body', 'Parent completion email body', 'text_long');
+}
+
+/**
+ * Ensures a user field exists.
+ */
+function _achievements_learning_ensure_user_field(string $field_name, string $label, string $type, array $settings = []): void {
+  if (!FieldStorageConfig::loadByName('user', $field_name)) {
+    FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'user',
+      'type' => $type,
+      'settings' => $settings,
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('user', 'user', $field_name)) {
+    FieldConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'label' => $label,
+      'required' => FALSE,
+    ])->save();
+  }
+}
+
+/**
+ * Ensures a module_lesson field exists.
+ */
+function _achievements_learning_ensure_lesson_field(string $field_name, string $label, string $type, array $settings = []): void {
+  if (!FieldStorageConfig::loadByName('node', $field_name)) {
+    FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'node',
+      'type' => $type,
+      'settings' => $settings,
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'module_lesson', $field_name)) {
+    FieldConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'node',
+      'bundle' => 'module_lesson',
+      'label' => $label,
+      'required' => FALSE,
+    ])->save();
+  }
+}
+
+/**
+ * Implements hook_schema().
+ */
+function achievements_learning_schema(): array {
+  $schema['achievements_learning_reward_claim'] = [
+    'description' => 'Stores reward selections for achievements_learning.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'achievement_id' => [
+        'type' => 'varchar',
+        'length' => 191,
+        'not null' => TRUE,
+      ],
+      'reward_id' => [
+        'type' => 'varchar',
+        'length' => 191,
+        'not null' => TRUE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uid_achievement_id' => ['uid', 'achievement_id'],
+    ],
+    'indexes' => [
+      'achievement_id' => ['achievement_id'],
+    ],
+  ];
+
+  return $schema;
+}

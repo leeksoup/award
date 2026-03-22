@@ -1,0 +1,56 @@
+parent_email_field: field_parent_email
+current_title_field: field_learning_current_title
+forum_excluded_roles:
+  - administrator
+  - teacher
+lesson_count_milestones:
+  - achievement_id: learning_lesson_1
+    threshold: 1
+    points: 5
+  - achievement_id: learning_lesson_5
+    threshold: 5
+    points: 25
+  - achievement_id: learning_lesson_10
+    threshold: 10
+    points: 50
+  - achievement_id: learning_lesson_25
+    threshold: 25
+    points: 100
+course_count_milestones:
+  - achievement_id: learning_course_1
+    threshold: 1
+    points: 25
+  - achievement_id: learning_course_3
+    threshold: 3
+    points: 100
+forum_topic_milestones:
+  - achievement_id: learning_forum_topic_1
+    threshold: 1
+    points: 5
+forum_reply_milestones:
+  - achievement_id: learning_forum_reply_1
+    threshold: 1
+    points: 5
+  - achievement_id: learning_forum_reply_5
+    threshold: 5
+    points: 20
+  - achievement_id: learning_forum_reply_10
+    threshold: 10
+    points: 50
+title_priority:
+  - Truth Seeker
+  - Clarity Builder
+  - Evidence Examiner
+  - Faith Defender
+  - Clear Thinker
+  - Dignity Defender
+  - Moral Thinker
+  - Justice-Seeker
+  - Wise Decision-Maker
+  - Made by Love, for Love
+  - Learning to Love in Truth
+  - Integrated Person
+  - Authentic Lover
+milestone_rules: {  }
+reward_rules: {  }
+reward_items: {  }

@@ -1,0 +1,5 @@
+achievements_learning.settings:
+  title: 'Achievements Learning'
+  description: 'Configure learning milestones, titles, emails, forum participation, and rewards.'
+  route_name: achievements_learning.settings
+  parent: system.admin_config_people
