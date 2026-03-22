@@ -1,0 +1,48 @@
+<?php
+
+/**
+ * @file
+ * Hooks and helpers for the Achievements Learning module.
+ */
+
+use Drupal\comment\CommentInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_entity_insert().
+ */
+function achievements_learning_entity_insert(EntityInterface $entity): void {
+  $forum_manager = \Drupal::service('achievements_learning.forum_manager');
+  $achievement_manager = \Drupal::service('achievements_learning.achievement_manager');
+
+  if ($entity instanceof NodeInterface && $entity->bundle() === 'forum' && $entity->isPublished()) {
+    $uid = (int) $entity->getOwnerId();
+    if ($forum_manager->isEligibleForumParticipant($entity->getOwner())) {
+      $forum_manager->recordTopicCreated($uid, (int) $entity->id());
+      $achievement_manager->recordForumTopic($uid, (int) $entity->id());
+    }
+  }
+
+  if ($entity instanceof CommentInterface && $entity->bundle() === 'comment_forum' && $entity->isPublished()) {
+    $uid = (int) $entity->getOwnerId();
+    if ($forum_manager->isEligibleForumParticipant($entity->getOwner())) {
+      $forum_manager->recordReplyCreated($uid, (int) $entity->id());
+      $achievement_manager->recordForumReply($uid, (int) $entity->id());
+    }
+  }
+}
+
+/**
+ * Implements hook_achievements_unlocked().
+ */
+function achievements_learning_achievements_unlocked(array $achievement, int $uid): void {
+  \Drupal::service('achievements_learning.title_manager')->recomputeCurrentTitle($uid, $achievement);
+}
+
+/**
+ * Implements hook_achievements_locked().
+ */
+function achievements_learning_achievements_locked(array $achievement, int $uid): void {
+  \Drupal::service('achievements_learning.title_manager')->recomputeCurrentTitle($uid, $achievement);
+}

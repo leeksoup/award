@@ -1,0 +1,64 @@
+services:
+  logger.channel.achievements_learning:
+    parent: logger.channel_base
+    arguments: ['achievements_learning']
+
+  achievements_learning.achievement_manager:
+    class: Drupal\achievements_learning\Service\LearningAchievementManager
+    arguments:
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@database'
+      - '@logger.channel.achievements_learning'
+
+  achievements_learning.title_manager:
+    class: Drupal\achievements_learning\Service\LearningTitleManager
+    arguments:
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@logger.channel.achievements_learning'
+
+  achievements_learning.section_manager:
+    class: Drupal\achievements_learning\Service\LearningSectionManager
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.achievements_learning'
+
+  achievements_learning.course_manager:
+    class: Drupal\achievements_learning\Service\LearningCourseManager
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.achievements_learning'
+
+  achievements_learning.forum_manager:
+    class: Drupal\achievements_learning\Service\LearningForumManager
+    arguments:
+      - '@config.factory'
+      - '@database'
+      - '@entity_type.manager'
+      - '@logger.channel.achievements_learning'
+
+  achievements_learning.notification_manager:
+    class: Drupal\achievements_learning\Service\LearningNotificationManager
+    arguments:
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@plugin.manager.mail'
+      - '@language_manager'
+      - '@logger.channel.achievements_learning'
+
+  achievements_learning.reward_manager:
+    class: Drupal\achievements_learning\Service\LearningRewardManager
+    arguments:
+      - '@config.factory'
+      - '@database'
+      - '@logger.channel.achievements_learning'
+
+  achievements_learning.lesson_completed_subscriber:
+    class: Drupal\achievements_learning\EventSubscriber\LessonCompletedSubscriber
+    arguments:
+      - '@achievements_learning.achievement_manager'
+      - '@achievements_learning.notification_manager'
+      - '@logger.channel.achievements_learning'
+    tags:
+      - { name: event_subscriber }
