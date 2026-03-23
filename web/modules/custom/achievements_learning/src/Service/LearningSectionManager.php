@@ -51,9 +51,24 @@ class LearningSectionManager {
     $group = $query->orConditionGroup()
       ->condition('field_module_lessons', $lessonId);
 
+<<<<<<< codex/find-requirements-for-drupal-sub-module-6vombf
     // Only add assessment field if it exists on at least one paragraph bundle.
     try {
       $field_definitions = $this->entityFieldManager->getFieldDefinitions('paragraph', 'course_modules');
+=======
+    $paragraph_storage = $this->entityTypeManager->getStorage('paragraph');
+    if ($paragraph_storage->getEntityType()->hasKey('bundle')) {
+      // Nothing extra to do; keep query explicit for clarity.
+    }
+
+    if ($this->entityTypeManager->hasDefinition('paragraph')) {
+      $query->condition($group);
+    }
+
+    // Only add assessment field if it exists on at least one paragraph bundle.
+    try {
+      $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('paragraph', 'course_modules');
+>>>>>>> main
       if (isset($field_definitions['field_module_assessment'])) {
         $group->condition('field_module_assessment', $lessonId);
       }
@@ -62,7 +77,10 @@ class LearningSectionManager {
       $this->logger->debug('Unable to inspect course_modules paragraph field definitions: @message', ['@message' => $exception->getMessage()]);
     }
 
+<<<<<<< codex/find-requirements-for-drupal-sub-module-6vombf
     $query->condition($group);
+=======
+>>>>>>> main
     return array_map('intval', array_values($query->execute()));
   }
 
