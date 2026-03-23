@@ -47,6 +47,26 @@ class LearningRewardManager {
   }
 
   /**
+   * Marks reward eligibility for configured milestones after completion events.
+   */
+  public function markRewardEligibility(int $uid, int $courseId): void {
+    $reward_rules = $this->configFactory->get('achievements_learning.settings')->get('reward_rules') ?? [];
+    foreach ($reward_rules as $rule) {
+      if (empty($rule['enabled']) || empty($rule['achievement_id'])) {
+        continue;
+      }
+
+      if (achievements_unlocked_already($rule['achievement_id'], $uid)) {
+        $this->logger->debug('Reward eligibility confirmed for uid @uid, course @course, achievement @achievement.', [
+          '@uid' => $uid,
+          '@course' => $courseId,
+          '@achievement' => $rule['achievement_id'],
+        ]);
+      }
+    }
+  }
+
+  /**
    * Records a reward claim.
    */
   public function claimReward(int $uid, string $achievementId, string $rewardId): bool {

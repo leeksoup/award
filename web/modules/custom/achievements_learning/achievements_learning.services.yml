@@ -8,7 +8,9 @@ services:
     arguments:
       - '@config.factory'
       - '@entity_type.manager'
-      - '@database'
+      - '@achievements_learning.section_manager'
+      - '@achievements_learning.course_manager'
+      - '@achievements_learning.reward_manager'
       - '@logger.channel.achievements_learning'
 
   achievements_learning.title_manager:
@@ -22,12 +24,15 @@ services:
     class: Drupal\achievements_learning\Service\LearningSectionManager
     arguments:
       - '@entity_type.manager'
+      - '@anu_lms.lesson'
       - '@logger.channel.achievements_learning'
 
   achievements_learning.course_manager:
     class: Drupal\achievements_learning\Service\LearningCourseManager
     arguments:
       - '@entity_type.manager'
+      - '@anu_lms.lesson'
+      - '@anu_lms.course_progress'
       - '@logger.channel.achievements_learning'
 
   achievements_learning.forum_manager:

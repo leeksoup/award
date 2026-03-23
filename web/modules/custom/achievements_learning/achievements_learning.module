@@ -36,13 +36,21 @@ function achievements_learning_entity_insert(EntityInterface $entity): void {
 /**
  * Implements hook_achievements_unlocked().
  */
-function achievements_learning_achievements_unlocked(array $achievement, int $uid): void {
+function achievements_learning_achievements_unlocked($achievement, int $uid): void {
   \Drupal::service('achievements_learning.title_manager')->recomputeCurrentTitle($uid, $achievement);
 }
 
 /**
  * Implements hook_achievements_locked().
  */
-function achievements_learning_achievements_locked(array $achievement, int $uid): void {
+function achievements_learning_achievements_locked($achievement, int $uid): void {
   \Drupal::service('achievements_learning.title_manager')->recomputeCurrentTitle($uid, $achievement);
+}
+
+/**
+ * Implements hook_mail().
+ */
+function achievements_learning_mail(string $key, array &$message, array $params): void {
+  $message['subject'] = $params['subject'] ?? 'Learning update';
+  $message['body'][] = $params['body'] ?? '';
 }
