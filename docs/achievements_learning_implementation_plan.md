@@ -28,8 +28,7 @@ This plan assumes the following approved defaults:
 - forum counting: published student-created forum topics and `comment_forum` replies only
 - section completion: all lessons/quizzes in the relevant module paragraph completed
 - reward scope: reward choice applies only to major course-completion identity milestones in v1
-- title priority: the approved thirteen-title priority list governs the displayed title
-- this is the list
+- title priority: the approved thirteen-title priority list governs the displayed title:
     1. Truth Seeker
     2. Clarity Builder
     3. Evidence Examiner
@@ -44,6 +43,12 @@ This plan assumes the following approved defaults:
     12. Integrated Person
     13. Authentic Lover
 
+All milestone recognitions in v1 are implemented as achievements.
+
+A subset of achievements may also be marked as reward-bearing milestones.
+When a reward-bearing achievement is unlocked, the student may select one digital goodie from the configured reward group.
+
+Most count-based achievements serve momentum and encouragement only and do not unlock a reward choice.
 ---
 
 ## 1. Module purpose and v1 boundaries
@@ -99,7 +104,7 @@ Track and unlock achievements for lesson progress, section completion, course co
    - forum topic creation event
    - forum reply creation event
 4. Invoke `achievements_unlocked()` when a rule threshold or target condition is satisfied.
-5. Keep count-based progress in module-managed storage if the Achievements API does not already provide a stable storage abstraction for the needed counters.
+5. Use Achievements storage helpers for per-user counters where practical; fall back to custom storage only if queryability/performance requires it.
 6. Log duplicate-suppression and unlock attempts for debugging.
 
 ### Data needed
@@ -202,7 +207,7 @@ Derive course completion reliably from Anu LMS course data and use it for achiev
    - reuse `anu_lms.lesson` to resolve lesson → course
    - reuse `anu_lms.course_progress` as the canonical v1 course-progress service
    - derive course completion from its progress data
-5. Connect course completion outcomes to:
+4. Connect course completion outcomes to:
    - course-count achievements
    - course-specific milestones
    - selected major title/reward milestones
@@ -427,7 +432,6 @@ Before extending code further, align the existing scaffold to this document and 
 ### Appendix
 Baseline v1 achievements
     • first lesson
-    • lesson count
     • 5 lessons
     • 10 lessons
     • 25 lessons
