@@ -24,6 +24,7 @@ services:
     class: Drupal\achievements_learning\Service\LearningSectionManager
     arguments:
       - '@entity_type.manager'
+      - '@entity_field.manager'
       - '@anu_lms.lesson'
       - '@logger.channel.achievements_learning'
 
@@ -31,8 +32,8 @@ services:
     class: Drupal\achievements_learning\Service\LearningCourseManager
     arguments:
       - '@entity_type.manager'
+      - '@anu_lms.course'
       - '@anu_lms.lesson'
-      - '@anu_lms.course_progress'
       - '@logger.channel.achievements_learning'
 
   achievements_learning.forum_manager:

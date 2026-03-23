@@ -2,7 +2,7 @@
 
 namespace Drupal\achievements_learning\Service;
 
-use Drupal\anu_lms\CourseProgress;
+use Drupal\anu_lms\Course;
 use Drupal\anu_lms\Lesson;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -17,8 +17,8 @@ class LearningCourseManager {
    */
   public function __construct(
     protected EntityTypeManagerInterface $entityTypeManager,
+    protected Course $courseService,
     protected Lesson $lessonService,
-    protected CourseProgress $courseProgress,
     protected LoggerInterface $logger,
   ) {}
 
@@ -32,13 +32,13 @@ class LearningCourseManager {
       return FALSE;
     }
 
-    $progress = $this->courseProgress->getCourseProgress($course);
-    if ($progress === []) {
+    $item_ids = $this->courseService->getLessonsAndQuizzes($course);
+    if ($item_ids === []) {
       return FALSE;
     }
 
-    foreach ($progress as $item) {
-      if (empty($item['completed'])) {
+    foreach ($item_ids as $item_id) {
+      if (!$this->lessonService->isCompletedByUser((int) $item_id, $uid)) {
         return FALSE;
       }
     }

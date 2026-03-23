@@ -30,6 +30,10 @@ class LearningAchievementManager {
     $lesson_count = $this->incrementCounter('lesson_count', $uid);
     $this->processThresholdMilestones($uid, 'lesson_count', $lesson_count, 'lesson_count_milestones');
     $this->evaluateConfiguredMilestones($uid, [
+      'trigger_type' => 'lesson_count',
+      'count' => $lesson_count,
+    ]);
+    $this->evaluateConfiguredMilestones($uid, [
       'trigger_type' => 'lesson_complete',
       'target_id' => (string) $lessonId,
       'lesson_id' => $lessonId,
@@ -49,6 +53,10 @@ class LearningAchievementManager {
     if ($course_id && $this->courseManager->isCourseComplete($uid, $course_id) && $this->markUniqueCompletion('course_complete', $uid, $course_id)) {
       $course_count = $this->incrementCounter('course_count', $uid);
       $this->processThresholdMilestones($uid, 'course_count', $course_count, 'course_count_milestones');
+      $this->evaluateConfiguredMilestones($uid, [
+        'trigger_type' => 'course_count',
+        'count' => $course_count,
+      ]);
       $this->recordCourseCompleted($uid, $course_id);
       $this->rewardManager->markRewardEligibility($uid, $course_id);
     }
@@ -113,15 +121,25 @@ class LearningAchievementManager {
       if (empty($rule['enabled']) || empty($rule['achievement_id']) || empty($rule['trigger_type'])) {
         continue;
       }
-      if ($rule['trigger_type'] !== ($context['trigger_type'] ?? NULL)) {
+      if (($rule['trigger_type'] ?? NULL) !== ($context['trigger_type'] ?? NULL)) {
         continue;
       }
+      if ($this->isCountTrigger($rule['trigger_type'])) {
+        if (empty($rule['threshold']) || (int) ($context['count'] ?? 0) !== (int) $rule['threshold']) {
+          continue;
+        }
+      }
+      elseif (!empty($rule['threshold'])) {
+        $this->logger->warning('Ignoring non-count milestone rule @id with a threshold configured.', [
+          '@id' => $rule['id'] ?? $rule['achievement_id'],
+        ]);
+        continue;
+      }
+
       if (!empty($rule['target_id']) && (string) $rule['target_id'] !== (string) ($context['target_id'] ?? '')) {
         continue;
       }
-      if (!empty($rule['threshold']) && (int) ($context['count'] ?? 0) !== (int) $rule['threshold']) {
-        continue;
-      }
+
       achievements_unlocked($rule['achievement_id'], $uid);
     }
   }
@@ -148,12 +166,19 @@ class LearningAchievementManager {
       }
 
       achievements_unlocked($milestone['achievement_id'], $uid);
-      $this->evaluateConfiguredMilestones($uid, [
-        'trigger_type' => $triggerType,
-        'count' => $count,
-        'target_id' => (string) $count,
-      ]);
     }
+  }
+
+  /**
+   * Returns whether a trigger type is count-based.
+   */
+  protected function isCountTrigger(string $triggerType): bool {
+    return in_array($triggerType, [
+      'lesson_count',
+      'course_count',
+      'forum_topic_count',
+      'forum_reply_count',
+    ], TRUE);
   }
 
   /**
