@@ -51,6 +51,6 @@ title_priority:
   - Learning to Love in Truth
   - Integrated Person
   - Authentic Lover
-milestone_rules: {  }
-reward_rules: {  }
-reward_items: {  }
+milestone_rules: []
+reward_rules: []
+reward_items: []

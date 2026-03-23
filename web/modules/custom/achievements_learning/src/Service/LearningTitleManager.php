@@ -23,7 +23,7 @@ class LearningTitleManager {
   /**
    * Recomputes the current title for a user.
    */
-  public function recomputeCurrentTitle(int $uid, array $changedAchievement = []): void {
+  public function recomputeCurrentTitle(int $uid, mixed $changedAchievement = NULL): void {
     $account = $this->entityTypeManager->getStorage('user')->load($uid);
     if (!$account) {
       return;
@@ -43,12 +43,40 @@ class LearningTitleManager {
   /**
    * Resolves the highest-priority configured title for a user.
    */
-  public function getBestTitleForUser(int $uid, array $changedAchievement = []): string {
+  public function getBestTitleForUser(int $uid, mixed $changedAchievement = NULL): string {
     $title_priority = $this->configFactory->get('achievements_learning.settings')->get('title_priority') ?? [];
-    $achievement_label = (string) ($changedAchievement['title'] ?? $changedAchievement['name'] ?? '');
+    $rules = $this->configFactory->get('achievements_learning.settings')->get('milestone_rules') ?? [];
+    $unlocked_titles = [];
 
-    if ($achievement_label !== '' && in_array($achievement_label, $title_priority, TRUE)) {
-      return $achievement_label;
+    foreach ($rules as $rule) {
+      if (empty($rule['enabled']) || empty($rule['title_enabled']) || empty($rule['title']) || empty($rule['achievement_id'])) {
+        continue;
+      }
+
+      if (achievements_unlocked_already($rule['achievement_id'], $uid)) {
+        $unlocked_titles[] = (string) $rule['title'];
+      }
+    }
+
+    $achievement_label = '';
+    $achievement_id = '';
+    if (is_object($changedAchievement)) {
+      $achievement_label = method_exists($changedAchievement, 'label') ? (string) $changedAchievement->label() : '';
+      $achievement_id = method_exists($changedAchievement, 'id') ? (string) $changedAchievement->id() : '';
+    }
+    elseif (is_array($changedAchievement)) {
+      $achievement_label = (string) ($changedAchievement['title'] ?? $changedAchievement['name'] ?? '');
+      $achievement_id = (string) ($changedAchievement['achievement_id'] ?? '');
+    }
+
+    if ($achievement_label !== '' && in_array($achievement_label, $title_priority, TRUE) && !in_array($achievement_label, $unlocked_titles, TRUE) && $achievement_id !== '' && achievements_unlocked_already($achievement_id, $uid)) {
+      $unlocked_titles[] = $achievement_label;
+    }
+
+    foreach ($title_priority as $title) {
+      if (in_array($title, $unlocked_titles, TRUE)) {
+        return (string) $title;
+      }
     }
 
     return '';
