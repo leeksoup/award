@@ -4,6 +4,7 @@ namespace Drupal\achievements_learning\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\user\UserInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -25,7 +26,7 @@ class LearningTitleManager {
    */
   public function recomputeCurrentTitle(int $uid, mixed $changedAchievement = NULL): void {
     $account = $this->entityTypeManager->getStorage('user')->load($uid);
-    if (!$account) {
+    if (!$account instanceof UserInterface) {
       return;
     }
 
@@ -36,8 +37,10 @@ class LearningTitleManager {
     }
 
     $best_title = $this->getBestTitleForUser($uid, $changedAchievement);
-    $account->set($title_field, $best_title);
-    $account->save();
+    if ((string) $account->get($title_field)->value !== $best_title) {
+      $account->set($title_field, $best_title);
+      $account->save();
+    }
   }
 
   /**
@@ -45,18 +48,7 @@ class LearningTitleManager {
    */
   public function getBestTitleForUser(int $uid, mixed $changedAchievement = NULL): string {
     $title_priority = $this->configFactory->get('achievements_learning.settings')->get('title_priority') ?? [];
-    $rules = $this->configFactory->get('achievements_learning.settings')->get('milestone_rules') ?? [];
-    $unlocked_titles = [];
-
-    foreach ($rules as $rule) {
-      if (empty($rule['enabled']) || empty($rule['title_enabled']) || empty($rule['title']) || empty($rule['achievement_id'])) {
-        continue;
-      }
-
-      if (achievements_unlocked_already($rule['achievement_id'], $uid)) {
-        $unlocked_titles[] = (string) $rule['title'];
-      }
-    }
+    $unlocked_titles = $this->getUnlockedTitlesForUser($uid);
 
     $achievement_label = '';
     $achievement_id = '';
@@ -80,6 +72,46 @@ class LearningTitleManager {
     }
 
     return '';
+  }
+
+  /**
+   * Returns the user's current projected title or computes it if needed.
+   */
+  public function getCurrentTitleForUser(int $uid): string {
+    $account = $this->entityTypeManager->getStorage('user')->load($uid);
+    if (!$account instanceof UserInterface) {
+      return '';
+    }
+
+    $title_field = $this->configFactory->get('achievements_learning.settings')->get('current_title_field') ?: 'field_learning_current_title';
+    if ($account->hasField($title_field) && !$account->get($title_field)->isEmpty()) {
+      return (string) $account->get($title_field)->value;
+    }
+
+    return $this->getBestTitleForUser($uid);
+  }
+
+  /**
+   * Returns the unlocked configured titles for a user.
+   *
+   * @return string[]
+   *   A list of unlocked title strings.
+   */
+  protected function getUnlockedTitlesForUser(int $uid): array {
+    $rules = $this->configFactory->get('achievements_learning.settings')->get('milestone_rules') ?? [];
+    $unlocked_titles = [];
+
+    foreach ($rules as $rule) {
+      if (empty($rule['enabled']) || empty($rule['title_enabled']) || empty($rule['title']) || empty($rule['achievement_id'])) {
+        continue;
+      }
+
+      if (achievements_unlocked_already($rule['achievement_id'], $uid)) {
+        $unlocked_titles[] = (string) $rule['title'];
+      }
+    }
+
+    return array_values(array_unique($unlocked_titles));
   }
 
 }
