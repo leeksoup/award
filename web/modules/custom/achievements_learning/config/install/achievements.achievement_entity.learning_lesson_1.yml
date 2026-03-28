@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies: {  }
+id: learning_lesson_1
+label: 'Learning Lessons: 1'
+description: 'Complete 1 lesson.'
+storage: 'achievements_learning:lesson_count'
+secret: false
+invisible: false
+manual_only: false
+points: 5
+use_default_image: true
+locked_image_path: ''
+unlocked_image_path: ''

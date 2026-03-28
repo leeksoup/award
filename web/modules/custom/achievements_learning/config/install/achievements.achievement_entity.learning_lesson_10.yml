@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies: {  }
+id: learning_lesson_10
+label: 'Learning Lessons: 10'
+description: 'Complete 10 lessons.'
+storage: 'achievements_learning:lesson_count'
+secret: false
+invisible: false
+manual_only: false
+points: 50
+use_default_image: true
+locked_image_path: ''
+unlocked_image_path: ''
