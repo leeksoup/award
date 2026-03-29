@@ -7,6 +7,8 @@
 
 use Drupal\comment\CommentInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Render\Markup;
+use Drupal\Component\Utility\Html;
 use Drupal\node\NodeInterface;
 
 /**
@@ -36,13 +38,78 @@ function achievements_learning_entity_insert(EntityInterface $entity): void {
 /**
  * Implements hook_achievements_unlocked().
  */
-function achievements_learning_achievements_unlocked(array $achievement, int $uid): void {
+function achievements_learning_achievements_unlocked($achievement, int $uid): void {
   \Drupal::service('achievements_learning.title_manager')->recomputeCurrentTitle($uid, $achievement);
 }
 
 /**
  * Implements hook_achievements_locked().
  */
-function achievements_learning_achievements_locked(array $achievement, int $uid): void {
+function achievements_learning_achievements_locked($achievement, int $uid): void {
   \Drupal::service('achievements_learning.title_manager')->recomputeCurrentTitle($uid, $achievement);
+}
+
+/**
+ * Implements hook_mail().
+ */
+function achievements_learning_mail(string $key, array &$message, array $params): void {
+  $message['subject'] = $params['subject'] ?? 'Learning update';
+  $message['body'][] = $params['body'] ?? '';
+}
+
+/**
+ * Implements hook_preprocess_comment().
+ */
+function achievements_learning_preprocess_comment(array &$variables): void {
+  if (empty($variables['comment']) || !$variables['comment'] instanceof CommentInterface || $variables['comment']->bundle() !== 'comment_forum') {
+    return;
+  }
+
+  $title_markup = _achievements_learning_build_user_title_markup((int) $variables['comment']->getOwnerId());
+  if ($title_markup === '') {
+    return;
+  }
+
+  $variables['achievements_learning_title'] = Markup::create($title_markup);
+  if (!empty($variables['submitted'])) {
+    $variables['submitted'] = Markup::create($variables['submitted'] . '<br>' . $title_markup);
+  }
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function achievements_learning_preprocess_node(array &$variables): void {
+  if (empty($variables['node']) || !$variables['node'] instanceof NodeInterface || $variables['node']->bundle() !== 'forum') {
+    return;
+  }
+
+  $title_markup = _achievements_learning_build_user_title_markup((int) $variables['node']->getOwnerId());
+  if ($title_markup === '') {
+    return;
+  }
+
+  $variables['achievements_learning_title'] = Markup::create($title_markup);
+  if (!empty($variables['author_name'])) {
+    $variables['author_name'] = Markup::create($variables['author_name'] . '<br>' . $title_markup);
+  }
+  elseif (!empty($variables['submitted'])) {
+    $variables['submitted'] = Markup::create($variables['submitted'] . '<br>' . $title_markup);
+  }
+}
+
+/**
+ * Builds escaped title markup for a user if a current title exists.
+ */
+function _achievements_learning_build_user_title_markup(int $uid): string {
+  if ($uid <= 0) {
+    return '';
+  }
+
+  $title = \Drupal::service('achievements_learning.title_manager')->getCurrentTitleForUser($uid);
+  if ($title === '') {
+    return '';
+  }
+
+  return '<span class="achievements-learning-user-title">' . Html::escape($title) . '</span>';
 }
