@@ -4,7 +4,7 @@ dependencies: {  }
 id: learning_forum_reply_1
 label: 'Forum Replies: 1'
 description: 'Post 1 forum reply.'
-storage: 'achievements_learning:forum_reply_count'
+storage: 'al:reply_count'
 secret: false
 invisible: false
 manual_only: false

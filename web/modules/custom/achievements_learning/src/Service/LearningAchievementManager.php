@@ -148,8 +148,15 @@ class LearningAchievementManager {
    * Increments and returns a named counter for a user.
    */
   protected function incrementCounter(string $counter, int $uid): int {
-    $storage_key = 'achievements_learning:' . $counter;
-    $current = (int) achievements_storage_get($storage_key, $uid);
+    $storage_key = $this->getStorageKey($counter);
+    $current = achievements_storage_get($storage_key, $uid);
+    if ($current === FALSE) {
+      $legacy_key = 'achievements_learning:' . $counter;
+      $legacy_value = achievements_storage_get($legacy_key, $uid);
+      $current = $legacy_value === FALSE ? 0 : (int) $legacy_value;
+      achievements_storage_set($storage_key, $current, $uid);
+    }
+    $current = (int) $current;
     $current++;
     achievements_storage_set($storage_key, $current, $uid);
     return $current;
@@ -185,8 +192,14 @@ class LearningAchievementManager {
    * Marks a unique completion for a user and returns whether it was new.
    */
   protected function markUniqueCompletion(string $type, int $uid, int $targetId): bool {
-    $storage_key = sprintf('achievements_learning:%s_ids', $type);
+    $storage_key = $this->getStorageKey($type . '_ids');
     $completed = achievements_storage_get($storage_key, $uid);
+    if ($completed === FALSE) {
+      $legacy_key = sprintf('achievements_learning:%s_ids', $type);
+      $legacy_value = achievements_storage_get($legacy_key, $uid);
+      $completed = is_array($legacy_value) ? $legacy_value : [];
+      achievements_storage_set($storage_key, $completed, $uid);
+    }
     $completed = is_array($completed) ? $completed : [];
     if (in_array($targetId, $completed, TRUE)) {
       return FALSE;
@@ -195,6 +208,21 @@ class LearningAchievementManager {
     $completed[] = $targetId;
     achievements_storage_set($storage_key, $completed, $uid);
     return TRUE;
+  }
+
+  /**
+   * Returns a short key compatible with achievements_storage.achievement_id.
+   */
+  protected function getStorageKey(string $name): string {
+    return match ($name) {
+      'lesson_count' => 'al:lesson_count',
+      'course_count' => 'al:course_count',
+      'forum_topic_count' => 'al:topic_count',
+      'forum_reply_count' => 'al:reply_count',
+      'section_complete_ids' => 'al:section_ids',
+      'course_complete_ids' => 'al:course_ids',
+      default => 'al:' . $name,
+    };
   }
 
 }

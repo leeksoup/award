@@ -4,7 +4,7 @@ dependencies: {  }
 id: learning_lesson_1
 label: 'Learning Lessons: 1'
 description: 'Complete 1 lesson.'
-storage: 'achievements_learning:lesson_count'
+storage: 'al:lesson_count'
 secret: false
 invisible: false
 manual_only: false
