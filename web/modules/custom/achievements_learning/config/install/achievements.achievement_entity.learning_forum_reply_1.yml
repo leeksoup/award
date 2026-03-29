@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies: {  }
+id: learning_forum_reply_1
+label: 'Forum Replies: 1'
+description: 'Post 1 forum reply.'
+storage: 'achievements_learning:forum_reply_count'
+secret: false
+invisible: false
+manual_only: false
+points: 5
+use_default_image: true
+locked_image_path: ''
+unlocked_image_path: ''
