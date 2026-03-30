@@ -2,8 +2,7 @@
 
 namespace Drupal\achievements_learning\Service;
 
-use Drupal\anu_lms\Lesson;
-use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -16,6 +15,7 @@ class LearningSectionManager {
    * Constructs the section manager.
    */
   public function __construct(
+    protected ConfigFactoryInterface $configFactory,
     protected EntityTypeManagerInterface $entityTypeManager,
     protected EntityFieldManagerInterface $entityFieldManager,
     protected Lesson $lessonService,
@@ -25,14 +25,14 @@ class LearningSectionManager {
   /**
    * Determines whether a section is complete for a user.
    */
-  public function isSectionComplete(int $uid, int $paragraphId): bool {
-    $item_ids = $this->getSectionLessonsAndQuizzes($paragraphId);
+  public function isSectionComplete(int $uid, int $sectionId): bool {
+    $item_ids = $this->getSectionLessonsAndQuizzes($sectionId);
     if ($item_ids === []) {
       return FALSE;
     }
 
     foreach ($item_ids as $item_id) {
-      if (!$this->lessonService->isCompletedByUser($item_id, $uid)) {
+      if (!$this->isItemCompletedByUser($uid, $item_id)) {
         return FALSE;
       }
     }
@@ -44,50 +44,54 @@ class LearningSectionManager {
    * Returns section IDs for a lesson.
    */
   public function getLessonSectionIds(int $lessonId): array {
-    $query = $this->entityTypeManager->getStorage('paragraph')->getQuery()
-      ->condition('type', 'course_modules')
-      ->accessCheck(FALSE);
+    $config = $this->configFactory->get('achievements_learning.settings');
+    $section_entity_type = (string) ($config->get('section_entity_type') ?: 'paragraph');
+    $section_bundle = (string) ($config->get('section_bundle') ?: 'course_modules');
+    $lesson_ref_field = (string) ($config->get('section_lesson_reference_field') ?: 'field_module_lessons');
+    $assessment_ref_field = (string) ($config->get('section_assessment_reference_field') ?: 'field_module_assessment');
 
-    $group = $query->orConditionGroup()
-      ->condition('field_module_lessons', $lessonId);
-
-    // Only add assessment field if it exists on at least one paragraph bundle.
     try {
-      $field_definitions = $this->entityFieldManager->getFieldDefinitions('paragraph', 'course_modules');
-      if (isset($field_definitions['field_module_assessment'])) {
-        $group->condition('field_module_assessment', $lessonId);
-      }
+      $query = $this->entityTypeManager->getStorage($section_entity_type)->getQuery()
+        ->condition('type', $section_bundle)
+        ->accessCheck(FALSE);
+
+      $group = $query->orConditionGroup()->condition($lesson_ref_field, $lessonId);
+      $group->condition($assessment_ref_field, $lessonId);
+      $query->condition($group);
+
+      return array_map('intval', array_values($query->execute()));
     }
     catch (\Throwable $exception) {
-      $this->logger->debug('Unable to inspect course_modules paragraph field definitions: @message', ['@message' => $exception->getMessage()]);
+      $this->logger->warning('Failed to resolve sections for lesson @lesson: @message', [
+        '@lesson' => $lessonId,
+        '@message' => $exception->getMessage(),
+      ]);
+      return [];
     }
-
-    $query->condition($group);
-    return array_map('intval', array_values($query->execute()));
   }
 
   /**
-   * Returns lesson and quiz IDs associated with a section paragraph.
+   * Returns lesson and quiz IDs associated with a section entity.
    */
-  public function getSectionLessonsAndQuizzes(int $paragraphId): array {
-    /** @var \Drupal\paragraphs\ParagraphInterface|null $paragraph */
-    $paragraph = $this->entityTypeManager->getStorage('paragraph')->load($paragraphId);
-    if (!$paragraph || $paragraph->bundle() !== 'course_modules') {
+  public function getSectionLessonsAndQuizzes(int $sectionId): array {
+    $config = $this->configFactory->get('achievements_learning.settings');
+    $section_entity_type = (string) ($config->get('section_entity_type') ?: 'paragraph');
+    $section_bundle = (string) ($config->get('section_bundle') ?: 'course_modules');
+    $lesson_ref_field = (string) ($config->get('section_lesson_reference_field') ?: 'field_module_lessons');
+    $assessment_ref_field = (string) ($config->get('section_assessment_reference_field') ?: 'field_module_assessment');
+
+    $section = $this->entityTypeManager->getStorage($section_entity_type)->load($sectionId);
+    if (!$section || (method_exists($section, 'bundle') && $section->bundle() !== $section_bundle)) {
       return [];
     }
 
     $item_ids = [];
-
-    if ($paragraph->hasField('field_module_lessons')) {
-      foreach ($paragraph->get('field_module_lessons')->getValue() as $item) {
-        if (!empty($item['target_id'])) {
-          $item_ids[] = (int) $item['target_id'];
-        }
+    foreach ([$lesson_ref_field, $assessment_ref_field] as $field_name) {
+      if (!method_exists($section, 'hasField') || !$section->hasField($field_name)) {
+        continue;
       }
-    }
 
-    if ($paragraph->hasField('field_module_assessment')) {
-      foreach ($paragraph->get('field_module_assessment')->getValue() as $item) {
+      foreach ($section->get($field_name)->getValue() as $item) {
         if (!empty($item['target_id'])) {
           $item_ids[] = (int) $item['target_id'];
         }
@@ -95,6 +99,19 @@ class LearningSectionManager {
     }
 
     return array_values(array_unique($item_ids));
+  }
+
+  /**
+   * Checks completion using achievements_learning completion storage.
+   */
+  protected function isItemCompletedByUser(int $uid, int $itemId): bool {
+    $completed = achievements_storage_get('al:completed_items', $uid);
+    if ($completed === FALSE) {
+      return FALSE;
+    }
+
+    $completed = is_array($completed) ? $completed : [];
+    return in_array($itemId, $completed, TRUE);
   }
 
 }

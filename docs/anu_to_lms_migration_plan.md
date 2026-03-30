@@ -49,6 +49,10 @@ It is written for a first migration where:
 
 ## Strategy decisions
 
+Integration note:
+- Treat Drupal LMS `TrainingManager` as the canonical service for learning-path
+  status/progress checks where available; avoid direct status-entity mutation.
+
 ## 1) Checklist migration behavior
 Use LMS **`no_answer`** activity plugin for checklist progression in v1.
 

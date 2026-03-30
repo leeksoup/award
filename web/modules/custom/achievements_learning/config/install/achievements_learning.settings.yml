@@ -1,5 +1,12 @@
 parent_email_field: field_parent_email
 current_title_field: field_learning_current_title
+course_entity_type: node
+course_bundle: course
+course_section_reference_field: field_course_module
+section_entity_type: paragraph
+section_bundle: course_modules
+section_lesson_reference_field: field_module_lessons
+section_assessment_reference_field: field_module_assessment
 forum_excluded_roles:
   - administrator
   - teacher

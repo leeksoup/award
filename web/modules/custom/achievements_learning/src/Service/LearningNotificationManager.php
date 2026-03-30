@@ -20,6 +20,7 @@ class LearningNotificationManager {
   public function __construct(
     protected ConfigFactoryInterface $configFactory,
     protected EntityTypeManagerInterface $entityTypeManager,
+    protected LearningCourseManager $courseManager,
     protected MailManagerInterface $mailManager,
     protected LanguageManagerInterface $languageManager,
     protected LoggerInterface $logger,
@@ -45,10 +46,12 @@ class LearningNotificationManager {
     $parent_body = $this->getTextFieldValue($lesson, 'field_parent_completion_email_body');
 
     $course_title = '';
-    if (\Drupal::hasService('anu_lms.lesson')) {
-      $course = \Drupal::service('anu_lms.lesson')->getLessonCourse($lessonId);
-      if ($course) {
-        $course_title = $course->label();
+    $course_id = $this->courseManager->getLessonCourseId($lessonId);
+    if ($course_id) {
+      $course_entity_type = (string) ($this->configFactory->get('achievements_learning.settings')->get('course_entity_type') ?: 'node');
+      $course = $this->entityTypeManager->getStorage($course_entity_type)->load($course_id);
+      if ($course && method_exists($course, 'label')) {
+        $course_title = (string) $course->label();
       }
     }
 

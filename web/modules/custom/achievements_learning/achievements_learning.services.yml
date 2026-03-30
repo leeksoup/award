@@ -23,6 +23,7 @@ services:
   achievements_learning.section_manager:
     class: Drupal\achievements_learning\Service\LearningSectionManager
     arguments:
+      - '@config.factory'
       - '@entity_type.manager'
       - '@entity_field.manager'
       - '@anu_lms.lesson'
@@ -31,9 +32,10 @@ services:
   achievements_learning.course_manager:
     class: Drupal\achievements_learning\Service\LearningCourseManager
     arguments:
+      - '@config.factory'
       - '@entity_type.manager'
-      - '@anu_lms.course'
-      - '@anu_lms.lesson'
+      - '@achievements_learning.section_manager'
+      - '@?lms.training_manager'
       - '@logger.channel.achievements_learning'
 
   achievements_learning.forum_manager:
@@ -49,6 +51,7 @@ services:
     arguments:
       - '@config.factory'
       - '@entity_type.manager'
+      - '@achievements_learning.course_manager'
       - '@plugin.manager.mail'
       - '@language_manager'
       - '@logger.channel.achievements_learning'

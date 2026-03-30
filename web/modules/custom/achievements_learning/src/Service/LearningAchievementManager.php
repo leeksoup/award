@@ -27,6 +27,7 @@ class LearningAchievementManager {
    * Records a lesson completion event.
    */
   public function recordLessonCompleted(int $uid, int $lessonId): void {
+    $this->markCompletedItem($uid, $lessonId);
     $lesson_count = $this->incrementCounter('lesson_count', $uid);
     $this->processThresholdMilestones($uid, 'lesson_count', $lesson_count, 'lesson_count_milestones');
     $this->evaluateConfiguredMilestones($uid, [
@@ -221,8 +222,24 @@ class LearningAchievementManager {
       'forum_reply_count' => 'al:reply_count',
       'section_complete_ids' => 'al:section_ids',
       'course_complete_ids' => 'al:course_ids',
+      'completed_items' => 'al:completed_items',
       default => 'al:' . $name,
     };
+  }
+
+  /**
+   * Records a completed lesson/activity ID for a user.
+   */
+  protected function markCompletedItem(int $uid, int $itemId): void {
+    $storage_key = $this->getStorageKey('completed_items');
+    $completed = achievements_storage_get($storage_key, $uid);
+    $completed = is_array($completed) ? $completed : [];
+    if (in_array($itemId, $completed, TRUE)) {
+      return;
+    }
+
+    $completed[] = $itemId;
+    achievements_storage_set($storage_key, $completed, $uid);
   }
 
 }
