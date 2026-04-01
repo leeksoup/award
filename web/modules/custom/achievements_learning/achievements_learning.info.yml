@@ -1,6 +1,6 @@
 name: 'Achievements Learning'
 type: module
-description: 'Learning achievements integration for Anu LMS, achievements, forum participation, title syncing, notifications, and reward choices.'
+description: 'Learning achievements integration for Drupal LMS, achievements, forum participation, title syncing, notifications, and reward choices.'
 package: Custom
 core_version_requirement: ^10 || ^11
 dependencies:
@@ -10,4 +10,4 @@ dependencies:
   - drupal:text
   - drupal:user
   - achievements:achievements
-  - anu_lms:anu_lms
+  - lms:lms

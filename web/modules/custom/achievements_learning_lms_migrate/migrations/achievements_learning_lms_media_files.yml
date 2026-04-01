@@ -1,0 +1,28 @@
+id: achievements_learning_lms_media_files
+label: 'Anu LMS file/media references to file entities'
+migration_group: achievements_learning_lms
+migration_tags:
+  - achievements_learning
+  - media
+
+source:
+  # TODO: Replace with your final source plugin once implementation starts.
+  plugin: embedded_data
+  data_rows: []
+  ids:
+    fid:
+      type: integer
+
+process:
+  fid: fid
+  filename: filename
+  uri: uri
+  filemime: filemime
+  status:
+    plugin: default_value
+    default_value: 1
+
+destination:
+  plugin: 'entity:file'
+
+migration_dependencies: { }
