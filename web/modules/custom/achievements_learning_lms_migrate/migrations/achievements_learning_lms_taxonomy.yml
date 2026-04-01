@@ -1,0 +1,28 @@
+id: achievements_learning_lms_taxonomy
+label: 'Anu LMS taxonomy to LMS taxonomy'
+migration_group: achievements_learning_lms
+migration_tags:
+  - achievements_learning
+  - taxonomy
+
+source:
+  # TODO: Replace with your final source plugin once implementation starts.
+  plugin: embedded_data
+  data_rows: []
+  ids:
+    tid:
+      type: integer
+
+process:
+  tid: tid
+  vid: vid
+  name: name
+  description/value: description
+  description/format:
+    plugin: default_value
+    default_value: minimal_html
+
+destination:
+  plugin: 'entity:taxonomy_term'
+
+migration_dependencies: { }
