@@ -173,7 +173,7 @@ Use Quiz module later only if needed for features like:
 Deliverable: frozen field map + migration acceptance criteria.
 
 ## Phase 1 — Migration module scaffolding (1–2 days)
-1. Create custom migration module (example name: `achievements_learning_lms_migrate`).
+1. Create custom migration module (example name: `anu_to_lms_migrate`).
 2. Add migration groups and dependencies:
    - taxonomy/media prerequisites
    - lessons/assessments

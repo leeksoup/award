@@ -1,0 +1,8 @@
+id: anu_to_lms
+label: 'Anu LMS to Drupal LMS migration'
+description: 'Migration group for Anu LMS to Drupal LMS transformations.'
+source_type: 'Anu LMS source content'
+shared_configuration:
+  migration_tags:
+    - anu_to_lms
+    - lms_migration
