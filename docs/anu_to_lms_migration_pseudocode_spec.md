@@ -4,16 +4,16 @@ This document is the code-ready pseudocode companion to the migration plan and i
 
 ## Execution order
 
-1. `achievements_learning_lms_taxonomy`
-2. `achievements_learning_lms_media_files`
-3. `achievements_learning_lms_paragraph_checklist_items`
-4. `achievements_learning_lms_paragraph_lesson_checklists`
-5. `achievements_learning_lms_paragraph_lesson_sections`
-6. `achievements_learning_lms_node_module_lessons`
-7. `achievements_learning_lms_node_module_assessments`
-8. `achievements_learning_lms_paragraph_course_modules`
-9. `achievements_learning_lms_node_courses`
-10. `achievements_learning_lms_course_structure`
+1. `anu_to_lms_taxonomy`
+2. `anu_to_lms_media_files`
+3. `anu_to_lms_paragraph_checklist_items`
+4. `anu_to_lms_paragraph_lesson_checklists`
+5. `anu_to_lms_paragraph_lesson_sections`
+6. `anu_to_lms_node_module_lessons`
+7. `anu_to_lms_node_module_assessments`
+8. `anu_to_lms_paragraph_course_modules`
+9. `anu_to_lms_node_courses`
+10. `anu_to_lms_course_structure`
 
 ## Shared transform rules
 
@@ -27,7 +27,7 @@ This document is the code-ready pseudocode companion to the migration plan and i
 
 ## Migration ID specs
 
-### `achievements_learning_lms_taxonomy`
+### `anu_to_lms_taxonomy`
 
 Purpose: migrate course taxonomy terms used by source content.
 
@@ -36,7 +36,7 @@ Pseudo process:
 - Map: `tid`, `vid`, `name`, `description` (+ normalized format).
 - Destination: taxonomy term entity.
 
-### `achievements_learning_lms_media_files`
+### `anu_to_lms_media_files`
 
 Purpose: migrate files referenced by course/lesson blocks.
 
@@ -45,7 +45,7 @@ Pseudo process:
 - Map: fid, uri, filename, mime, status.
 - Destination: file entity.
 
-### `achievements_learning_lms_paragraph_checklist_items`
+### `anu_to_lms_paragraph_checklist_items`
 
 Purpose: migrate checklist item paragraph payloads for reuse in checklist activity assembly.
 
@@ -57,7 +57,7 @@ Pseudo process:
   - `field_lesson_text_content.value` / format (optional)
 - Destination: checklist-item staging record/entity.
 
-### `achievements_learning_lms_paragraph_lesson_checklists`
+### `anu_to_lms_paragraph_lesson_checklists`
 
 Purpose: convert checklist paragraphs to LMS `no_answer` activity payloads.
 
@@ -67,7 +67,7 @@ Pseudo process:
 - Build final activity payload body by concatenating ordered checklist items.
 - Destination: LMS activity staging record/entity.
 
-### `achievements_learning_lms_paragraph_lesson_sections`
+### `anu_to_lms_paragraph_lesson_sections`
 
 Purpose: convert lesson pages and nested block chains.
 
@@ -79,7 +79,7 @@ Pseudo process:
   - route `lesson_checklist` to checklist activity lookup.
 - Destination: lesson-section staging entity.
 
-### `achievements_learning_lms_node_module_lessons`
+### `anu_to_lms_node_module_lessons`
 
 Purpose: migrate lesson nodes and attach transformed sections.
 
@@ -90,7 +90,7 @@ Pseudo process:
 - Preserve lesson completion email fields for `achievements_learning` continuity.
 - Destination: LMS lesson destination.
 
-### `achievements_learning_lms_node_module_assessments`
+### `anu_to_lms_node_module_assessments`
 
 Purpose: migrate quiz content into LMS activity plugin model.
 
@@ -103,7 +103,7 @@ Pseudo process:
   - scale/likert => nearest available plugin or custom plugin fallback
 - Destination: LMS activity set destination.
 
-### `achievements_learning_lms_paragraph_course_modules`
+### `anu_to_lms_paragraph_course_modules`
 
 Purpose: migrate course module grouping paragraphs.
 
@@ -114,7 +114,7 @@ Pseudo process:
 - Keep module paragraph order for later course structure assembly.
 - Destination: course-module staging entity.
 
-### `achievements_learning_lms_node_courses`
+### `anu_to_lms_node_courses`
 
 Purpose: migrate course nodes and metadata.
 
@@ -124,7 +124,7 @@ Pseudo process:
 - Resolve `field_course_module` via course-module migration lookup.
 - Destination: LMS course destination.
 
-### `achievements_learning_lms_course_structure`
+### `anu_to_lms_course_structure`
 
 Purpose: final assembly of LMS learning path.
 
