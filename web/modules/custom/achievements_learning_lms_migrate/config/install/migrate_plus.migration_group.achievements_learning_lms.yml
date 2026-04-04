@@ -1,8 +1,0 @@
-id: achievements_learning_lms
-label: 'Achievements Learning LMS migration'
-description: 'Migration group for Anu LMS to Drupal LMS transformations.'
-source_type: 'Anu LMS source content'
-shared_configuration:
-  migration_tags:
-    - achievements_learning
-    - lms_migration
