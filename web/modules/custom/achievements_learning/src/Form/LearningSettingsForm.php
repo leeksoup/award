@@ -48,6 +48,48 @@ class LearningSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('current_title_field') ?: 'field_learning_current_title',
       '#required' => TRUE,
     ];
+    $form['general']['course_entity_type'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Course entity type'),
+      '#default_value' => $config->get('course_entity_type') ?: 'node',
+      '#required' => TRUE,
+    ];
+    $form['general']['course_bundle'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Course bundle'),
+      '#default_value' => $config->get('course_bundle') ?: 'course',
+      '#required' => TRUE,
+    ];
+    $form['general']['course_section_reference_field'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Course section reference field'),
+      '#default_value' => $config->get('course_section_reference_field') ?: 'field_course_module',
+      '#required' => TRUE,
+    ];
+    $form['general']['section_entity_type'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Section entity type'),
+      '#default_value' => $config->get('section_entity_type') ?: 'paragraph',
+      '#required' => TRUE,
+    ];
+    $form['general']['section_bundle'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Section bundle'),
+      '#default_value' => $config->get('section_bundle') ?: 'course_modules',
+      '#required' => TRUE,
+    ];
+    $form['general']['section_lesson_reference_field'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Section lesson reference field'),
+      '#default_value' => $config->get('section_lesson_reference_field') ?: 'field_module_lessons',
+      '#required' => TRUE,
+    ];
+    $form['general']['section_assessment_reference_field'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Section assessment reference field'),
+      '#default_value' => $config->get('section_assessment_reference_field') ?: 'field_module_assessment',
+      '#required' => TRUE,
+    ];
     $form['general']['forum_excluded_roles'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Excluded forum roles'),
@@ -123,6 +165,13 @@ class LearningSettingsForm extends ConfigFormBase {
     $this->configFactory->getEditable('achievements_learning.settings')
       ->set('parent_email_field', trim($form_state->getValue('parent_email_field')))
       ->set('current_title_field', trim($form_state->getValue('current_title_field')))
+      ->set('course_entity_type', trim($form_state->getValue('course_entity_type')))
+      ->set('course_bundle', trim($form_state->getValue('course_bundle')))
+      ->set('course_section_reference_field', trim($form_state->getValue('course_section_reference_field')))
+      ->set('section_entity_type', trim($form_state->getValue('section_entity_type')))
+      ->set('section_bundle', trim($form_state->getValue('section_bundle')))
+      ->set('section_lesson_reference_field', trim($form_state->getValue('section_lesson_reference_field')))
+      ->set('section_assessment_reference_field', trim($form_state->getValue('section_assessment_reference_field')))
       ->set('forum_excluded_roles', array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $form_state->getValue('forum_excluded_roles') ?? '')))))
       ->set('title_priority', array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $form_state->getValue('title_priority') ?? '')))))
       ->set('milestone_rules', Yaml::parse($form_state->getValue('milestone_rules')) ?? [])
