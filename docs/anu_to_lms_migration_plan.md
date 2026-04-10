@@ -165,6 +165,49 @@ Use Quiz module later only if needed for features like:
 
 ## Implementation plan
 
+## Implementation milestones (step-by-step)
+
+1. **Discovery freeze complete**
+   - Export source field config + representative content fixtures.
+   - Confirm all paragraph bundles and edge cases from real data.
+   - Sign off on acceptance criteria and field map.
+
+2. **Migration scaffold complete**
+   - `anu_to_lms_migrate` module exists with migration group.
+   - Base migrations for taxonomy/media/checklist/sections/lessons are committed.
+   - Dependency order is documented and runnable.
+
+3. **Lesson content pipeline complete**
+   - Checklist item + lesson checklist transforms implemented.
+   - Lesson sections mapped in correct source order.
+   - Lesson node migration resolves transformed section references.
+
+4. **Assessment pipeline complete**
+   - Question bundle mapping to LMS activity plugins is implemented.
+   - Unsupported question types have explicit fallback handling.
+   - Assessment ordering and scoring semantics are validated.
+
+5. **Course structure pipeline complete**
+   - Course modules and course nodes are migrated.
+   - Final course structure/learning-path assembly migration is implemented.
+   - Sequencing parity verified for all courses in staging.
+
+6. **Achievements/semantics parity complete**
+   - Completion events feed `achievements_learning` as expected.
+   - Lesson/section/course milestone parity confirmed.
+   - Title/reward notifications validated end-to-end.
+
+7. **Enrollment integration complete (Commerce stream)**
+   - Parent purchaser ↔ learner model validated.
+   - Purchase/renewal/cancel events synchronize enrollment.
+   - Reconciliation job added for drift recovery.
+
+8. **Cutover readiness complete**
+   - Full staging dry-run + UAT script passes.
+   - Rollback plan and operational runbook documented.
+   - Production cutover window and owners confirmed.
+
+
 ## Phase 0 — Discovery freeze (1–2 days)
 1. Export source field config and sample content snapshots.
 2. Confirm every paragraph bundle in real data (not only schema).
