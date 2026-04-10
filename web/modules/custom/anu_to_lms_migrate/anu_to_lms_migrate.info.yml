@@ -1,0 +1,14 @@
+name: 'Anu to LMS Migrate'
+type: module
+description: 'Migration scaffolding for Anu LMS to Drupal LMS content transformation.'
+package: Custom
+core_version_requirement: ^10 || ^11
+dependencies:
+  - drupal:migrate
+  - drupal:migrate_plus
+  - drupal:migrate_tools
+  - drupal:taxonomy
+  - drupal:file
+  - drupal:node
+  - drupal:paragraphs
+  - lms:lms

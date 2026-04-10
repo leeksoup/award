@@ -1,0 +1,32 @@
+id: anu_to_lms_paragraph_checklist_items
+label: 'Anu LMS checklist items to LMS checklist-item staging'
+migration_group: anu_to_lms
+migration_tags:
+  - achievements_learning
+  - paragraph
+  - checklist
+
+source:
+  # TODO: Replace with your source plugin once implementation starts.
+  plugin: embedded_data
+  data_rows: []
+  ids:
+    paragraph_id:
+      type: integer
+
+process:
+  paragraph_id: paragraph_id
+  checklist_item_text/value: field_checkbox_option_value
+  checklist_item_text/format:
+    plugin: default_value
+    default_value: minimal_html
+  checklist_item_description/value: field_lesson_text_content_value
+  checklist_item_description/format:
+    plugin: default_value
+    default_value: minimal_html
+
+destination:
+  # TODO: Swap to final destination plugin/entity once schema is finalized.
+  plugin: null
+
+migration_dependencies: { }

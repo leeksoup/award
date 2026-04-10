@@ -1,0 +1,39 @@
+id: anu_to_lms_paragraph_lesson_checklists
+label: 'Anu LMS lesson checklists to LMS no_answer activity payloads'
+migration_group: anu_to_lms
+migration_tags:
+  - achievements_learning
+  - paragraph
+  - checklist
+  - activity
+
+source:
+  # TODO: Replace with your source plugin once implementation starts.
+  plugin: embedded_data
+  data_rows: []
+  ids:
+    paragraph_id:
+      type: integer
+
+process:
+  paragraph_id: paragraph_id
+  activity_title: title
+  checklist_item_ids: field_checklist_item_ids
+  checklist_activity_body/value:
+    # v1 checklist transform: flatten ordered checklist content into one body.
+    plugin: concat
+    source:
+      - field_checklist_summary
+      - field_checklist_items_rendered
+    delimiter: "\n\n"
+  checklist_activity_body/format:
+    plugin: default_value
+    default_value: minimal_html
+
+destination:
+  # TODO: Swap to final destination plugin/entity once schema is finalized.
+  plugin: null
+
+migration_dependencies:
+  required:
+    - anu_to_lms_paragraph_checklist_items
