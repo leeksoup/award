@@ -174,7 +174,7 @@ Use Quiz module later only if needed for features like:
 
 2. **Migration scaffold complete**
    - `anu_to_lms_migrate` module exists with migration group.
-   - Base migrations for taxonomy/media/checklist/sections/lessons are committed.
+   - Base migrations for taxonomy/media/checklist/sections/lessons/assessments/course-sequence are committed.
    - Dependency order is documented and runnable.
 
 3. **Lesson content pipeline complete**
@@ -207,6 +207,10 @@ Use Quiz module later only if needed for features like:
    - Rollback plan and operational runbook documented.
    - Production cutover window and owners confirmed.
 
+
+## Milestone status
+
+- ✅ Milestone 2 (**Migration scaffold complete**) marked complete on April 11, 2026 after adding scaffold migrations through course-sequence assembly (`anu_to_lms_course_structure`).
 
 ## Phase 0 — Discovery freeze (1–2 days)
 1. Export source field config and sample content snapshots.
