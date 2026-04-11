@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies: {  }
+id: learning_course_3
+label: 'Learning Courses: 3'
+description: 'Complete 3 courses.'
+storage: 'al:course_count'
+secret: false
+invisible: false
+manual_only: false
+points: 100
+use_default_image: true
+locked_image_path: ''
+unlocked_image_path: ''
