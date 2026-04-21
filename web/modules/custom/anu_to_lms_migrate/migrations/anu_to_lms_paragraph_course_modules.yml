@@ -1,0 +1,41 @@
+id: anu_to_lms_paragraph_course_modules
+label: 'Anu LMS course module paragraphs to LMS module staging'
+migration_group: anu_to_lms
+migration_tags:
+  - achievements_learning
+  - paragraph
+  - course_module
+
+source:
+  # TODO: Replace with your source plugin once implementation starts.
+  plugin: embedded_data
+  data_rows: []
+  ids:
+    paragraph_id:
+      type: integer
+
+process:
+  paragraph_id: paragraph_id
+  module_title: title
+  module_weight: delta
+  module_lesson_ids:
+    plugin: migration_lookup
+    migration:
+      - anu_to_lms_node_module_lessons
+    source: field_course_module_lesson_ids
+    no_stub: true
+  module_assessment_ids:
+    plugin: migration_lookup
+    migration:
+      - anu_to_lms_node_module_assessments
+    source: field_course_module_assessment_ids
+    no_stub: true
+
+destination:
+  # TODO: Swap to final destination plugin/entity once schema is finalized.
+  plugin: null
+
+migration_dependencies:
+  required:
+    - anu_to_lms_node_module_lessons
+    - anu_to_lms_node_module_assessments

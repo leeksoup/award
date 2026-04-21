@@ -8,6 +8,27 @@ achievements_learning.settings:
     current_title_field:
       type: string
       label: 'Current title field machine name'
+    course_entity_type:
+      type: string
+      label: 'Course entity type'
+    course_bundle:
+      type: string
+      label: 'Course bundle machine name'
+    course_section_reference_field:
+      type: string
+      label: 'Course field that references sections/modules'
+    section_entity_type:
+      type: string
+      label: 'Section entity type'
+    section_bundle:
+      type: string
+      label: 'Section bundle machine name'
+    section_lesson_reference_field:
+      type: string
+      label: 'Section field that references lessons'
+    section_assessment_reference_field:
+      type: string
+      label: 'Section field that references assessments/activities'
     forum_excluded_roles:
       type: sequence
       label: 'Excluded forum roles'
