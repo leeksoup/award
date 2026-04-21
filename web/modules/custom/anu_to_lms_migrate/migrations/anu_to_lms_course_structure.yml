@@ -1,0 +1,39 @@
+id: anu_to_lms_course_structure
+label: 'Anu LMS final course structure assembly to LMS learning paths'
+migration_group: anu_to_lms
+migration_tags:
+  - achievements_learning
+  - course_structure
+  - learning_path
+
+source:
+  # TODO: Replace with your source plugin once implementation starts.
+  plugin: embedded_data
+  data_rows: []
+  ids:
+    course_id:
+      type: integer
+
+process:
+  course_id: course_id
+  course_entity_id:
+    plugin: migration_lookup
+    migration:
+      - anu_to_lms_node_courses
+    source: course_nid
+    no_stub: true
+  ordered_module_ids:
+    plugin: migration_lookup
+    migration:
+      - anu_to_lms_paragraph_course_modules
+    source: ordered_module_paragraph_ids
+    no_stub: true
+
+destination:
+  # TODO: Swap to final destination plugin/entity once schema is finalized.
+  plugin: null
+
+migration_dependencies:
+  required:
+    - anu_to_lms_node_courses
+    - anu_to_lms_paragraph_course_modules
