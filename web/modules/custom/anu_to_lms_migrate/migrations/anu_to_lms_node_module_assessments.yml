@@ -21,19 +21,13 @@ process:
   status:
     plugin: default_value
     default_value: 1
-  assessment_items: field_module_assessment_items
-  assessment_item_plugin_types:
-    # Initial question-type -> LMS plugin mapping scaffold.
-    plugin: static_map
-    source: assessment_question_bundle
-    map:
-      question_single_choice: select
-      question_multi_choice: select
-      question_short_answer: free_text
-      question_long_answer: free_text
-      question_scale: custom_or_nearest
-      question_likert_scale: custom_or_nearest
-    bypass: true
+  assessment_items_ordered:
+    plugin: anu_to_lms_sort_by_delta
+    source: field_module_assessment_items_payload
+  assessment_items:
+    plugin: anu_to_lms_map_assessment_items
+    source: "@assessment_items_ordered"
+    fallback_plugin: custom_or_nearest
 
 destination:
   # TODO: Swap to final destination plugin/entity once schema is finalized.
