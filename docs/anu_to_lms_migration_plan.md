@@ -211,6 +211,7 @@ Use Quiz module later only if needed for features like:
 ## Milestone status
 
 - ✅ Milestone 2 (**Migration scaffold complete**) marked complete on April 11, 2026 after adding scaffold migrations through course-sequence assembly (`anu_to_lms_course_structure`).
+- ✅ Milestone 3 (**Lesson content pipeline complete**) marked complete on April 11, 2026 after implementing ordered checklist-body transforms, ordered section mapping, and lesson-to-section migration lookups.
 
 ## Phase 0 — Discovery freeze (1–2 days)
 1. Export source field config and sample content snapshots.

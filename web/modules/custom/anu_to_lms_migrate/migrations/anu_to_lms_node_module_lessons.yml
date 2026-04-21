@@ -20,11 +20,14 @@ process:
   status:
     plugin: default_value
     default_value: 1
+  lesson_section_source_ids:
+    plugin: anu_to_lms_ordered_target_ids
+    source: field_module_lesson_content
   lesson_section_ids:
     plugin: migration_lookup
     migration:
       - anu_to_lms_paragraph_lesson_sections
-    source: field_module_lesson_content_ids
+    source: "@lesson_section_source_ids"
     no_stub: true
 
 destination:

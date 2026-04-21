@@ -18,7 +18,9 @@ process:
   paragraph_id: paragraph_id
   section_title: title
   section_sequence_weight: delta
-  section_content_blocks: field_lesson_section_content
+  section_content_blocks:
+    plugin: anu_to_lms_sort_by_delta
+    source: field_lesson_section_content
   section_checklist_activity_ids:
     plugin: migration_lookup
     migration:
