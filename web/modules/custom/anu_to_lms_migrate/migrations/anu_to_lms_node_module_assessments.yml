@@ -28,6 +28,13 @@ process:
     plugin: anu_to_lms_map_assessment_items
     source: "@assessment_items_ordered"
     fallback_plugin: custom_or_nearest
+  assessment_fallback_bundles:
+    plugin: anu_to_lms_fallback_bundles
+    source: "@assessment_items"
+    fallback_plugin: custom_or_nearest
+  assessment_scoring:
+    plugin: anu_to_lms_assessment_scoring
+    source: field_assessment_scoring
 
 destination:
   # TODO: Swap to final destination plugin/entity once schema is finalized.
