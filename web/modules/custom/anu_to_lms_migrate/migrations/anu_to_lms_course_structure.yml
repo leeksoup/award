@@ -22,12 +22,23 @@ process:
       - anu_to_lms_node_courses
     source: course_nid
     no_stub: true
+  ordered_module_source_ids:
+    plugin: anu_to_lms_ordered_target_ids
+    source: ordered_module_references
   ordered_module_ids:
     plugin: migration_lookup
     migration:
       - anu_to_lms_paragraph_course_modules
-    source: ordered_module_paragraph_ids
+    source: "@ordered_module_source_ids"
     no_stub: true
+  learning_path_payload:
+    plugin: anu_to_lms_assemble_learning_path
+    source: "@ordered_module_ids"
+  sequence_parity_report:
+    plugin: anu_to_lms_sequence_parity
+    source:
+      source: "@ordered_module_source_ids"
+      mapped: "@ordered_module_ids"
 
 destination:
   # TODO: Swap to final destination plugin/entity once schema is finalized.

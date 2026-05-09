@@ -24,11 +24,14 @@ process:
   summary/format:
     plugin: default_value
     default_value: minimal_html
+  course_module_source_ids:
+    plugin: anu_to_lms_ordered_target_ids
+    source: field_course_modules
   course_module_ids:
     plugin: migration_lookup
     migration:
       - anu_to_lms_paragraph_course_modules
-    source: field_course_module_ids
+    source: "@course_module_source_ids"
     no_stub: true
 
 destination:
