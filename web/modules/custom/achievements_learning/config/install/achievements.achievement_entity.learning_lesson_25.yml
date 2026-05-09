@@ -1,0 +1,14 @@
+langcode: en
+status: true
+dependencies: {  }
+id: learning_lesson_25
+label: 'Learning Lessons: 25'
+description: 'Complete 25 lessons.'
+storage: 'al:lesson_count'
+secret: false
+invisible: false
+manual_only: false
+points: 100
+use_default_image: true
+locked_image_path: ''
+unlocked_image_path: ''

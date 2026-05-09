@@ -1,0 +1,46 @@
+id: anu_to_lms_node_module_assessments
+label: 'Anu LMS module assessments to LMS activity-set staging'
+migration_group: anu_to_lms
+migration_tags:
+  - achievements_learning
+  - node
+  - assessment
+  - activity
+
+source:
+  # TODO: Replace with your source plugin once implementation starts.
+  plugin: embedded_data
+  data_rows: []
+  ids:
+    nid:
+      type: integer
+
+process:
+  nid: nid
+  title: title
+  status:
+    plugin: default_value
+    default_value: 1
+  assessment_items_ordered:
+    plugin: anu_to_lms_sort_by_delta
+    source: field_module_assessment_items_payload
+  assessment_items:
+    plugin: anu_to_lms_map_assessment_items
+    source: "@assessment_items_ordered"
+    fallback_plugin: custom_or_nearest
+  assessment_fallback_bundles:
+    plugin: anu_to_lms_fallback_bundles
+    source: "@assessment_items"
+    fallback_plugin: custom_or_nearest
+  assessment_scoring:
+    plugin: anu_to_lms_assessment_scoring
+    source: field_assessment_scoring
+
+destination:
+  # TODO: Swap to final destination plugin/entity once schema is finalized.
+  plugin: null
+
+migration_dependencies:
+  required:
+    - anu_to_lms_media_files
+    - anu_to_lms_taxonomy
