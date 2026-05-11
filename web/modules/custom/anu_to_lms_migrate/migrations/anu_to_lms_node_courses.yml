@@ -1,0 +1,45 @@
+id: anu_to_lms_node_courses
+label: 'Anu LMS courses to LMS course staging'
+migration_group: anu_to_lms
+migration_tags:
+  - achievements_learning
+  - node
+  - course
+
+source:
+  # TODO: Replace with your source plugin once implementation starts.
+  plugin: embedded_data
+  data_rows: []
+  ids:
+    nid:
+      type: integer
+
+process:
+  nid: nid
+  title: title
+  status:
+    plugin: default_value
+    default_value: 1
+  summary/value: body
+  summary/format:
+    plugin: default_value
+    default_value: minimal_html
+  course_module_source_ids:
+    plugin: anu_to_lms_ordered_target_ids
+    source: field_course_modules
+  course_module_ids:
+    plugin: migration_lookup
+    migration:
+      - anu_to_lms_paragraph_course_modules
+    source: "@course_module_source_ids"
+    no_stub: true
+
+destination:
+  # TODO: Swap to final destination plugin/entity once schema is finalized.
+  plugin: null
+
+migration_dependencies:
+  required:
+    - anu_to_lms_paragraph_course_modules
+    - anu_to_lms_taxonomy
+    - anu_to_lms_media_files

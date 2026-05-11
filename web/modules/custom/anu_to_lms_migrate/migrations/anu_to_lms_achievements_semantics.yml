@@ -1,0 +1,37 @@
+id: anu_to_lms_achievements_semantics
+label: 'Anu LMS achievements semantics parity audit'
+migration_group: anu_to_lms
+migration_tags:
+  - achievements_learning
+  - parity
+  - milestones
+
+source:
+  # TODO: Replace with a source plugin that loads parity counters from staging.
+  plugin: embedded_data
+  data_rows: []
+  ids:
+    audit_id:
+      type: string
+
+process:
+  audit_id: audit_id
+  milestone_parity_report:
+    plugin: anu_to_lms_milestone_parity
+    source:
+      lesson_source_count: lesson_source_count
+      lesson_migrated_count: lesson_migrated_count
+      section_source_count: section_source_count
+      section_migrated_count: section_migrated_count
+      course_source_count: course_source_count
+      course_migrated_count: course_migrated_count
+
+destination:
+  # TODO: Swap to final destination plugin/entity once schema is finalized.
+  plugin: null
+
+migration_dependencies:
+  required:
+    - anu_to_lms_node_module_lessons
+    - anu_to_lms_node_courses
+    - anu_to_lms_course_structure
