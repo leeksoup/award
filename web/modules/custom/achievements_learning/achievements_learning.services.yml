@@ -69,5 +69,6 @@ services:
       - '@achievements_learning.achievement_manager'
       - '@achievements_learning.notification_manager'
       - '@logger.channel.achievements_learning'
+      - '@config.factory'
     tags:
       - { name: event_subscriber }

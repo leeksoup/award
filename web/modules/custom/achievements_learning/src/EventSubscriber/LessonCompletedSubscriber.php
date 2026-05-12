@@ -4,6 +4,7 @@ namespace Drupal\achievements_learning\EventSubscriber;
 
 use Drupal\achievements_learning\Service\LearningAchievementManager;
 use Drupal\achievements_learning\Service\LearningNotificationManager;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\EventDispatcher\Event;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -24,6 +25,7 @@ class LessonCompletedSubscriber implements EventSubscriberInterface {
     protected LearningAchievementManager $achievementManager,
     protected LearningNotificationManager $notificationManager,
     protected LoggerInterface $logger,
+    protected ConfigFactoryInterface $configFactory,
   ) {}
 
   /**
@@ -31,6 +33,15 @@ class LessonCompletedSubscriber implements EventSubscriberInterface {
    */
   public function onLessonCompleted(Event $event): void {
     [$uid, $lesson_id] = $this->extractCompletionContext($event);
+
+    $debug = (bool) $this->configFactory->get('achievements_learning.settings')->get('debug_event_trace');
+    if ($debug) {
+      $this->logger->notice('Milestone 6 trace: completion event parsed uid=@uid lesson_id=@lesson_id event_class=@event_class', [
+        "@uid" => $uid,
+        "@lesson_id" => $lesson_id,
+        "@event_class" => get_class($event),
+      ]);
+    }
 
     if ($uid <= 0 || $lesson_id <= 0) {
       $this->logger->warning('Lesson completion event could not be parsed for achievements_learning.');

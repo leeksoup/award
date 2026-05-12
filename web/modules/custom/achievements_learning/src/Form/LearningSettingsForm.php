@@ -97,6 +97,25 @@ class LearningSettingsForm extends ConfigFormBase {
       '#default_value' => implode("\n", $config->get('forum_excluded_roles') ?? []),
     ];
 
+
+    $form['general']['parity_fixture_course_ids'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Milestone 6 parity fixture course IDs'),
+      '#description' => $this->t('Comma-separated course IDs used for parity verification fixtures.'),
+      '#default_value' => implode(',', $config->get('parity_fixture_course_ids') ?? []),
+    ];
+    $form['general']['parity_test_user_ids'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Milestone 6 parity test user IDs'),
+      '#description' => $this->t('Comma-separated user IDs used for milestone parity event validation.'),
+      '#default_value' => implode(',', $config->get('parity_test_user_ids') ?? []),
+    ];
+    $form['general']['debug_event_trace'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable milestone event trace logging'),
+      '#default_value' => (bool) $config->get('debug_event_trace'),
+    ];
+
     $form['milestones'] = [
       '#type' => 'details',
       '#title' => $this->t('Milestone configuration'),
@@ -173,6 +192,9 @@ class LearningSettingsForm extends ConfigFormBase {
       ->set('section_lesson_reference_field', trim($form_state->getValue('section_lesson_reference_field')))
       ->set('section_assessment_reference_field', trim($form_state->getValue('section_assessment_reference_field')))
       ->set('forum_excluded_roles', array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $form_state->getValue('forum_excluded_roles') ?? '')))))
+      ->set('parity_fixture_course_ids', array_values(array_filter(array_map('intval', array_map('trim', explode(',', (string) ($form_state->getValue('parity_fixture_course_ids') ?? '')))))))
+      ->set('parity_test_user_ids', array_values(array_filter(array_map('intval', array_map('trim', explode(',', (string) ($form_state->getValue('parity_test_user_ids') ?? '')))))))
+      ->set('debug_event_trace', (bool) $form_state->getValue('debug_event_trace'))
       ->set('title_priority', array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $form_state->getValue('title_priority') ?? '')))))
       ->set('milestone_rules', Yaml::parse($form_state->getValue('milestone_rules')) ?? [])
       ->set('reward_rules', Yaml::parse($form_state->getValue('reward_rules')) ?? [])

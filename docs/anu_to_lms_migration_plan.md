@@ -214,6 +214,7 @@ Use Quiz module later only if needed for features like:
 - ✅ Milestone 3 (**Lesson content pipeline complete**) marked complete on April 11, 2026 after implementing ordered checklist-body transforms, ordered section mapping, and lesson-to-section migration lookups.
 - ✅ Milestone 4 (**Assessment pipeline complete**) marked complete on April 26, 2026 after implementing ordered assessment mapping, explicit fallback-bundle capture, and normalized scoring semantics transforms.
 - ✅ Milestone 5 (**Course structure pipeline complete**) marked complete on April 28, 2026 with ordered module/course lookups, learning-path payload assembly, and sequence-parity reporting transforms.
+- 🚧 Milestone 6 (**Achievements/semantics parity complete**) started on May 9, 2026 with a dedicated semantics parity audit migration and milestone-parity transform plugin.
 
 ## Phase 0 — Discovery freeze (1–2 days)
 1. Export source field config and sample content snapshots.

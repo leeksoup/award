@@ -10,6 +10,9 @@ section_assessment_reference_field: field_module_assessment
 forum_excluded_roles:
   - administrator
   - teacher
+parity_fixture_course_ids: []
+parity_test_user_ids: []
+debug_event_trace: false
 lesson_count_milestones:
   - achievement_id: learning_lesson_1
     threshold: 1
