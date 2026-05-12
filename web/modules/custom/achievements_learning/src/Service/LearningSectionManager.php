@@ -17,6 +17,8 @@ class LearningSectionManager {
   public function __construct(
     protected ConfigFactoryInterface $configFactory,
     protected EntityTypeManagerInterface $entityTypeManager,
+    protected EntityFieldManagerInterface $entityFieldManager,
+    protected Lesson $lessonService,
     protected LoggerInterface $logger,
   ) {}
 
