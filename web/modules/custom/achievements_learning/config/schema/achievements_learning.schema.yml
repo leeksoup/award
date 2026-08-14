@@ -8,11 +8,45 @@ achievements_learning.settings:
     current_title_field:
       type: string
       label: 'Current title field machine name'
+    course_entity_type:
+      type: string
+      label: 'Course entity type'
+    course_bundle:
+      type: string
+      label: 'Course bundle machine name'
+    course_section_reference_field:
+      type: string
+      label: 'Course field that references sections/modules'
+    section_entity_type:
+      type: string
+      label: 'Section entity type'
+    section_bundle:
+      type: string
+      label: 'Section bundle machine name'
+    section_lesson_reference_field:
+      type: string
+      label: 'Section field that references lessons'
+    section_assessment_reference_field:
+      type: string
+      label: 'Section field that references assessments/activities'
     forum_excluded_roles:
       type: sequence
       label: 'Excluded forum roles'
       sequence:
         type: string
+    parity_fixture_course_ids:
+      type: sequence
+      label: 'Milestone 6 parity fixture course IDs'
+      sequence:
+        type: integer
+    parity_test_user_ids:
+      type: sequence
+      label: 'Milestone 6 parity test user IDs'
+      sequence:
+        type: integer
+    debug_event_trace:
+      type: boolean
+      label: 'Enable event trace logging for Milestone 6'
     lesson_count_milestones:
       type: sequence
       label: 'Lesson count milestones'

@@ -48,11 +48,72 @@ class LearningSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('current_title_field') ?: 'field_learning_current_title',
       '#required' => TRUE,
     ];
+    $form['general']['course_entity_type'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Course entity type'),
+      '#default_value' => $config->get('course_entity_type') ?: 'node',
+      '#required' => TRUE,
+    ];
+    $form['general']['course_bundle'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Course bundle'),
+      '#default_value' => $config->get('course_bundle') ?: 'course',
+      '#required' => TRUE,
+    ];
+    $form['general']['course_section_reference_field'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Course section reference field'),
+      '#default_value' => $config->get('course_section_reference_field') ?: 'field_course_module',
+      '#required' => TRUE,
+    ];
+    $form['general']['section_entity_type'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Section entity type'),
+      '#default_value' => $config->get('section_entity_type') ?: 'paragraph',
+      '#required' => TRUE,
+    ];
+    $form['general']['section_bundle'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Section bundle'),
+      '#default_value' => $config->get('section_bundle') ?: 'course_modules',
+      '#required' => TRUE,
+    ];
+    $form['general']['section_lesson_reference_field'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Section lesson reference field'),
+      '#default_value' => $config->get('section_lesson_reference_field') ?: 'field_module_lessons',
+      '#required' => TRUE,
+    ];
+    $form['general']['section_assessment_reference_field'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Section assessment reference field'),
+      '#default_value' => $config->get('section_assessment_reference_field') ?: 'field_module_assessment',
+      '#required' => TRUE,
+    ];
     $form['general']['forum_excluded_roles'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Excluded forum roles'),
       '#description' => $this->t('Enter one role machine name per line.'),
       '#default_value' => implode("\n", $config->get('forum_excluded_roles') ?? []),
+    ];
+
+
+    $form['general']['parity_fixture_course_ids'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Milestone 6 parity fixture course IDs'),
+      '#description' => $this->t('Comma-separated course IDs used for parity verification fixtures.'),
+      '#default_value' => implode(',', $config->get('parity_fixture_course_ids') ?? []),
+    ];
+    $form['general']['parity_test_user_ids'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Milestone 6 parity test user IDs'),
+      '#description' => $this->t('Comma-separated user IDs used for milestone parity event validation.'),
+      '#default_value' => implode(',', $config->get('parity_test_user_ids') ?? []),
+    ];
+    $form['general']['debug_event_trace'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable milestone event trace logging'),
+      '#default_value' => (bool) $config->get('debug_event_trace'),
     ];
 
     $form['milestones'] = [
@@ -123,7 +184,17 @@ class LearningSettingsForm extends ConfigFormBase {
     $this->configFactory->getEditable('achievements_learning.settings')
       ->set('parent_email_field', trim($form_state->getValue('parent_email_field')))
       ->set('current_title_field', trim($form_state->getValue('current_title_field')))
+      ->set('course_entity_type', trim($form_state->getValue('course_entity_type')))
+      ->set('course_bundle', trim($form_state->getValue('course_bundle')))
+      ->set('course_section_reference_field', trim($form_state->getValue('course_section_reference_field')))
+      ->set('section_entity_type', trim($form_state->getValue('section_entity_type')))
+      ->set('section_bundle', trim($form_state->getValue('section_bundle')))
+      ->set('section_lesson_reference_field', trim($form_state->getValue('section_lesson_reference_field')))
+      ->set('section_assessment_reference_field', trim($form_state->getValue('section_assessment_reference_field')))
       ->set('forum_excluded_roles', array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $form_state->getValue('forum_excluded_roles') ?? '')))))
+      ->set('parity_fixture_course_ids', array_values(array_filter(array_map('intval', array_map('trim', explode(',', (string) ($form_state->getValue('parity_fixture_course_ids') ?? '')))))))
+      ->set('parity_test_user_ids', array_values(array_filter(array_map('intval', array_map('trim', explode(',', (string) ($form_state->getValue('parity_test_user_ids') ?? '')))))))
+      ->set('debug_event_trace', (bool) $form_state->getValue('debug_event_trace'))
       ->set('title_priority', array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $form_state->getValue('title_priority') ?? '')))))
       ->set('milestone_rules', Yaml::parse($form_state->getValue('milestone_rules')) ?? [])
       ->set('reward_rules', Yaml::parse($form_state->getValue('reward_rules')) ?? [])
