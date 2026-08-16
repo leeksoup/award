@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\anu_to_lms_migrate\Plugin\migrate\source;
 
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\State\StateInterface;
-use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Reads current Anu lesson_checklist paragraph revisions from this site.
@@ -18,40 +14,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * )
  */
 final class AnuLessonChecklist extends SourcePluginBase {
-
-  /**
-   * Constructs the source plugin.
-   */
-  public function __construct(
-    array $configuration,
-    $plugin_id,
-    $plugin_definition,
-    MigrationInterface $migration,
-    StateInterface $state,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-  ) {
-    parent::__construct($configuration, $plugin_id, $plugin_definition, $migration, $state);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(
-    ContainerInterface $container,
-    array $configuration,
-    $plugin_id,
-    $plugin_definition,
-    MigrationInterface $migration = NULL,
-  ): self {
-    return new self(
-      $configuration,
-      $plugin_id,
-      $plugin_definition,
-      $migration,
-      $container->get('state'),
-      $container->get('entity_type.manager'),
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -86,7 +48,7 @@ final class AnuLessonChecklist extends SourcePluginBase {
    * {@inheritdoc}
    */
   protected function initializeIterator(): \Iterator {
-    $storage = $this->entityTypeManager->getStorage('paragraph');
+    $storage = \Drupal::entityTypeManager()->getStorage('paragraph');
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
       ->condition('type', 'lesson_checklist')
