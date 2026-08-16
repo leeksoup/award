@@ -19,12 +19,9 @@ process:
   uid: uid
   created: created
   changed: changed
-  field_anu_checklist_body/value:
+  field_anu_checklist_body:
     plugin: anu_to_lms_checklist_body
     source: items
-  field_anu_checklist_body/format:
-    plugin: default_value
-    default_value: minimal_html
 
 destination:
   plugin: 'entity:lms_activity'

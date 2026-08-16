@@ -36,6 +36,16 @@ drush migrate:import anu_to_lms_paragraph_lesson_checklists -y
 drush migrate:import anu_to_lms_node_module_lessons -y
 ```
 
+If checklist activities were imported by a version earlier than the formatted
+field-item fix, update them in place after deploying current code. This
+replaces body values stored as the literal string `Array` without changing the
+activity IDs referenced by migrated lessons:
+
+```bash
+drush cr
+drush migrate:import anu_to_lms_paragraph_lesson_checklists --update -y
+```
+
 ### Stale placeholder definitions
 
 An import failure saying that destination plugin `""` does not exist means
