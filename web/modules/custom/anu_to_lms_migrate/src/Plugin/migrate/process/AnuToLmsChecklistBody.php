@@ -41,14 +41,14 @@ final class AnuToLmsChecklistBody extends ProcessPluginBase {
         continue;
       }
       $description = trim((string) ($item['description'] ?? ''));
-      $line = '- ' . $text;
+      $line = '<strong>' . $text . '</strong>';
       if ($description !== '') {
-        $line .= "\n  " . $description;
+        $line .= '<div>' . $description . '</div>';
       }
-      $parts[] = $line;
+      $parts[] = '<li>' . $line . '</li>';
     }
 
-    return implode("\n", $parts);
+    return $parts === [] ? '' : '<ul class="anu-checklist">' . implode('', $parts) . '</ul>';
   }
 
 }

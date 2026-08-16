@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the Anu to LMS migration module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Installs configuration required by the first checklist migration slice.
+ */
+function anu_to_lms_migrate_update_10001(): void {
+  // config/install is applied automatically on a fresh installation. Existing
+  // scaffold installations need the newly added activity bundle and fields.
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+}
+
+/**
+ * Clears placeholder migration definitions cached before the runnable slice.
+ */
+function anu_to_lms_migrate_update_10002(): void {
+  // The scaffold used an empty embedded_data source and a YAML null
+  // destination. Migration plugin definitions are cached, so sites that had
+  // already discovered the scaffold can otherwise continue to report zero
+  // rows and fail with a blank destination plugin after deploying the slice.
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
