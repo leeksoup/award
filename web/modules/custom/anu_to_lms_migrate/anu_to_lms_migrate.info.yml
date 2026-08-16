@@ -8,6 +8,7 @@ dependencies:
   - migrate_plus:migrate_plus
   - migrate_tools:migrate_tools
   - drupal:taxonomy
+  - drupal:text
   - drupal:file
   - drupal:node
   - paragraphs:paragraphs

@@ -1,5 +1,5 @@
 id: anu_to_lms_node_module_lessons
-label: 'Anu LMS module lessons to LMS lesson staging'
+label: 'Anu LMS checklist-bearing module lessons to LMS lessons'
 migration_group: anu_to_lms
 migration_tags:
   - achievements_learning
@@ -7,33 +7,40 @@ migration_tags:
   - lesson
 
 source:
-  # TODO: Replace with your source plugin once implementation starts.
-  plugin: embedded_data
-  data_rows: []
-  ids:
-    nid:
-      type: integer
+  plugin: anu_checklist_lesson
 
 process:
-  nid: nid
-  title: title
-  status:
+  lms_lesson_type:
     plugin: default_value
-    default_value: 1
-  lesson_section_source_ids:
-    plugin: anu_to_lms_ordered_target_ids
-    source: field_module_lesson_content
-  lesson_section_ids:
-    plugin: migration_lookup
-    migration:
-      - anu_to_lms_paragraph_lesson_sections
-    source: "@lesson_section_source_ids"
-    no_stub: true
+    default_value: lesson
+  name: title
+  description/value: description
+  description/format:
+    plugin: default_value
+    default_value: minimal_html
+  status: status
+  uid: uid
+  created: created
+  changed: changed
+  backwards_navigation:
+    plugin: default_value
+    default_value: true
+  activities:
+    plugin: sub_process
+    source: checklists
+    process:
+      target_id:
+        plugin: migration_lookup
+        migration: anu_to_lms_paragraph_lesson_checklists
+        source: paragraph_id
+        no_stub: true
+      data/max_score:
+        plugin: default_value
+        default_value: 0
 
 destination:
-  # TODO: Swap to final destination plugin/entity once schema is finalized.
-  plugin: null
+  plugin: 'entity:lms_lesson'
 
 migration_dependencies:
   required:
-    - anu_to_lms_paragraph_lesson_sections
+    - anu_to_lms_paragraph_lesson_checklists
