@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.lms_activity.anu_checklist.field_anu_checklist_body
+    - lms.lms_activity_type.anu_checklist
+  module:
+    - text
+id: lms_activity.anu_checklist.default
+targetEntityType: lms_activity
+bundle: anu_checklist
+mode: default
+content:
+  field_anu_checklist_body:
+    type: text_default
+    label: hidden
+    settings: { }
+    third_party_settings: { }
+    weight: 0
+    region: content
+hidden: { }

@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies: { }
+id: anu_checklist
+name: 'Anu checklist'
+description: 'A migrated Anu LMS checklist that is completed by advancing to the next activity.'
+pluginId: no_answer
+pluginConfiguration: { }
+defaultMaxScore: 0
