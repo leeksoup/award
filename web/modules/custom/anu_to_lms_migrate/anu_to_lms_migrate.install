@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the Anu to LMS migration module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Installs configuration required by the first checklist migration slice.
+ */
+function anu_to_lms_migrate_update_10001(): void {
+  // config/install is applied automatically on a fresh installation. Existing
+  // scaffold installations need the newly added activity bundle and fields.
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+}

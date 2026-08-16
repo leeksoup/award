@@ -63,7 +63,6 @@ final class AnuChecklistLesson extends SourcePluginBase {
       'nid' => $this->t('Source lesson node ID'),
       'title' => $this->t('Lesson title'),
       'description' => $this->t('Lesson description'),
-      'description_format' => $this->t('Lesson description text format'),
       'checklists' => $this->t('Ordered checklist paragraph IDs'),
       'status' => $this->t('Published status'),
       'uid' => $this->t('Author ID'),
@@ -92,7 +91,6 @@ final class AnuChecklistLesson extends SourcePluginBase {
 
     foreach ($storage->loadMultiple($ids) as $lesson) {
       $checklists = [];
-      $descriptions = [];
       if ($lesson->hasField('field_module_lesson_content')) {
         foreach ($lesson->get('field_module_lesson_content')->referencedEntities() as $section) {
           if (!$section->hasField('field_lesson_section_content')) {
@@ -103,7 +101,6 @@ final class AnuChecklistLesson extends SourcePluginBase {
               continue;
             }
             $checklists[] = ['paragraph_id' => (int) $block->id()];
-            $descriptions[] = $this->t('Migrated checklist @id', ['@id' => $block->id()]);
           }
         }
       }
@@ -115,8 +112,7 @@ final class AnuChecklistLesson extends SourcePluginBase {
       yield [
         'nid' => (int) $lesson->id(),
         'title' => (string) $lesson->label(),
-        'description' => implode('<br>', array_map('strval', $descriptions)),
-        'description_format' => 'basic_html',
+        'description' => '',
         'checklists' => $checklists,
         'status' => (int) $lesson->isPublished(),
         'uid' => (int) ($lesson->getOwnerId() ?: 1),

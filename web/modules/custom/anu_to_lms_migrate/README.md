@@ -11,6 +11,7 @@ before querying migration status.
 ```bash
 drush pm:list --type=module --field=name --status=enabled | grep '^anu_to_lms_migrate$'
 drush en anu_to_lms_migrate -y
+drush updb -y
 drush cr
 drush migrate:status | grep 'anu_to_lms'
 ```

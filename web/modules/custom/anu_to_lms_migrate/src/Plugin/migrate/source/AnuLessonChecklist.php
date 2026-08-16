@@ -106,8 +106,8 @@ final class AnuLessonChecklist extends SourcePluginBase {
 
       $plain_title = trim(strip_tags((string) ($items[0]['text'] ?? '')));
       $title = $plain_title === ''
-        ? $this->t('Checklist @id', ['@id' => $checklist->id()])
-        : $this->t('Checklist: @item', ['@item' => mb_strimwidth($plain_title, 0, 220, '…')]);
+        ? 'Checklist ' . $checklist->id()
+        : 'Checklist: ' . mb_strimwidth($plain_title, 0, 220, '…');
 
       yield [
         'paragraph_id' => (int) $checklist->id(),
@@ -115,8 +115,8 @@ final class AnuLessonChecklist extends SourcePluginBase {
         'items' => $items,
         'status' => 1,
         'uid' => 1,
-        'created' => $checklist->hasField('created') ? (int) $checklist->get('created')->value : time(),
-        'changed' => $checklist->hasField('changed') ? (int) $checklist->get('changed')->value : time(),
+        'created' => $checklist->hasField('created') ? (int) $checklist->get('created')->value : 0,
+        'changed' => $checklist->hasField('changed') ? (int) $checklist->get('changed')->value : 0,
       ];
     }
   }

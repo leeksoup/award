@@ -15,7 +15,9 @@ process:
     default_value: lesson
   name: title
   description/value: description
-  description/format: description_format
+  description/format:
+    plugin: default_value
+    default_value: minimal_html
   status: status
   uid: uid
   created: created
