@@ -1,0 +1,18 @@
+status: true
+dependencies:
+  module:
+    - lms
+    - text
+id: lms_activity.feedback_if_correct
+field_name: feedback_if_correct
+entity_type: lms_activity
+type: text_long
+settings:
+  case_sensitive: false
+module: text
+locked: true
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

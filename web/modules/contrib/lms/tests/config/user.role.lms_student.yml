@@ -1,0 +1,10 @@
+status: true
+dependencies:
+  module:
+    - system
+id: lms_student
+label: 'LMS Student'
+weight: 1
+is_admin: false
+permissions:
+  - 'access content'

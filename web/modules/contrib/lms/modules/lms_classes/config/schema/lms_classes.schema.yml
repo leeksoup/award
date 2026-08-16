@@ -1,0 +1,20 @@
+lms_classes.settings:
+  type: config_object
+  label: 'LMS Classes settings'
+  mapping:
+    create_default_class:
+      type: boolean
+      label: 'Should a default class be created when creating a course?'
+    class_name_pattern:
+      type: string
+      label: 'LMS class name pattern'
+    class_permission_mappings:
+      type: sequence
+      label: 'LMS Course to Class permissions mappings'
+      sequence:
+        type: string
+    course_permission_mappings:
+      type: sequence
+      label: 'LMS Class to Course permissions mappings'
+      sequence:
+        type: string

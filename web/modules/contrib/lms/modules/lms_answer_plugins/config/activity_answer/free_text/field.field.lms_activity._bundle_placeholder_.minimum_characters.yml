@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.minimum_characters
+id: lms_activity._bundle_placeholder_.minimum_characters
+field_name: minimum_characters
+entity_type: lms_activity
+bundle: _bundle_placeholder_
+label: 'Minimum characters'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

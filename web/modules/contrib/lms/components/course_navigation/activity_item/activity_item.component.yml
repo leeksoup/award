@@ -1,0 +1,48 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Activity Item
+status: stable
+description: 'Individual activity item within a lesson with enhanced status indicators.'
+props:
+  type: object
+  required:
+    - title
+    - url
+  properties:
+    title:
+      type: string
+      description: 'The title of the activity.'
+    url:
+      type: string
+      description: 'The URL to access this activity.'
+    url_enabled:
+      type: boolean
+      description: 'Whether the URL should be active/clickable based on navigation settings.'
+      default: true
+    is_current:
+      type: boolean
+      description: 'Whether this is the current activity.'
+      default: false
+    answered:
+      type: boolean
+      description: 'Whether the activity has been answered.'
+      default: false
+    evaluated:
+      type: boolean
+      description: 'Whether the activity has been evaluated.'
+      default: false
+    max_score_achieved:
+      type: boolean
+      description: 'Whether the maximum score has been achieved.'
+      default: false
+    score:
+      type: ["integer", "null"]
+      description: 'The score achieved for this activity.'
+      default: null
+    max_score:
+      type: ["integer", "null"]
+      description: 'The maximum possible score for this activity.'
+      default: null
+    show_score:
+      type: boolean
+      description: 'Whether to show the score (typically only on revisit).'
+      default: false

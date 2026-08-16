@@ -1,0 +1,21 @@
+status: true
+dependencies:
+  config:
+    - comment.type.lms_answer_comment
+    - field.field.comment.lms_answer_comment.comment_body
+  module:
+    - text
+id: comment.lms_answer_comment.default
+targetEntityType: comment
+bundle: lms_answer_comment
+mode: default
+content:
+  comment_body:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  links: true

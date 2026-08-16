@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * LMS Classes install / update procedures.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Backwards compatibility - default settings.
+ */
+function lms_classes_update_11001(): void {
+  $config = \Drupal::configFactory()->getEditable('lms_classes.settings');
+  $config->set('create_default_class', TRUE);
+  $config->set('class_name_pattern', '');
+  $config->save();
+}

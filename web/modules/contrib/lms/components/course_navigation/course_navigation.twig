@@ -1,0 +1,21 @@
+<div{{ attributes.addClass('lms-course-navigation-container') }} data-lms-selector="course-navigation">
+  <div class="lms-course-navigation-header">
+    <h2 class="lms-course-navigation-title">{{ title }}</h2>
+    {% if actions %}
+      <div class="lms-course-navigation-actions">{{ actions }}</div>
+    {% endif %}
+  </div>
+
+  {% if progress_percentage is defined and progress_percentage > 0 %}
+    <div class="lms-progress-container">
+      <div class="lms-progress-text">{{ progress_text }}</div>
+      <div class="lms-progress-bar">
+        <div class="lms-progress-fill" style="width: {{ progress_percentage }}%;"></div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="lms-course-navigation-list">
+    {{ lessons }}
+  </div>
+</div>

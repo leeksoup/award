@@ -1,0 +1,39 @@
+{%
+  set classes = [
+    'lms-lesson-item',
+    is_current ? 'lms-lesson-item--current' : '',
+    started ? 'lms-lesson-item--started' : 'lms-lesson-item--not-started',
+    finished ? 'lms-lesson-item--finished' : 'lms-lesson-item--not-finished',
+    evaluated ? 'lms-lesson-item--evaluated' : 'lms-lesson-item--not-evaluated',
+    passed ? 'lms-lesson-item--passed' : 'lms-lesson-item--not-passed',
+  ]
+%}
+
+<div{{ attributes.addClass(classes) }} data-lms-selector="lesson-item">
+  {% if activities|length > 0 %}
+    <details{{ is_current ? ' open' : '' }} class="lms-lesson-details">
+      <summary class="lms-lesson-header">
+        <span class="lms-lesson-title{% if is_current %} lms-lesson-title--current{% endif %}">
+          {{ title }}
+        </span>
+      </summary>
+      
+      <div class="lms-lesson-activities">
+        {# Simply pass along the render array without trying to output it directly #}
+        {{ activities }}
+      </div>
+    </details>
+  {% else %}
+    <div class="lms-lesson-details">
+      <div class="lms-lesson-header">
+        <span class="lms-lesson-title{% if is_current %} lms-lesson-title--current{% endif %}">
+          {% if url_enabled %}
+            <a href="{{ url }}">{{ title }}</a>
+          {% else %}
+            {{ title }}
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  {% endif %}
+</div>

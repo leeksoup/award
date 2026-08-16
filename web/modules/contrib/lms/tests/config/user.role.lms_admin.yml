@@ -1,0 +1,20 @@
+status: true
+dependencies:
+  module:
+    - group
+    - lms
+    - system
+id: lms_admin
+label: 'LMS Admin'
+weight: 2
+is_admin: null
+permissions:
+  - 'access administration pages'
+  - 'access group overview'
+  - 'administer lms'
+  - 'administer site configuration'
+  - 'create lms_activity entities'
+  - 'create lms_course group'
+  - 'create lms_class group'
+  - 'create lms_lesson entities'
+  - 'view the administration theme'

@@ -1,0 +1,13 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Course Action Info
+status: stable
+description: 'Course action information.'
+props:
+  type: object
+  properties:
+    class:
+      type: string
+      description: 'The CSS class attribute of the info text.'
+    info_text:
+      type: string
+      description: 'The information text to be presented.'

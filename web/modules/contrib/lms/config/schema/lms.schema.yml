@@ -1,0 +1,71 @@
+lms.settings:
+  type: config_object
+  label: 'LMS settings'
+  mapping:
+    allow_to_enter_ungraded:
+      label: 'Allow to re-enter courses in "needs grading" status'
+      type: boolean
+    use_revisions:
+      label: 'Lock courses to current revisions'
+      type: boolean
+    show_editor_reset_button:
+      label: '"Reset for updates" button for course editors'
+      type: boolean
+
+lms.lms_activity_type.*:
+  type: config_entity
+  label: 'LMS activity type'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    id:
+      type: machine_name
+      label: 'Machine-readable name'
+    name:
+      type: required_label
+      label: 'Name'
+    description:
+      type: text
+      label: 'Description'
+      nullable: true
+      constraints:
+        NotBlank:
+          allowNull: true
+    pluginId:
+      type: string
+      label: 'Activity - answer plugin ID'
+    pluginConfiguration:
+      label: 'Configuration array for the plugin'
+      type: lms.plugin_configuration.[%parent.pluginId]
+    defaultMaxScore:
+      type: integer
+      label: 'Default max score when assigning lesson activities'
+
+lms.plugin_configuration.*:
+  type: lms_plugin_configuration
+  label: 'Default'
+
+field.widget.settings.lms_reference_table:
+  type: mapping
+  label: 'Text area (multiple rows) display format settings'
+  mapping:
+    view_data:
+      type: string
+      label: 'Reference addition View and display ID.'
+
+field.widget.settings.lms_reference:
+  type: mapping
+  label: 'LMS Entity reference autocomplete display format settings'
+  mapping:
+    match_operator:
+      type: string
+      label: 'Autocomplete matching'
+    match_limit:
+      type: integer
+      label: 'Maximum number of autocomplete suggestions.'
+    size:
+      type: integer
+      label: 'Size of textfield'
+    placeholder:
+      type: label
+      label: 'Placeholder'

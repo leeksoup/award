@@ -1,0 +1,48 @@
+1:
+  values:
+    label: 'Course 1'
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: '057dc33a-b139-4efa-bed6-f0524540f3a5'
+  lessons:
+    -
+      target_uuid: '09a9c22d-3e30-4c6a-b556-6e41e9321963'
+      required_score: 50
+      mandatory: true
+      auto_repeat_failed: false
+      time_limit: 0
+    -
+      target_uuid: 'f98c39d3-6bb0-4559-bfc8-4a540487b036'
+      required_score: 50
+      mandatory: true
+      auto_repeat_failed: false
+      time_limit: 0
+2:
+  values:
+    label: 'Course 2'
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: '057de33a-b139-4ffa-bed6-f0514540f3a5'
+  lessons:
+    -
+      target_uuid: 'f98c39d3-6bb0-4559-bfc8-4a540487b036'
+      required_score: 50
+      mandatory: true
+      auto_repeat_failed: false
+      time_limit: 0
+    -
+      target_uuid: '09a9c22d-3e30-4c6a-b556-6e41e9321963'
+      required_score: 50
+      mandatory: true
+      auto_repeat_failed: false
+      time_limit: 0
+3:   
+  values:
+    label: 'Exam 3'
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: '057df33a-b239-8ffa-bed6-f7514540h3b7'
+  lessons:
+    -
+      target_uuid: '09a9c22d-3e30-4c6a-b556-6e41e9321963'
+      required_score: 50
+      mandatory: true
+      auto_repeat_failed: false
+      time_limit: 1

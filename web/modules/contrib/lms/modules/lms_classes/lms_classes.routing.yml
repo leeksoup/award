@@ -1,0 +1,21 @@
+lms_classes.group.add_student:
+  path: 'group/{group}/students/add'
+  defaults:
+    _form: '\Drupal\lms_classes\Form\AddStudentForm'
+    _title: 'Add student'
+  requirements:
+    _custom_access: '\Drupal\lms_classes\Access\LmsCustomAccess::addStudentAccess'
+  options:
+    parameters:
+      group:
+        type: entity:group
+        bundle:
+          - lms_course
+
+lms.settings.lms_classes:
+  path: '/admin/lms/settings/lms-classes'
+  defaults:
+    _form: '\Drupal\lms_classes\Form\LmsClassesSettingsForm'
+    _title: 'Classes settings'
+  requirements:
+    _permission: 'administer lms'

@@ -1,0 +1,11 @@
+<div data-lms-selector="course-status">
+{% if url %}
+  <a href="{{ url }}" class="lms-course-status lms-course-status--{{ status_class }}" data-status="{{ status_class }}">
+    {{ status_text }}
+  </a>
+{% else %}
+  <span class="lms-course-status lms-course-status--{{ status_class }}" data-status="{{ status_class }}">
+    {{ status_text }}
+  </span>
+{% endif %}
+</div>

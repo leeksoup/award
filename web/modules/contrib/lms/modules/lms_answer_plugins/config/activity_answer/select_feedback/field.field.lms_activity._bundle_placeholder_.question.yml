@@ -1,0 +1,20 @@
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.question
+    - lms.lms_activity_type._bundle_placeholder_
+  module:
+    - text
+id: lms_activity._bundle_placeholder_.question
+field_name: question
+entity_type: lms_activity
+bundle: _bundle_placeholder_
+label: Question
+description: ''
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

@@ -1,0 +1,15 @@
+admin:
+  roles: 'lms_admin'
+  name: 'LMS Admin'
+  mail: 'lms_admin@example.com'
+  uuid: 'bf8b0be9-c128-4eae-b6d7-8807d20291fb'
+teacher:
+  roles: 'lms_teacher'
+  name: 'LMS Teacher'
+  mail: 'lms_teacher@example.com'
+  uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+student:
+  roles: 'lms_student'
+  name: 'LMS Student'
+  mail: 'lms_student@example.com'
+  uuid: '4db759c9-4ddf-48f4-8336-4c79bdadbb99'

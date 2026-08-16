@@ -1,0 +1,4 @@
+lms:
+  label: 'LMS'
+  description: 'LMS field types.'
+  weight: 0

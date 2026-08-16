@@ -1,0 +1,50 @@
+# Schema for the views plugins of the LMS module.
+
+views.access.lms_course_permission:
+  type: 'mapping'
+  label: 'LMS Group permission'
+  mapping:
+    group_permission:
+      type: 'string'
+      label: 'Group permission'
+
+views.filter.lms_parent_class:
+  type: views.filter.in_operator
+  label: 'LMS parent class'
+
+views.field.lms_course_results_link:
+  type: views_field
+  label: 'Course results link'
+  mapping:
+    output_url_as_text:
+      type: boolean
+      label: 'Output the URL as text'
+    link_target:
+      type: string
+      label: 'Link target attribute'
+    link_text:
+      type: string
+      label: 'Link text'
+    no_results_text:
+      type: string
+      label: 'No results text'
+
+views.row.course_card_row:
+  type: views_row
+  label: 'Course Card row style options'
+  mapping:
+    background_image_field:
+      type: string
+      label: 'Background image source field'
+    image_style:
+      type: string
+      label: 'Image style for image fields'
+    media_view_mode:
+      type: string
+      label: 'Media view mode for media fields'
+    description_field:
+      type: string
+      label: 'Description field source'
+    description_display_type:
+      type: string
+      label: 'Description display type (full or summary)'

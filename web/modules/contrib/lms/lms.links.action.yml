@@ -1,0 +1,25 @@
+lms.add_activity_type:
+  route_name: 'entity.lms_activity_type.add_form'
+  title: 'Add activity type'
+  appears_on:
+    - 'entity.lms_activity_type.collection'
+
+lms.add_course:
+  route_name: 'entity.group.add_form'
+  route_parameters:
+    group_type: 'lms_course'
+  title: 'Add course'
+  appears_on:
+    - 'view.lms_courses.page'
+
+lms.add_lesson:
+  route_name: 'entity.lms_lesson.add_page'
+  title: 'Add lesson'
+  appears_on:
+    - 'entity.lms_lesson.collection'
+
+lms.add_activity:
+  route_name: 'entity.lms_activity.add_page'
+  title: 'Add activity'
+  appears_on:
+    - 'entity.lms_activity.collection'

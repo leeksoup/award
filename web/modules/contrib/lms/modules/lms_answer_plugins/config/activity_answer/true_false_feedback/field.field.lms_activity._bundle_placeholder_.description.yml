@@ -1,0 +1,17 @@
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.description
+    - lms.lms_activity_type._bundle_placeholder_
+id: lms_activity._bundle_placeholder_.description
+field_name: description
+entity_type: lms_activity
+bundle: _bundle_placeholder_
+label: Description
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

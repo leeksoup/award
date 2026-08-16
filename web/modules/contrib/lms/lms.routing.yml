@@ -1,0 +1,159 @@
+lms.admin_root:
+  path: '/admin/lms'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'LMS'
+  requirements:
+    _permission: 'access administration pages'
+
+lms.settings:
+  path: '/admin/lms/settings'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'Settings'
+  requirements:
+    _permission: 'access administration pages'
+
+lms.settings.main:
+  path: '/admin/lms/settings/lms'
+  defaults:
+    _form: '\Drupal\lms\Form\LmsSettingsForm'
+    _title: 'General settings'
+  requirements:
+    _permission: 'administer lms'
+
+lms.course.start:
+  path: '/course/{group}/start'
+  defaults:
+    _controller: '\Drupal\lms\Controller\CourseController::start'
+    _title: 'Start course'
+  requirements:
+    _entity_access: 'group.take'
+  options:
+    parameters:
+      group:
+        type: entity:group
+        bundle:
+          - lms_course
+
+lms.course.reset_test:
+  path: '/course/{group}/reset-test'
+  defaults:
+    _controller: '\Drupal\lms\Controller\CourseController::resetTest'
+    _title: 'Reset Test Progress'
+  requirements:
+    _entity_access: 'group.update'
+    _csrf_token: 'TRUE'
+  options:
+    parameters:
+      group:
+        type: entity:group
+        bundle:
+          - lms_course
+
+lms.group.answer_form:
+  path: 'course/{group}/{lesson_delta}/{activity_delta}'
+  defaults:
+    _controller: '\Drupal\lms\Controller\CourseController::activity'
+    _title_callback: '\Drupal\lms\Controller\CourseController::activityFormTitle'
+    activity_delta: 0
+  requirements:
+    _entity_access: 'group.take'
+  options:
+    parameters:
+      group:
+        type: entity:group
+        bundle:
+          - lms_course
+      lesson_delta:
+        type: integer
+      activity_delta:
+        type: integer
+
+lms.group.results:
+  path: 'group/{group}/course-results/{user}'
+  defaults:
+    _controller: '\Drupal\lms\Controller\CourseController::results'
+    _title_callback: '\Drupal\lms\Controller\CourseController::resultsTitle'
+  requirements:
+    _entity_access: 'group.results'
+  options:
+    _admin_route: TRUE
+    parameters:
+      group:
+        type: entity:group
+        bundle:
+          - lms_course
+      user:
+        type: entity:user
+
+lms.group.self_results:
+  path: 'group/{group}/course-results'
+  defaults:
+    _controller: '\Drupal\lms\Controller\CourseController::results'
+    _title_callback: '\Drupal\lms\Controller\CourseController::resultsTitle'
+  requirements:
+    _entity_access: 'group.results'
+  options:
+    parameters:
+      group:
+        type: entity:group
+        bundle:
+          - lms_course
+
+lms.answer.details:
+  path: 'answer/{lms_answer}/{js}/details'
+  defaults:
+    _controller: '\Drupal\lms\Controller\CourseController::answerDetails'
+    _title: 'Answer details'
+  requirements:
+    _entity_access: 'lms_answer.see_details'
+    js: 'nojs|ajax'
+  options:
+    parameters:
+      lms_answer:
+        type: entity:lms_answer
+
+entity.lms_answer.edit_form:
+  path: 'answer/{lms_answer}/evaluate'
+  defaults:
+    _controller: '\Drupal\lms\Controller\CourseController::answerDetails'
+    _title: 'Answer details'
+  requirements:
+    _entity_access: 'lms_answer.see_details'
+  options:
+    parameters:
+      lms_answer:
+        type: entity:lms_answer
+
+lms.lesson_type.overview:
+  path: '/admin/lms/settings/lessons'
+  defaults:
+    _controller: '\Drupal\lms\Controller\LessonBundleListController::overview'
+    _title: 'Lesson settings'
+  requirements:
+    _permission: 'administer lms'
+  options:
+    _admin_route: TRUE
+
+# Not used at the moment but needed as field UI base route.
+lms.lesson_type.settings:
+  path: '/admin/lms/settings/lessons/{bundle}'
+  defaults:
+    _controller: '\Drupal\lms\Controller\LessonBundleListController::overview'
+    _title: 'Lesson bundle settings'
+    entity_type_id: 'lms_lesson'
+  requirements:
+    _permission: 'administer lms'
+  options:
+    _admin_route: TRUE
+
+lms.modal_subform_endpoint:
+  path: 'lms/modal-reference-form'
+  defaults:
+    _controller: 'Drupal\lms\Controller\ModalSubformController::endpoint'
+    _title: 'LMS Reference form endpoint'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+  methods:
+    - POST

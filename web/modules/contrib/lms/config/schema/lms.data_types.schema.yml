@@ -1,0 +1,3 @@
+lms_plugin_configuration:
+  type: mapping
+  label: 'Configuration array for activity - answer plugins'

@@ -1,0 +1,67 @@
+.lms-course-status {
+  display: inline-block;
+  padding: 0.25em 0.75em;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+  white-space: nowrap;
+  text-decoration: none;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.lms-course-status:hover,
+.lms-course-status:focus {
+  text-decoration: none;
+}
+
+.lms-course-status--in-progress {
+  color: var(--color-on-info, white);
+  background-color: var(--color-info, #0078d7);
+}
+
+.lms-course-status--in-progress:hover {
+  color: var(--color-on-info-hover, #e6f0ff);
+  background-color: var(--color-info-dark, #005a9e);
+}
+
+.lms-course-status--passed {
+  color: var(--color-on-success, white);
+  background-color: var(--color-success, #107c10);
+}
+
+.lms-course-status--passed:hover {
+  color: var(--color-on-success-hover, #e6ffe6);
+  background-color: var(--color-success-dark, #0c590c);
+}
+
+.lms-course-status--failed {
+  color: var(--color-on-error, white);
+  background-color: var(--color-error, #d13438);
+}
+
+.lms-course-status--failed:hover {
+  color: var(--color-on-error-hover, #ffe6e6);
+  background-color: var(--color-error-dark, #a12a2d);
+}
+
+.lms-course-status--evaluation {
+  color: var(--color-on-warning, black);
+  background-color: var(--color-warning, #ffb900);
+}
+
+.lms-course-status--evaluation:hover {
+  color: var(--color-on-warning-hover, #332b00);
+  background-color: var(--color-warning-dark, #e0a200);
+}
+
+.lms-course-status--not-started {
+  color: var(--color-on-neutral, white);
+  background-color: var(--color-neutral, #767676);
+}
+
+.lms-course-status--not-started:hover {
+  color: var(--color-on-neutral-hover, #f0f0f0);
+  background-color: var(--color-neutral-dark, #5a5a5a);
+}

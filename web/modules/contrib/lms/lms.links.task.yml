@@ -1,0 +1,42 @@
+entity.lms_activity_type.edit_form:
+  title: 'Edit'
+  route_name: entity.lms_activity_type.edit_form
+  base_route: entity.lms_activity_type.edit_form
+
+entity.lms_lesson.edit_form:
+  route_name: entity.lms_lesson.canonical
+  base_route: entity.lms_lesson.canonical
+  title: 'Edit'
+entity.lms_lesson.delete_form:
+  route_name: entity.lms_lesson.delete_form
+  base_route: entity.lms_lesson.canonical
+  title: Delete
+  weight: 10
+
+entity.lms_activity.edit_form:
+  route_name: entity.lms_activity.canonical
+  base_route: entity.lms_activity.canonical
+  title: 'Edit'
+entity.lms_activity.delete_form:
+  route_name: entity.lms_activity.delete_form
+  base_route: entity.lms_activity.canonical
+  title: Delete
+  weight: 10
+
+lms.course_activity.view:
+  route_name: lms.group.answer_form
+  base_route: lms.group.answer_form
+  title: 'View'
+  weight: 0
+lms.course_activity.edit:
+  route_name: entity.lms_activity.edit_form
+  base_route: lms.group.answer_form
+  title: 'Edit'
+  weight: 10
+  class: Drupal\lms\Plugin\Menu\LocalTask\CourseActivityTask
+lms.course_activity.revisions:
+  route_name: entity.lms_activity.version_history
+  base_route: lms.group.answer_form
+  title: 'Revisions'
+  weight: 20
+  class: Drupal\lms\Plugin\Menu\LocalTask\CourseActivityTask

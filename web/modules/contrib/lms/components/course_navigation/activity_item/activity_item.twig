@@ -1,0 +1,33 @@
+{%
+  set classes = [
+    'lms-activity-item',
+    is_current ? 'lms-activity-item--current' : '',
+    answered ? 'lms-activity-item--answered' : 'lms-activity-item--not-answered',
+    evaluated ? 'lms-activity-item--evaluated' : 'lms-activity-item--not-evaluated',
+    max_score_achieved ? 'lms-activity-item--full-marks' : (answered and evaluated ? 'lms-activity-item--partial-marks' : ''),
+  ]
+%}
+
+<div{{ attributes.addClass(classes) }} data-lms-selector="activity-item">
+  {% if url_enabled %}
+    <a href="{{ url }}" class="lms-activity-title{% if is_current %} lms-activity-title--current{% endif %}">
+      <span class="lms-activity-label">{{ title }}</span>
+      
+      {% if show_score and evaluated and score is not null and max_score is not null %}
+        <span class="lms-activity-score">
+          <span class="lms-activity-score-value">{{ score }}</span>/<span class="lms-activity-max-score">{{ max_score }}</span>
+        </span>
+      {% endif %}
+    </a>
+  {% else %}
+    <span class="lms-activity-title lms-activity-title--disabled{% if is_current %} lms-activity-title--current{% endif %}">
+      <span class="lms-activity-label">{{ title }}</span>
+      
+      {% if show_score and evaluated and score is not null and max_score is not null %}
+        <span class="lms-activity-score">
+          <span class="lms-activity-score-value">{{ score }}</span>/<span class="lms-activity-max-score">{{ max_score }}</span>
+        </span>
+      {% endif %}
+    </span>
+  {% endif %}
+</div>

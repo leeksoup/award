@@ -1,0 +1,14 @@
+dialog-fix:
+  version: VERSION
+  js:
+    js/dialog-scroll-fix.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - core/drupal.dialog.ajax
+
+toolbar:
+  version: VERSION
+  css:
+    theme:
+      components/toolbar_icon/toolbar_icon.css: {}

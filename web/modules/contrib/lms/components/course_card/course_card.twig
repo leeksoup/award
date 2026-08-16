@@ -1,0 +1,60 @@
+{#
+  Available variables:
+  - title: string
+  - url: string
+  - background_image_url: string|null
+  - description: string|null
+  - start_link: rendered start link (lms:start_link component or empty)
+  - component_assets: object (contains paths to assets defined in yml)
+
+  Note: To add or modify data passed to this component, such as adding more
+  extra fields from your Course entity, you can implement the hook:
+  hook_views_row_lms_course_card_alter(&$props, $course_entity)
+  See lms.api.php for more details.
+#}
+
+{% set bg_image_style %}
+  {%- if background_image_url -%}
+    background-image: url('{{ background_image_url }}');
+  {%- endif -%}
+{% endset %}
+
+<article class="lms-course-card" style="{{ bg_image_style|trim }}">
+  <div class="lms-course-card__overlay"></div>
+
+  <div class="lms-course-card__content">
+    <div class="lms-course-card__main-content">
+      <header class="lms-course-card__header">
+        <h2 class="lms-course-card__title">
+          <a href="{{ url|default('#') }}">{{ title|default('Untitled Course') }}</a>
+        </h2>
+
+        {% if description %}
+          <div class="lms-course-card__description">
+            {{ description|raw }}
+          </div>
+        {% endif %}
+      </header>
+
+      {% if extra_fields is not empty %}
+        <div class="lms-course-card__meta">
+          {% for field in extra_fields %}
+            {% if field.content %}
+              <div class="lms-course-card__meta-item">
+                <span class="lms-course-card__meta-label">{{ field.label }}</span>
+                <div class="lms-course-card__meta-content">{{ field.content }}</div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+    </div>
+
+    {% if start_link %}
+      <footer class="lms-course-card__footer">
+        {{ start_link }}
+      </footer>
+    {% endif %}
+  </div>
+</article>

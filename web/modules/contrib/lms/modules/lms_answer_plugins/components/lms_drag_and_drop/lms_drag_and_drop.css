@@ -1,0 +1,140 @@
+.lms-drag-drop-container .drag-drop-instructions {
+  margin-bottom: 0.5em;
+  color: #555;
+  font-size: 0.85em;
+  font-style: italic;
+}
+
+.lms-drag-drop-container .question-text {
+  margin-bottom: 1.5em;
+  font-size: 1.1em;
+  line-height: 2.5;
+}
+
+.draggable-item {
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 38px;
+  /* Ensure no external styles interfere with positioning */
+  margin: 0 !important;
+  padding: 6px 12px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.1s;
+  text-align: center;
+  vertical-align: middle;
+  color: #212529;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+}
+
+/* State when item is being dragged */
+.draggable-item.is-dragging {
+  position: fixed;
+  z-index: 1000;
+  /* Reset margin to ensure correct positioning */
+  margin: 0;
+  pointer-events: none;
+  opacity: 0.8;
+  box-shadow: 0 4px 8px rgb(0, 0, 0, 0.2);
+}
+
+.draggable-item.is-placeholder {
+  opacity: 0.3;
+  border-style: dashed;
+  background-color: #eee;
+}
+
+.lms-drag-drop-container .drop-zone {
+  position: relative;
+  /* Use inline-flex for perfect centering without whitespace artifacts */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: auto;
+  min-width: 120px;
+  /* Use 40px to comfortably fit the 38px item + borders without shift */
+  height: 40px;
+  margin: 0 4px 0 0;
+  transition: all 0.2s ease;
+  text-align: center;
+  vertical-align: middle;
+  color: transparent;
+  border: 1px dashed #999;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  line-height: 38px;
+}
+
+/* When a drop zone contains an item */
+.lms-drag-drop-container .drop-zone:has(.draggable-item) {
+  width: auto;
+  min-width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  /* Make border transparent but keep width to prevent layout jumps */
+  border: 1px solid transparent;
+  background-color: transparent;
+}
+
+/* Hover effects */
+.lms-drag-drop-container .drop-zone.drag-over,
+.draggable-pool.drag-over {
+  border-style: solid;
+  border-color: #007bff;
+  background-color: #e0f0ff;
+}
+
+/* Ensure filled drop zones show the drag-over border correctly */
+.lms-drag-drop-container .drop-zone:has(.draggable-item).drag-over {
+  border-color: #007bff;
+}
+
+.draggable-pool {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  margin: 0 0 1.5em;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+}
+
+.draggable-item:active {
+  cursor: grabbing;
+}
+
+/* Visual feedback styles for correct and wrong answers. */
+.lms-drag-drop-container .drop-zone.correct-answer,
+.lms-drag-drop-container .drop-zone.correct-answer:has(.draggable-item) {
+  border: 2px solid #28a745;
+  background-color: #d4edda;
+}
+
+.lms-drag-drop-container .drop-zone.wrong-answer,
+.lms-drag-drop-container .drop-zone.wrong-answer:has(.draggable-item) {
+  border: 2px solid #dc3545;
+  background-color: #f8d7da;
+}
+
+/* Styles for the evaluation display. */
+.lms-drag-drop-filled-blank {
+  padding: 4px 8px;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  font-weight: bold;
+}

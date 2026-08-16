@@ -1,0 +1,12 @@
+name: 'LMS Hooks test'
+type: module
+description: 'Allows testing of LMS hooks.'
+package: Testing
+core_version_requirement: ^10.3 || ^11
+dependencies:
+  - drupal:lms
+
+# Information added by Drupal.org packaging script on 2026-05-25
+version: '1.1.18'
+project: 'lms'
+datestamp: 1779708667

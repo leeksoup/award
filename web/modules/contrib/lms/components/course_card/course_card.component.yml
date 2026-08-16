@@ -1,0 +1,42 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Course Card
+status: stable
+description: 'Displays a course as a card component.'
+props:
+  type: object
+  properties:
+    title:
+      type: string
+      description: 'The title of the course.'
+      default: 'Default Course Title'
+    url:
+      type: string
+      description: 'The URL to the course canonical page.'
+      default: '#'
+    background_image_url:
+      type: ["string", "null"]
+      description: 'URL for the background image. If null, a default will be used.'
+      default: null
+    extra_fields:
+      type: array
+      description: 'An array of extra fields, where each item has a "label" and "content".'
+      default: []
+      items:
+        type: object
+        properties:
+          label:
+            type: string
+          content:
+            type: object
+slots:
+  start_link:
+    title: Start Link
+    description: 'Rendered start link (lms:start_link component or empty).'
+assets:
+  css:
+    component:
+      course_card.css: {}
+  image:
+    default_background:
+      path: images/course-card-default-background.svg
+      type: image/svg

@@ -1,0 +1,26 @@
+.lms-action-info span {
+  display: inline-block;
+  min-width: 120px;
+  margin: 0 0 2em 0;
+  padding: 0.75em 1.5em;
+  text-align: center;
+  border-radius: 2rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.lms-action-info .needs-evaluation {
+  color: var(--color-on-warning, black);
+  background-color: var(--color-warning, #f0ad4e);
+}
+
+.lms-action-info .coming-soon {
+  color: var(--color-text, black);
+  background-color: var(--color-primary-light, #bddcef);
+}
+
+.lms-action-info .no-classes {
+  color: var(--color-on-error, black);
+  background-color: var(--color-error, #d9534f);
+}

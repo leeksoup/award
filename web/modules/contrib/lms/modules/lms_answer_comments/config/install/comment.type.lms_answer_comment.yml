@@ -1,0 +1,6 @@
+status: true
+dependencies: {  }
+id: lms_answer_comment
+label: 'LMS Answer Comment'
+target_entity_type_id: lms_answer
+description: ''

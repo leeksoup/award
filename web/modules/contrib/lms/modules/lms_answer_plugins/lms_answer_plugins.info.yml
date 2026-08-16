@@ -1,0 +1,13 @@
+name: LMS Core Answer plugins
+type: module
+description: Provides basic LMS Activity - Answer plugin.
+core_version_requirement: ^10.3 || ^11
+package: LMS
+dependencies:
+  - drupal:text
+  - lms:lms
+
+# Information added by Drupal.org packaging script on 2026-05-25
+version: '1.1.18'
+project: 'lms'
+datestamp: 1779708667

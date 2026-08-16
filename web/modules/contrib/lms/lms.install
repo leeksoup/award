@@ -1,0 +1,110 @@
+<?php
+
+/**
+ * @file
+ * Contains update hooks for the LMS module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\lms\Entity\AnswerInterface;
+use Drupal\lms\Entity\CourseStatusInterface;
+use Drupal\lms\Entity\LessonStatusInterface;
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function lms_update_last_removed() : int {
+  return 10014;
+}
+
+/**
+ * Add revision reference fields and update views.
+ */
+function lms_update_11015(): string {
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  // Add new 'course' field to 'lms_course_status' entity.
+  $course_status_course_field = BaseFieldDefinition::create('lms_revision_reference')
+    ->setLabel(t('Course'))
+    ->setDescription(t('The Course the status entity refers to.'))
+    ->setSettings([
+      'target_type' => 'group',
+    ])
+    ->setRequired(TRUE);
+  $entity_definition_update_manager->installFieldStorageDefinition(CourseStatusInterface::COURSE_FIELD, 'lms_course_status', 'lms', $course_status_course_field);
+
+  // Add new 'lesson_revision' field to 'lms_lesson_status' entity.
+  $lesson_status_lesson_field = BaseFieldDefinition::create('lms_revision_reference')
+    ->setLabel(t('Lesson'))
+    ->setDescription(t('The Lesson of this status.'))
+    ->setSetting('target_type', 'lms_lesson');
+  $entity_definition_update_manager->installFieldStorageDefinition(LessonStatusInterface::LESSON_FIELD, 'lms_lesson_status', 'lms', $lesson_status_lesson_field);
+
+  // Add new 'activity_revisions' field to 'lms_lesson_status' entity.
+  $lesson_status_activities_field = BaseFieldDefinition::create('lms_revision_reference')
+    ->setLabel(t('Activities for this lesson status'))
+    ->setSetting('target_type', 'lms_activity')
+    ->setCardinality(BaseFieldDefinition::CARDINALITY_UNLIMITED);
+  $entity_definition_update_manager->installFieldStorageDefinition(LessonStatusInterface::ACTIVITIES_FIELD, 'lms_lesson_status', 'lms', $lesson_status_activities_field);
+
+  // Add new 'activity_revision' field to 'lms_answer' entity.
+  $answer_activity_field = BaseFieldDefinition::create('lms_revision_reference')
+    ->setLabel(t('Activity'))
+    ->setSetting('target_type', 'lms_activity')
+    ->setDisplayConfigurable('view', TRUE)
+    ->setReadOnly(TRUE);
+  $entity_definition_update_manager->installFieldStorageDefinition(AnswerInterface::ACTIVITY_FIELD, 'lms_answer', 'lms', $answer_activity_field);
+
+  // Update the 'lms_course_students' view to replace 'gid' field with 'course'.
+  $view_storage = \Drupal::entityTypeManager()->getStorage('view');
+  $view = $view_storage->load('lms_course_students');
+  if ($view !== NULL) {
+    $display = $view->getDisplay('default');
+    if (array_key_exists('gid', $display['display_options']['fields'])) {
+      // Rename the field key and update its properties.
+      $display['display_options']['fields']['course'] = $display['display_options']['fields']['gid'];
+      $display['display_options']['fields']['course']['id'] = 'course';
+      $display['display_options']['fields']['course']['field'] = 'course';
+      $display['display_options']['fields']['course']['entity_field'] = 'course';
+      unset($display['display_options']['fields']['gid']);
+      // Update the column definition in the style options.
+      if (array_key_exists('gid', $display['display_options']['style']['options']['columns'])) {
+        $display['display_options']['style']['options']['columns']['course'] = 'course';
+        unset($display['display_options']['style']['options']['columns']['gid']);
+      }
+      if (array_key_exists('gid', $display['display_options']['style']['options']['info'])) {
+        $display['display_options']['style']['options']['info']['course'] = $display['display_options']['style']['options']['info']['gid'];
+        unset($display['display_options']['style']['options']['info']['gid']);
+      }
+      $view->set('display', ['default' => $display]);
+      $view->save();
+    }
+  }
+
+  return (string) t('Updated courses, lessons, and activities to be fully revisionable.');
+}
+
+/**
+ * Add lms_classes dependency to config entities.
+ */
+function lms_update_11016(): void {
+  $relationship = \Drupal::entityTypeManager()->getStorage('group_relationship_type')->load('lms_course-lms_classes');
+  if ($relationship !== NULL) {
+    $relationship->save();
+  }
+  $view = \Drupal::entityTypeManager()->getStorage('view')->load('lms_course_students');
+  if ($view !== NULL) {
+    $view->save();
+  }
+}
+
+/**
+ * Add show_editor_reset_button setting to lms.settings.
+ */
+function lms_update_11017(): void {
+  \Drupal::configFactory()->getEditable('lms.settings')
+    ->set('show_editor_reset_button', TRUE)
+    ->save(TRUE);
+}

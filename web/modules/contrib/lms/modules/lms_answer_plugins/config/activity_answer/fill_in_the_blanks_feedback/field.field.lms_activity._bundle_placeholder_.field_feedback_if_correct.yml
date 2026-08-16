@@ -1,0 +1,19 @@
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.field_feedback_if_correct
+    - lms.lms_activity_type._bundle_placeholder_
+  module:
+    - text
+id: lms_activity._bundle_placeholder_.field_feedback_if_correct
+field_name: field_feedback_if_correct
+entity_type: lms_activity
+bundle: _bundle_placeholder_
+label: 'Feedback if correct'
+description: 'Feedback to give the student when they have correctly filled all blanks.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text_long

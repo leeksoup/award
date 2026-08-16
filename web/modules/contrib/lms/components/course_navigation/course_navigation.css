@@ -1,0 +1,98 @@
+/**
+ * Course Navigation Component Styles.
+ */
+
+.lms-course-navigation-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 2rem;
+  padding: 0;
+}
+
+.lms-course-navigation-container h2 {
+  margin: 0 0 0.5rem;
+  padding: 0;
+  color: var(--color-text, #222330);
+  line-height: 1.25;
+}
+
+/* Progress indicator styles */
+.lms-progress-container {
+  margin: 0 0 0.75rem;
+}
+
+.lms-progress-bar {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background-color: var(--color-neutral-light, #e9ecef);
+}
+
+.lms-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease-in-out;
+  border-radius: 4px;
+  background-color: var(--color-primary-light, #bddcef);
+}
+
+.lms-progress-text {
+  margin-bottom: 0.25rem;
+  text-align: right;
+  color: var(--color-text-secondary, #6c757d);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+/* Main navigation list */
+.lms-course-navigation-list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  gap: 0.5rem;
+  list-style: none;
+  border-radius: 0.25rem;
+}
+
+.lms-course-navigation-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  margin: 0 0 1rem;
+}
+
+.lms-course-navigation-header h2 {
+  width: 100%;
+  margin: 0;
+}
+
+.lms-course-navigation-actions a {
+  display: inline-block;
+  padding: 0.1rem 1rem;
+  transition:
+    background-color 0.1s ease,
+    transform 0.1s ease;
+  text-decoration: none;
+  color: var(--color--gray-20, #292a35);
+  border: 1px solid var(--color--gray-20, #292a35);
+  border-radius: 1.5rem;
+  background-color: transparent;
+  box-shadow: 1px 2px 4px rgb(0, 0, 0, 0.2);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.lms-course-navigation-actions a:hover,
+.lms-course-navigation-actions a:focus {
+  text-decoration: none;
+  color: var(--color-white, #fff);
+  border-color: var(--color-error, #d6221c);
+  background-color: var(--color-error, #d6221c);
+  box-shadow: 1px 3px 6px rgb(0, 0, 0, 0.3);
+}

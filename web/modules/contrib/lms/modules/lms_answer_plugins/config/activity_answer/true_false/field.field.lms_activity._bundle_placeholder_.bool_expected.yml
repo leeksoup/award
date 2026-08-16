@@ -1,0 +1,19 @@
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.bool_expected
+    - lms.lms_activity_type._bundle_placeholder_
+id: lms_activity._bundle_placeholder_.bool_expected
+field_name: bool_expected
+entity_type: lms_activity
+bundle: _bundle_placeholder_
+label: Correct answer
+description: ''
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  on_label: 'True'
+  off_label: 'False'
+field_type: boolean

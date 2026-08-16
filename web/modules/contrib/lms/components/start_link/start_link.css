@@ -1,0 +1,22 @@
+.lms-start-link a {
+  display: inline-block;
+  min-width: 120px;
+  padding: 0.75em 1.5em;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+  text-align: center;
+  text-decoration: none;
+  color: var(--color-on-primary, white);
+  border-radius: 0.2rem;
+  background-color: var(--color-primary, #1475ad);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.lms-start-link a:hover,
+.lms-start-link a:focus {
+  text-decoration: none;
+  color: var(--color-on-primary-hover, white);
+  background-color: var(--color-primary-dark, #106392);
+}

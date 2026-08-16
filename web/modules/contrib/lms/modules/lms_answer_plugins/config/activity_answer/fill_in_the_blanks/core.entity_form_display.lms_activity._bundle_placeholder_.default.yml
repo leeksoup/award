@@ -1,0 +1,39 @@
+status: true
+dependencies:
+  config:
+    - field.field.lms_activity._bundle_placeholder_.field_question_text
+    - field.field.lms_activity._bundle_placeholder_.field_distraction_words
+  module:
+    - text
+id: lms_activity._bundle_placeholder_.default
+targetEntityType: lms_activity
+bundle: _bundle_placeholder_
+mode: default
+content:
+  name:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_question_text:
+    type: text_textarea
+    weight: 1
+    region: content
+    settings:
+      rows: 5
+      placeholder: 'Enter the text with correct answers in [brackets].'
+    third_party_settings: {  }
+  field_distraction_words:
+    type: string_textfield
+    weight: 2
+    region: content
+    settings:
+      size: 60
+      placeholder: 'Enter an incorrect word choice.'
+    third_party_settings: {  }
+hidden:
+  created: true
+  uid: true

@@ -1,0 +1,93 @@
+# Activity types for testing all LMS Answer Plugins
+# Includes both unified Select plugins with single/multiple configurations
+
+# Free Text plugins
+free_text:
+  id: free_text
+  name: 'Free Text'
+  description: 'Free text response activity'
+  pluginId: free_text
+  pluginConfiguration: []
+  defaultMaxScore: 5
+free_text_feedback:
+  id: free_text_feedback
+  name: 'Free Text with Feedback'
+  description: 'Free text response activity with feedback'
+  pluginId: free_text_feedback
+  pluginConfiguration: []
+  defaultMaxScore: 5
+
+# True/False plugins
+true_false:
+  id: true_false
+  name: 'True/False'
+  description: 'Boolean question activity'
+  pluginId: true_false
+  pluginConfiguration: []
+  defaultMaxScore: 1
+true_false_feedback:
+  id: true_false_feedback
+  name: 'True/False with Feedback'
+  description: 'Boolean question activity with feedback'
+  pluginId: true_false_feedback
+  pluginConfiguration: []
+  defaultMaxScore: 1
+
+# No Answer plugin
+no_answer:
+  id: no_answer
+  name: 'No Answer'
+  description: 'Display-only activity with no student response'
+  pluginId: no_answer
+  pluginConfiguration: []
+  defaultMaxScore: 0
+
+# Select plugins
+select_single:
+  id: select_single
+  name: 'Single Select'
+  description: 'Single choice selection activity (radio buttons)'
+  pluginId: select
+  pluginConfiguration:
+    selection_type: single
+  defaultMaxScore: 5
+select_multiple:
+  id: select_multiple
+  name: 'Multiple Select'
+  description: 'Multiple choice selection activity (checkboxes)'
+  pluginId: select
+  pluginConfiguration:
+    selection_type: multiple
+  defaultMaxScore: 10
+select_single_feedback:
+  id: select_single_feedback
+  name: 'Single Select with Feedback'
+  description: 'Single choice selection activity with immediate feedback (radio buttons)'
+  pluginId: select_feedback
+  pluginConfiguration:
+    selection_type: single
+  defaultMaxScore: 5
+select_multiple_feedback:
+  id: select_multiple_feedback
+  name: 'Multiple Select with Feedback'
+  description: 'Multiple choice selection activity with immediate feedback (checkboxes)'
+  pluginId: select_feedback
+  pluginConfiguration:
+    selection_type: multiple
+  defaultMaxScore: 10
+
+# Fill in the Blanks plugins
+fill_in_the_blanks:
+  id: fill_in_the_blanks
+  name: 'Fill in the Blanks'
+  description: 'Drag words to fill in the blanks in the text'
+  pluginId: fill_in_the_blanks
+  pluginConfiguration: []
+  defaultMaxScore: 10
+fill_in_the_blanks_feedback:
+  id: fill_in_the_blanks_feedback
+  name: 'Fill in the Blanks with Feedback'
+  description: 'Drag words to fill in the blanks and get immediate feedback'
+  pluginId: fill_in_the_blanks_feedback
+  pluginConfiguration: []
+  defaultMaxScore: 10
