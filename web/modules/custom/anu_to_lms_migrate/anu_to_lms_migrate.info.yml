@@ -5,10 +5,10 @@ package: Custom
 core_version_requirement: ^10 || ^11
 dependencies:
   - drupal:migrate
-  - drupal:migrate_plus
-  - drupal:migrate_tools
+  - migrate_plus:migrate_plus
+  - migrate_tools:migrate_tools
   - drupal:taxonomy
   - drupal:file
   - drupal:node
-  - drupal:paragraphs
+  - paragraphs:paragraphs
   - lms:lms
