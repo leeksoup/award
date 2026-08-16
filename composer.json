@@ -37,7 +37,7 @@
         "drupal/flexible_permissions": "^2",
         "drupal/fontyourface": "^4",
         "drupal/forum": "^1.0",
-        "drupal/group": "^2.3",
+        "drupal/group": "^3.0",
         "drupal/group_forum": "^2.",
         "drupal/honeypot": "^2.",
         "drupal/inline_entity_form": "^3.0@RC",
