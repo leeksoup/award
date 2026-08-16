@@ -1,5 +1,5 @@
 id: anu_to_lms_paragraph_lesson_checklists
-label: 'Anu LMS lesson checklists to LMS no_answer activity payloads'
+label: 'Anu LMS lesson checklists to LMS no_answer activities'
 migration_group: anu_to_lms
 migration_tags:
   - achievements_learning
@@ -8,40 +8,25 @@ migration_tags:
   - activity
 
 source:
-  # TODO: Replace with your source plugin once implementation starts.
-  plugin: embedded_data
-  data_rows: []
-  ids:
-    paragraph_id:
-      type: integer
+  plugin: anu_lesson_checklist
 
 process:
-  paragraph_id: paragraph_id
-  activity_title: title
-  checklist_item_reference_ids:
-    plugin: anu_to_lms_ordered_target_ids
-    source: field_checklist_items
-  checklist_item_ids:
-    plugin: migration_lookup
-    migration:
-      - anu_to_lms_paragraph_checklist_items
-    source: "@checklist_item_reference_ids"
-    no_stub: true
-  checklist_items_payload_ordered:
-    plugin: anu_to_lms_sort_by_delta
-    source: field_checklist_items_payload
-  checklist_activity_body/value:
-    # v1 checklist transform: build ordered LMS no_answer body text.
-    plugin: anu_to_lms_checklist_body
-    source: "@checklist_items_payload_ordered"
-  checklist_activity_body/format:
+  type:
     plugin: default_value
-    default_value: minimal_html
+    default_value: anu_checklist
+  name: title
+  status: status
+  uid: uid
+  created: created
+  changed: changed
+  field_anu_checklist_body/value:
+    plugin: anu_to_lms_checklist_body
+    source: items
+  field_anu_checklist_body/format:
+    plugin: default_value
+    default_value: basic_html
 
 destination:
-  # TODO: Swap to final destination plugin/entity once schema is finalized.
-  plugin: null
+  plugin: 'entity:lms_activity'
 
-migration_dependencies:
-  required:
-    - anu_to_lms_paragraph_checklist_items
+migration_dependencies: { }
