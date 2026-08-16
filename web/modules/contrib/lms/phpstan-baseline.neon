@@ -1,0 +1,46 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Call to an undefined method Symfony\\\\Component\\\\Process\\\\Process\\:\\:showRealtime\\(\\)\\.$#"
+			count: 1
+			path: src/Drush/Commands/LmsQaCommands.php
+
+		-
+			message: "#^Method Drupal\\\\lms\\\\Plugin\\\\views\\\\field\\\\CourseResultsLink\\:\\:buildOptionsForm\\(\\) has parameter \\$form with no type specified\\.$#"
+			count: 1
+			path: src/Plugin/views/field/CourseResultsLink.php
+
+		-
+			message: "#^Call to function method_exists\\(\\) with \\$this\\(Drupal\\\\Tests\\\\lms\\\\FunctionalJavascript\\\\GeneralLmsTest\\) and 'status' will always evaluate to true\\.$#"
+			count: 1
+			path: tests/src/FunctionalJavascript/GeneralLmsTest.php
+
+		-
+			message: "#^Call to function property_exists\\(\\) with \\$this\\(Drupal\\\\Tests\\\\lms\\\\FunctionalJavascript\\\\GeneralLmsTest\\) and 'userData' will always evaluate to true\\.$#"
+			count: 1
+			path: tests/src/FunctionalJavascript/GeneralLmsTest.php
+
+		-
+			message: "#^Call to function property_exists\\(\\) with \\$this\\(Drupal\\\\Tests\\\\lms\\\\FunctionalJavascript\\\\GeneralLmsTest\\) and 'users' will always evaluate to true\\.$#"
+			count: 1
+			path: tests/src/FunctionalJavascript/GeneralLmsTest.php
+
+		-
+			message: "#^If condition is always false\\.$#"
+			count: 1
+			path: tests/src/FunctionalJavascript/GeneralLmsTest.php
+
+		-
+			message: "#^Property Drupal\\\\user\\\\Entity\\\\User\\:\\:\\$passRaw \\(Drupal\\\\Core\\\\Field\\\\FieldItemListInterface\\) does not accept string\\.$#"
+			count: 1
+			path: tests/src/FunctionalJavascript/GeneralLmsTest.php
+
+		-
+			message: "#^Property Drupal\\\\user\\\\Entity\\\\User\\:\\:\\$pass_raw \\(Drupal\\\\Core\\\\Field\\\\FieldItemListInterface\\) does not accept string\\.$#"
+			count: 1
+			path: tests/src/FunctionalJavascript/GeneralLmsTest.php
+
+		-
+			message: "#^Variable property access on \\$this\\(Drupal\\\\Tests\\\\lms\\\\FunctionalJavascript\\\\GeneralLmsTest\\)\\.$#"
+			count: 3
+			path: tests/src/FunctionalJavascript/GeneralLmsTest.php

@@ -1,0 +1,167 @@
+<?php
+
+/**
+ * @file
+ * LMS module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Database\Query\AlterableInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Hook\Attribute\LegacyHook;
+use Drupal\Core\Render\BubbleableMetadata;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\group\Entity\GroupInterface;
+use Drupal\lms\Entity\CourseStatus;
+use Drupal\lms\Entity\LessonStatus;
+use Drupal\user\UserInterface;
+
+/**
+ * Implements hook_entity_bundle_info_alter().
+ */
+#[LegacyHook]
+function lms_entity_bundle_info_alter(array &$bundles): void {
+  \Drupal::service('lms.hook.entity')->entityBundleInfoAlter($bundles);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+#[LegacyHook]
+function lms_user_delete(UserInterface $user): void {
+  \Drupal::service('lms.hook.entity')->userDelete($user);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+#[LegacyHook]
+function lms_group_delete(GroupInterface $group): void {
+  \Drupal::service('lms.hook.entity')->groupDelete($group);
+}
+
+/**
+ * Alter Views exposed forms.
+ */
+#[LegacyHook]
+function lms_form_views_exposed_form_alter(array &$form, FormStateInterface $form_state): void {
+  \Drupal::service('lms.hook.form')->formViewsExposedFormAlter($form, $form_state);
+}
+
+/**
+ * Alter Course form.
+ */
+#[LegacyHook]
+function lms_form_group_form_alter(array &$form, FormStateInterface $form_state): void {
+  \Drupal::service('lms.hook.form')->groupFormAlter($form, $form_state);
+}
+
+/**
+ * Restricts user access to courses and their content.
+ *
+ * Implements hook_ENTITY_TYPE_access().
+ */
+#[LegacyHook]
+function lms_group_access(GroupInterface $group, string $operation, AccountInterface $account): AccessResultInterface {
+  return \Drupal::service('lms.hook.entity')->groupAccess($group, $operation, $account);
+}
+
+/**
+ * Implements hook_entity_field_access().
+ */
+#[LegacyHook]
+function lms_entity_field_access(string $operation, FieldDefinitionInterface $field_definition, AccountInterface $account): AccessResultInterface {
+  return \Drupal::service('lms.hook.entity')->entityFieldAccess($operation, $field_definition, $account);
+}
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+#[LegacyHook]
+function lms_entity_base_field_info(EntityTypeInterface $entity_type): array {
+  return \Drupal::service('lms.hook.entity')->entityBaseFieldInfo($entity_type);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for Course statuses.
+ */
+#[LegacyHook]
+function lms_lms_course_status_delete(CourseStatus $course_status): void {
+  \Drupal::service('lms.hook.entity')->lmsCourseStatusDelete($course_status);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave() for Course statuses.
+ */
+#[LegacyHook]
+function lms_lms_course_status_presave(CourseStatus $course_status): void {
+  \Drupal::service('lms.hook.entity')->lmsCourseStatusPresave($course_status);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for lesson statuses.
+ */
+#[LegacyHook]
+function lms_lms_lesson_status_delete(LessonStatus $lesson_status): void {
+  \Drupal::service('lms.hook.entity')->lmsLessonStatusDelete($lesson_status);
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+#[LegacyHook]
+function lms_element_info_alter(array &$types): void {
+  \Drupal::service('lms.hook.other')->elementInfoAlter($types);
+}
+
+/**
+ * Implements hook_query_TAG_alter().
+ */
+#[LegacyHook]
+function lms_query_lms_activity_access_alter(AlterableInterface $query): void {
+  \Drupal::service('lms.hook.query')->lmsActivityQueryAccessAlter($query);
+}
+
+/**
+ * Implements hook_query_TAG_alter().
+ */
+#[LegacyHook]
+function lms_query_lms_lesson_access_alter(AlterableInterface $query): void {
+  \Drupal::service('lms.hook.query')->lmsLessonQueryAccessAlter($query);
+}
+
+/**
+ * Implements hook_entity_bundle_info().
+ */
+#[LegacyHook]
+function lms_entity_bundle_info(): array {
+  return \Drupal::service('lms.hook.entity')->entityBundleInfo();
+}
+
+/**
+ * Implements hook_token_info().
+ */
+#[LegacyHook]
+function lms_token_info(): array {
+  return \Drupal::service('lms.hook.tokens')->tokenInfo();
+}
+
+/**
+ * Implements hook_tokens().
+ */
+#[LegacyHook]
+function lms_tokens(string $type, array $tokens, array $data, array $options, BubbleableMetadata $bubbleable_metadata): array {
+  return \Drupal::service('lms.hook.tokens')->tokens($type, $tokens, $data, $options, $bubbleable_metadata);
+}
+
+/**
+ * Implements hook_page_top().
+ */
+#[LegacyHook]
+function lms_page_top(array &$page_top): void {
+  \Drupal::service('lms.hook.other')->pageTop($page_top);
+}

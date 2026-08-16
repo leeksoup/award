@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * @file
+ * Legacy hook implementations.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Hook\Attribute\LegacyHook;
+use Drupal\lms\Entity\LessonStatusInterface;
+use Drupal\lms_hooks_test\Hook\LmsTestHooks;
+
+/**
+ * Implements hook_lms_initialize_lesson().
+ */
+#[LegacyHook]
+function lms_hooks_test_lms_initialize_lesson(LessonStatusInterface $lesson_status): void {
+  \Drupal::service(LmsTestHooks::class)->lmsInitializeLesson($lesson_status);
+}

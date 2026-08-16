@@ -1,0 +1,45 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Lesson Item
+status: stable
+description: 'Sub-component: Individual lesson item in course navigation with collapsible activities.'
+props:
+  type: object
+  required:
+    - title
+    - url
+    - is_current
+  properties:
+    title:
+      type: string
+      description: 'The title of the lesson.'
+    url:
+      type: string
+      description: 'The URL to access this lesson.'
+    url_enabled:
+      type: boolean
+      description: 'Whether the URL should be active/clickable based on navigation settings.'
+      default: true
+    is_current:
+      type: boolean
+      description: 'Whether this is the current lesson.'
+      default: false
+    started:
+      type: boolean
+      description: 'Whether the lesson has been started.'
+      default: false
+    finished:
+      type: boolean
+      description: 'Whether the lesson has been completed.'
+      default: false
+    evaluated:
+      type: boolean
+      description: 'Whether the lesson has been evaluated.'
+      default: false
+    passed:
+      type: boolean
+      description: 'Whether the lesson has been passed.'
+      default: false
+slots:
+  activities:
+    title: Activities
+    description: 'The list of activities in this lesson.'

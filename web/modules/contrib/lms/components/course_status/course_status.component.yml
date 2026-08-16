@@ -1,0 +1,20 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Course Status
+status: stable
+description: 'Displays the status of a course for a student.'
+props:
+  type: object
+  required:
+    - status_text
+    - status_class
+  properties:
+    status_text:
+      type: string
+      description: 'The status text to display.'
+    status_class:
+      type: string
+      description: 'CSS class for styling the status (in-progress, passed, failed, etc).'
+    url:
+      type: string
+      description: 'Optional URL for linking the status to results.'
+      default: ''

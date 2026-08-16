@@ -1,0 +1,81 @@
+services:
+  _defaults:
+    autowire: true
+
+  lms.training_manager:
+    class: Drupal\lms\TrainingManager
+  Drupal\lms\TrainingManager: '@lms.training_manager'
+
+  lms.block_builder:
+    class: Drupal\lms\BlockBuilder
+  Drupal\lms\BlockBuilder: '@lms.block_builder'
+
+  Drupal\lms\LmsBreadcrumbBuilder:
+    tags:
+      - { name: breadcrumb_builder, priority: 100 }
+
+  logger.channel.training_manager:
+    parent: logger.channel_base
+    arguments: ['training_manager']
+
+  logger.channel.modal_form:
+    parent: logger.channel_base
+    arguments: ['modal_form']
+
+  plugin.manager.activity_answer:
+    class: Drupal\lms\ActivityAnswerManager
+    parent: default_plugin_manager
+  Drupal\lms\ActivityAnswerManager: '@plugin.manager.activity_answer'
+
+  plugin.manager.modal_subform:
+    class: Drupal\lms\ModalSubformManager
+    parent: default_plugin_manager
+  Drupal\lms\ModalSubformManager: '@plugin.manager.modal_subform'
+
+  plugin.config_installer.activity_answer:
+    class: Drupal\lms\Config\PluginConfigInstaller
+  Drupal\lms\Config\PluginConfigInstaller: '@plugin.config_installer.activity_answer'
+
+  lms.route_subscriber:
+    class: Drupal\lms\Routing\RouteSubscriber
+
+  lms.lesson_handler.default:
+    class: 'Drupal\lms\Entity\Handlers\DefaultLmsLessonHandler'
+
+  lms.data_integrity_checker:
+    class: Drupal\lms\DataIntegrityChecker
+  Drupal\lms\DataIntegrityChecker: '@lms.data_integrity_checker'
+
+  Drupal\lms\LmsContentImporter: ~
+
+  Drupal\lms\RevisionLoadChecker: ~
+
+  # Cache contexts.
+  cache_context.user.lms_activity_access:
+    class: Drupal\lms\Cache\LmsActivityAccessCacheContext
+    tags:
+      - { name: cache.context }
+
+  cache_context.user.lms_lesson_access:
+    class: Drupal\lms\Cache\LmsLessonAccessCacheContext
+    tags:
+      - { name: cache.context }
+
+  # Hooks.
+  lms.hook.form:
+    class: Drupal\lms\Hook\LmsFormHooks
+  lms.hook.entity:
+    class: Drupal\lms\Hook\LmsEntityHooks
+  lms.hook.query:
+    class: Drupal\lms\Hook\LmsQueryHooks
+  lms.hook.other:
+    class: Drupal\lms\Hook\LmsOtherHooks
+  lms.hook.tokens:
+    class: Drupal\lms\Hook\LmsTokensHooks
+
+  Drupal\lms\Entity\Handlers\TempStoreEntityQuery:
+    shared: false
+
+  Drupal\lms\PageCache\DisallowLmsCoursePageCache:
+    tags:
+      - { name: page_cache_request_policy }

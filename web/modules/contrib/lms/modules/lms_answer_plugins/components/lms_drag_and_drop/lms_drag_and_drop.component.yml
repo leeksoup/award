@@ -1,0 +1,33 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: 'LMS Drag and Drop'
+status: stable
+description: 'Provides a container and functionality for drag-and-drop activities.'
+
+props:
+  type: object
+  additionalProperties: false
+  properties: {}
+
+slots:
+  question_display:
+    title: 'Question Display'
+    description: 'The formatted question text containing the drop zones.'
+  instructions:
+    title: 'Instructions'
+    description: 'Instructional text for the user.'
+  draggable_pool:
+    title: 'Draggable Pool'
+    description: 'The pool of draggable answer items.'
+  hidden_answer_field:
+    title: 'Hidden Answer Field'
+    description: 'A slot for the hidden form field that stores the answer.'
+dependencies:
+  - core/drupal
+  - core/drupalSettings
+  - core/once
+assets:
+  css:
+    component:
+      lms_drag_and_drop.css: {}
+  js:
+    lms_drag_and_drop.js: {}

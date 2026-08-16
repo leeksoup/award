@@ -1,0 +1,70 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the LMS Answer Plugins module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Update activity types to use unified Select and SelectFeedback plugins.
+ */
+function lms_answer_plugins_update_8001(): string {
+  $activity_type_storage = \Drupal::entityTypeManager()->getStorage('lms_activity_type');
+
+  // Mapping of old plugin IDs to new plugin IDs and their configuration.
+  $plugin_mappings = [
+    'select_single' => [
+      'new_plugin_id' => 'select',
+      'selection_type' => 'single',
+    ],
+    'select_multiple' => [
+      'new_plugin_id' => 'select',
+      'selection_type' => 'multiple',
+    ],
+    'select_single_feedback' => [
+      'new_plugin_id' => 'select_feedback',
+      'selection_type' => 'single',
+    ],
+    'select_multiple_feedback' => [
+      'new_plugin_id' => 'select_feedback',
+      'selection_type' => 'multiple',
+    ],
+  ];
+
+  $updated_count = 0;
+
+  // Process each old plugin ID to find and update activity types.
+  foreach ($plugin_mappings as $old_plugin_id => $mapping) {
+    // Load activity types that use this specific old plugin ID.
+    /** @var \Drupal\lms\Entity\ActivityTypeInterface[] */
+    $activity_types = $activity_type_storage->loadByProperties(['pluginId' => $old_plugin_id]);
+
+    foreach ($activity_types as $activity_type) {
+      // Update the plugin ID to the new unified plugin.
+      $activity_type->set('pluginId', $mapping['new_plugin_id']);
+
+      // Get existing plugin configuration and add selection_type.
+      $plugin_configuration = $activity_type->getPluginConfiguration();
+      $plugin_configuration['selection_type'] = $mapping['selection_type'];
+      $activity_type->set('pluginConfiguration', $plugin_configuration);
+
+      // Save the updated activity type.
+      $activity_type->save();
+      $updated_count++;
+
+      \Drupal::logger('lms_answer_plugins')->info(
+        'Updated activity type "@name" from plugin "@old_plugin" to "@new_plugin" with selection_type "@selection_type".',
+        [
+          '@name' => $activity_type->label(),
+          '@old_plugin' => $old_plugin_id,
+          '@new_plugin' => $mapping['new_plugin_id'],
+          '@selection_type' => $mapping['selection_type'],
+        ]
+      );
+    }
+  }
+
+  return (string) t('Updated @count activity types to use unified Select plugins.', ['@count' => $updated_count]);
+}

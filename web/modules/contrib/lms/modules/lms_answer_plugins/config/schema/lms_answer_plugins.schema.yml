@@ -1,0 +1,23 @@
+# Configuration schema for Select plugins
+lms.plugin_configuration.select:
+  type: lms_plugin_configuration
+  label: 'Select plugin configuration'
+  mapping:
+    selection_type:
+      type: string
+      label: 'Selection type'
+      constraints:
+        Choice:
+          choices: ['single', 'multiple']
+        NotBlank: ~
+lms.plugin_configuration.select_feedback:
+  type: lms_plugin_configuration
+  label: 'Select with Feedback plugin configuration'
+  mapping:
+    selection_type:
+      type: string
+      label: 'Selection type'
+      constraints:
+        Choice:
+          choices: ['single', 'multiple']
+        NotBlank: ~

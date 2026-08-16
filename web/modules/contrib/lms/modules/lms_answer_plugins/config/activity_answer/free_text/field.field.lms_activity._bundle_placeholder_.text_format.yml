@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.text_format
+id: lms_activity._bundle_placeholder_.text_format
+field_name: text_format
+entity_type: lms_activity
+bundle: _bundle_placeholder_
+label: 'Text format'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:filter_format'
+  handler_settings:
+    target_bundles: null
+    auto_create: false
+field_type: entity_reference

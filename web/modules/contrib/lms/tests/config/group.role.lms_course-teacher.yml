@@ -1,0 +1,33 @@
+status: true
+dependencies:
+  config:
+    - group.type.lms_course
+    - user.role.lms_teacher
+id: lms_course-teacher
+label: Teacher
+weight: -7
+admin: false
+scope: insider
+global_role: lms_teacher
+group_type: lms_course
+permissions:
+  - 'administer members'
+  - 'create lms_classes relationship'
+  - 'delete group'
+  - 'delete group revisions'
+  - 'delete own lms_classes relationship'
+  - 'edit group'
+  - 'grade students'
+  - 'leave group'
+  - 'revert group revisions'
+  - 'update any lms_classes relationship'
+  - 'update own lms_classes relationship'
+  - 'update own group_membership relationship'
+  - 'view all group revisions'
+  - 'view any unpublished group'
+  - 'view lms_classes relationship'
+  - 'view group'
+  - 'view group revisions'
+  - 'view group_membership relationship'
+  - 'view latest group version'
+  - 'view own unpublished group'

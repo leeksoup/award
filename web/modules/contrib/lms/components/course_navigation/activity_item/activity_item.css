@@ -1,0 +1,111 @@
+/**
+ * Activity Item Component Styles.
+ */
+
+.lms-activity-item {
+  position: relative;
+  box-sizing: border-box; /* Ensure consistent box model */
+  width: 100%;
+  margin: 0 0 0.25rem 0;
+  padding: 0;
+}
+
+.lms-activity-title {
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box; /* Ensure consistent box model */
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  text-decoration: none;
+  color: var(--color-text, #212529);
+  border-radius: 0.25rem;
+  font-size: 0.85rem;
+  line-height: 1.25;
+}
+
+a.lms-activity-title:hover,
+a.lms-activity-title:focus {
+  text-decoration: none;
+  color: var(--color-text, #212529);
+  background-color: var(--color-primary-light, #bddcef);
+}
+
+.lms-activity-title--disabled {
+  cursor: default;
+  opacity: 0.8;
+  color: var(--color-text, #212529);
+}
+
+.lms-activity-title--disabled:hover,
+.lms-activity-title--disabled:focus {
+  color: var(--color-text, #212529);
+  background-color: transparent;
+}
+
+/* Status indicators */
+.lms-activity-item--not-answered .lms-activity-title {
+  background-color: var(--color-primary-lighter, #daedf8);
+}
+
+.lms-activity-item--not-answered .lms-activity-title--current,
+.lms-activity-item--answered .lms-activity-title--current {
+  position: relative;
+  opacity: 1;
+  color: var(--color-text, #212529);
+  border: 2px solid var(--color-primary, #1475ad);
+  background-color: var(--color-primary-light, #bddcef);
+  font-weight: 600;
+}
+
+.lms-activity-title--current:hover,
+.lms-activity-title--current:focus {
+  color: var(--color-text, #212529);
+  background-color: var(--color-primary-light, #bddcef);
+}
+
+/* Activity label and score */
+.lms-activity-label {
+  overflow: hidden;
+  flex: 1;
+  min-width: 0; /* Allow flex item to shrink below content size */
+  padding-right: 0.25rem; /* Add small padding before score */
+  white-space: normal; /* Allow text to wrap */
+  text-overflow: ellipsis; /* Show an ellipsis (...) for overflowed text */
+}
+
+.lms-activity-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  white-space: nowrap;
+  color: var(--color-text, #212529);
+  border-radius: 0.75rem;
+  background-color: var(--color-neutral-lightest, #f8f9fa);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.lms-activity-item--not-answered a.lms-activity-title:hover,
+.lms-activity-item--not-answered a.lms-activity-title:focus {
+  color: var(--color-text, #212529);
+  background-color: var(--color-primary-light, #bddcef);
+}
+
+.lms-activity-item--full-marks .lms-activity-score {
+  color: var(--color-success-dark, #0c590c);
+  background-color: var(--color-success-lighter, #e6f7e6);
+}
+
+.lms-activity-item--partial-marks .lms-activity-score {
+  color: var(--color-warning-dark, #e0a200);
+  background-color: var(--color-warning-lighter, #fff8e6);
+}
+
+.lms-activity-item--evaluated:not(.lms-activity-item--full-marks, .lms-activity-item--partial-marks) .lms-activity-score {
+  color: var(--color-error-dark, #a12a2d);
+  background-color: var(--color-error-lighter, #fde7e9);
+}

@@ -1,0 +1,8 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Toolbar Icon
+status: stable
+description: 'LMS icon for the admin toolbar.'
+props:
+  type: object
+  additionalProperties: false
+  properties: {}

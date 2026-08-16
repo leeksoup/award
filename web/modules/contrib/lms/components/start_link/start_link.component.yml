@@ -1,0 +1,13 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Start Link
+status: stable
+description: 'Course status or enroll, start or continue link.'
+props:
+  type: object
+  properties:
+    link:
+      type: ["object", "null"]
+      description: 'The link to the available course action.'
+    action_info:
+      type: ["object", "null"]
+      description: 'Non-actionable course information.'

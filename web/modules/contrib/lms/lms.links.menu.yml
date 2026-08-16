@@ -1,0 +1,41 @@
+system.admin_lms:
+  title: 'LMS'
+  description: 'Administer LMS.'
+  route_name: 'lms.admin_root'
+  parent: 'system.admin'
+  weight: 6
+
+system.admin_lms.lessons:
+  title: 'Lessons'
+  description: 'Administer Lessons.'
+  route_name: 'entity.lms_lesson.collection'
+  parent: 'system.admin_lms'
+  weight: 1
+system.admin_lms.activities:
+  title: 'Activities'
+  description: 'Administer Activities.'
+  route_name: 'entity.lms_activity.collection'
+  parent: 'system.admin_lms'
+  weight: 2
+system.admin_lms.activity_types:
+  title: 'Activity types'
+  description: 'Administer Activity types.'
+  route_name: 'entity.lms_activity_type.collection'
+  parent: 'system.admin_lms'
+  weight: 3
+system.admin_lms.settings:
+  title: 'LMS Settings'
+  description: 'Global LMS Administrative settings.'
+  route_name: 'lms.settings'
+  parent: 'system.admin_lms'
+  weight: 99
+system.admin_lms.settings.general:
+  title: 'General settings'
+  description: 'Global LMS settings.'
+  route_name: 'lms.settings.main'
+  parent: 'system.admin_lms.settings'
+system.admin_lms.settings.lessons:
+  title: 'Lesson settings'
+  description: 'Manage lesson type fields and form display.'
+  route_name: 'lms.lesson_type.overview'
+  parent: 'system.admin_lms.settings'

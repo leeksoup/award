@@ -1,0 +1,5 @@
+system.admin_lms.settings.lms_classes:
+  title: 'Classes settings'
+  description: 'Settings related to LMS classes.'
+  route_name: 'lms.settings.lms_classes'
+  parent: 'system.admin_lms.settings'

@@ -1,0 +1,21 @@
+status: true
+dependencies:
+  config:
+    - field.field.lms_activity._bundle_placeholder_.field_question_text
+    - field.field.lms_activity._bundle_placeholder_.field_distraction_words
+    - field.field.lms_activity._bundle_placeholder_.field_feedback_if_correct
+    - field.field.lms_activity._bundle_placeholder_.field_feedback_if_wrong
+  module:
+    - text
+id: lms_activity._bundle_placeholder_.default
+targetEntityType: lms_activity
+bundle: _bundle_placeholder_
+mode: default
+content: {  }
+hidden:
+  field_question_text: true
+  field_distraction_words: true
+  field_feedback_if_correct: true
+  field_feedback_if_wrong: true
+  name: true
+  uid: true

@@ -1,0 +1,12 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+
+  Drupal\lms_classes\Access\ClassPermissionCalculator:
+    tags:
+      - { name: flexible_permission_calculator, priority: 0 }
+
+  Drupal\lms_classes\Hook\LmsClassesMembershipHooks: ~
+  Drupal\lms_classes\Hook\LmsClassesViewsHooks: ~
+  Drupal\lms_classes\Service\ClassNameGenerator: ~

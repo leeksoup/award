@@ -1,0 +1,52 @@
+1:
+  values:
+    name: 'Lesson 1'
+    description: 'Lesson 1 description'
+    backwards_navigation: true
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: '09a9c22d-3e30-4c6a-b556-6e41e9321963'
+  activities:
+    -
+      target_uuid: 'd4a85296-2dba-470d-8f9f-014793f6829e'
+      max_score: '10'
+    -
+      target_uuid: '18731437-9d35-4591-b056-6aa2d9f6d23f'
+      max_score: '20'
+    -
+      target_uuid: '4cd85f37-8bf7-408a-b8f9-10d977376565'
+      max_score: '10'
+    -
+      target_uuid: '1317e30a-844c-46c6-8964-f4010d73a060'
+      max_score: '5'
+    -
+      target_uuid: '28734437-ad45-4791-b056-6aa2d0f6d23f'
+      max_score: '5'
+    -
+      target_uuid: 'a7b8c9d0-e1f2-3a4b-5c6d-7e8f90a1b2c3'
+      max_score: '0'
+    -
+      target_uuid: 'b8c9d0e1-f2a3-4b5c-6d7e-8f90a1b2c3d4'
+      max_score: '10'
+2:
+  values:
+    name: 'Lesson 2'
+    description: ''
+    backwards_navigation: false
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: 'f98c39d3-6bb0-4559-bfc8-4a540487b036'
+  activities:
+    -
+      target_uuid: '649f29c3-3cd0-4e6e-9f43-089a525ac182'
+      max_score: '10'
+    -
+      target_uuid: '5e60479d-94e1-44a7-bd77-a12f2b7b159a'
+      max_score: '3'
+    -
+      target_uuid: '6bf4c752-53e3-4a89-9984-83c46addc0ed'
+      max_score: '5'
+    -
+      target_uuid: 'f6aa630a-9796-4040-b093-9a83f23b3a1a'
+      max_score: '7'
+    -
+      target_uuid: 'c9d0e1f2-a3b4-5c6d-7e8f-90a1b2c3d4e5'
+      max_score: '10'

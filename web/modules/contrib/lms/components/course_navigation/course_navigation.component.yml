@@ -1,0 +1,34 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Course Navigation
+status: stable
+description: 'Main navigation component for course lessons and activities.'
+props:
+  type: object
+  required:
+    - title
+  properties:
+    title:
+      type: string
+      description: 'The title of the course.'
+    progress_percentage:
+      type: integer
+      description: 'Course completion percentage (0-100).'
+      default: 0
+    progress_text:
+      type: string
+      description: 'Human-readable progress text.'
+      default: ''
+slots:
+  lessons:
+    title: Lessons
+    description: 'The list of lesson items to display in the navigation.'
+  actions:
+    title: Actions
+    description: 'Actions available for the course (e.g., reset progress).'
+libraryOverrides:
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/jquery.ui
+    - core/jquery.ui.accordion
+    - core/once

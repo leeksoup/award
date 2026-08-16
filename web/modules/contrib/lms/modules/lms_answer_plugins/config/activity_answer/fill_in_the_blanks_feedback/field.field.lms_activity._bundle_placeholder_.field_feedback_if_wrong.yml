@@ -1,0 +1,21 @@
+# FILE: lms/modules/lms_answer_plugins/config/activity_answer/fill_in_the_blanks_feedback/field.field.lms_activity._bundle_placeholder_.field_feedback_if_wrong.yml
+
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.field_feedback_if_wrong
+    - lms.lms_activity_type._bundle_placeholder_
+  module:
+    - text
+id: lms_activity._bundle_placeholder_.field_feedback_if_wrong
+field_name: field_feedback_if_wrong
+entity_type: lms_activity
+bundle: _bundle_placeholder_
+label: 'Feedback if wrong'
+description: 'Feedback to give the student when their answer is incorrect or incomplete.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text_long

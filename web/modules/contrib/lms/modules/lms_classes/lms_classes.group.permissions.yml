@@ -1,0 +1,6 @@
+add students:
+  title: 'Add students'
+  description: 'Add students to child classes. Effective only in LMS Courses.'
+view students:
+  title: 'View students'
+  description: 'View students in child classes. Effective only in LMS Courses.'

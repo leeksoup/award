@@ -1,0 +1,9 @@
+services:
+  _defaults:
+    autowire: true
+  access_policy.lms_answer_comments:
+    class: Drupal\lms_answer_comments\AccessPolicy\AnswerCommentsAccessPolicy
+    tags:
+      - { name: access_policy }
+
+  Drupal\lms_answer_comments\Hook\AnswerCommentsHooks: ~

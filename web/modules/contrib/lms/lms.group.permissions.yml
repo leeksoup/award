@@ -1,0 +1,6 @@
+take course:
+  title: 'Take course'
+  description: 'Allows students to start the course. Effective only in LMS Courses.'
+grade students:
+  title: 'Grade students'
+  description: 'Allow to see student answers and grade them. Effective only in LMS Courses.'

@@ -1,0 +1,127 @@
+/**
+ * Lesson Item Component Styles.
+ */
+
+.lms-lesson-item {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  gap: 4px;
+  border: 1px solid var(--color-neutral-light, #e9ecef);
+  border-radius: 0.25rem;
+  background-color: var(--color-neutral-lightest, #f8f9fa);
+}
+
+.lms-lesson-item--current {
+  border-color: var(--color-primary, #1475ad);
+  box-shadow: 0 0 0 1px var(--color-primary, #1475ad);
+}
+
+/* Style the details element */
+.lms-lesson-details {
+  width: 100%;
+  border: none;
+}
+
+/* Remove the default details marker */
+.lms-lesson-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.lms-lesson-details summary::marker {
+  display: none;
+}
+
+/* Style the lesson header */
+.lms-lesson-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  padding: 0.75rem 0.75rem 0.75rem 2.25rem; /* Add extra padding on left for caret */
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+  background-color: var(--color-neutral-light, #e9ecef);
+  font-size: 0.9rem;
+}
+
+.lms-lesson-header .lms-lesson-title a {
+  color: var(--color-text, #212529);
+}
+
+/* Add an accordion caret indicator on the left */
+summary.lms-lesson-header::before {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  content: "";
+  transition: transform 0.25s ease-in-out;
+  transform: translateY(-40%); /* Point DOWN when closed */
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M8,11.4 L1.3,4.7 C0.9,4.3 0.9,3.7 1.3,3.3 C1.7,2.9 2.3,2.9 2.7,3.3 L8,8.6 L13.3,3.3 C13.7,2.9 14.3,2.9 14.7,3.3 C15.1,3.7 15.1,4.3 14.7,4.7 L8,11.4 Z' fill='%23222330'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Rotate the caret when open */
+details[open] summary.lms-lesson-header::before {
+  transform: translateY(-60%) rotate(180deg); /* Point UP when open */
+}
+
+/* Hover state */
+.lms-lesson-header:hover {
+  background-color: var(--color-neutral, #dee2e6);
+}
+
+.lms-lesson-item--current .lms-lesson-header {
+  color: var(--color-on-primary, white);
+  background-color: var(--color-primary, #1475ad);
+}
+
+/* Adjust the caret color for current lesson */
+.lms-lesson-item--current .lms-lesson-header::before {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M8,11.4 L1.3,4.7 C0.9,4.3 0.9,3.7 1.3,3.3 C1.7,2.9 2.3,2.9 2.7,3.3 L8,8.6 L13.3,3.3 C13.7,2.9 14.3,2.9 14.7,3.3 C15.1,3.7 15.1,4.3 14.7,4.7 L8,11.4 Z' fill='%23ffffff'/></svg>");
+}
+
+.lms-lesson-title {
+  flex: 1;
+  text-decoration: none;
+  color: var(--color-text, #212529);
+  font-weight: 600;
+}
+
+.lms-lesson-item--current .lms-lesson-title {
+  color: var(--color-on-primary, white);
+}
+
+/* Indicator color for unfinished lessons */
+.lms-lesson-item--not-finished:not(.lms-lesson-item--current) .lms-lesson-header {
+  border-color: var(--color-primary-light, #bddcef);
+  background-color: var(--color-primary-lighter, #daedf8);
+}
+
+.lms-lesson-item--not-finished:not(.lms-lesson-item--current) .lms-lesson-header:hover {
+  background-color: var(--color-primary-light, #bddcef);
+}
+
+/* Activities list */
+.lms-lesson-activities {
+  overflow: hidden;
+  width: 100%;
+  padding: 0.5rem 0.35rem;
+}
+
+.lms-activities-list {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}

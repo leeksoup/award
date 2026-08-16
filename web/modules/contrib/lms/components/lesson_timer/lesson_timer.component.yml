@@ -1,0 +1,17 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Lesson Timer
+status: stable
+description: 'Timer displaying remaining time for a lesson with time limit.'
+props:
+  type: object
+  required:
+    - close_time
+  properties:
+    close_time:
+      type: integer
+      description: 'Timestamp when lesson lock occurs.'
+libraryOverrides:
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once

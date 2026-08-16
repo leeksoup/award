@@ -1,0 +1,26 @@
+administer lms:
+  title: 'Administer LMS'
+  description: 'Access LMS administration pages.'
+  restrict access: true
+
+# Activity permissions.
+create lms_activity entities:
+  title: 'Create LMS Activities'
+  description: 'Also grants access to view / edit own activities by default.'
+use all lms_activity entities:
+  title: 'Use all LMS Activities'
+  description: 'Allows to use all activities but not to edit them.'
+edit lms_activity entities:
+  title: 'Edit any LMS Activity'
+  description: 'Allows to edit and use all LMS Activities.'
+
+# Lesson permissions.
+create lms_lesson entities:
+  title: 'Create LMS Lessons'
+  description: 'Also grants access to view / edit own lessons by default.'
+use all lms_lesson entities:
+  title: 'Use all LMS Lessons'
+  description: 'Allows to use all lessons but not to edit them.'
+edit lms_lesson entities:
+  title: 'Edit any LMS Lesson'
+  description: 'Allows to edit and use all LMS Lessons.'

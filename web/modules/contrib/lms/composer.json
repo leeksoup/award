@@ -1,0 +1,34 @@
+{
+    "name": "drupal/lms",
+    "type": "drupal-module",
+    "description": "Learning Management System for Drupal.",
+    "homepage": "https://www.drupal.org/project/lms",
+    "authors": [
+        {
+            "name": "Marcin Grabias",
+            "homepage": "https://www.drupal.org/u/graber",
+            "role": "Maintainer"
+        }
+    ],
+    "support": {
+        "issues": "https://www.drupal.org/project/issues/lms",
+        "source": "https://git.drupalcode.org/project/lms"
+    },
+    "license": "GPL-2.0-or-later",
+    "minimum-stability": "dev",
+    "require": {
+        "drupal/group": "^3.2"
+    },
+    "require-dev": {
+        "drush/drush": "^12 || ^13",
+        "drupal/views_bulk_operations": "*",
+        "phpstan/phpstan-strict-rules": "^1",
+        "phpstan/phpstan-deprecation-rules": "^1"
+    },
+    "repositories": {
+        "drupal": {
+            "type": "composer",
+            "url": "https://packages.drupal.org/8"
+        }
+    }
+}

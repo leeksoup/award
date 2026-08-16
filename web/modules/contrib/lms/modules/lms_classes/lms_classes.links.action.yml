@@ -1,0 +1,6 @@
+lms_classes.add_student:
+  route_name: 'lms_classes.group.add_student'
+  class: '\Drupal\group\Plugin\Menu\LocalAction\WithDestination'
+  title: 'Add student'
+  appears_on:
+    - 'view.lms_course_students.page'

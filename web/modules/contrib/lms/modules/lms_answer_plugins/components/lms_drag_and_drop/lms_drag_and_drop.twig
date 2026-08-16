@@ -1,0 +1,10 @@
+{#
+  This component provides the wrapping structure for a drag-and-drop activity.
+  It defines slots for the question, instructions, and the pool of items.
+#}
+<div {{ attributes.addClass('lms-drag-drop-container') }}>
+  {{ question_display }}
+  {{ instructions }}
+  {{ draggable_pool }}
+  {{ hidden_answer_field }}
+</div>

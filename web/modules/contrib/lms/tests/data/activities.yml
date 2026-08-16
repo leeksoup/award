@@ -1,0 +1,189 @@
+1:
+  type: free_text
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: 'd4a85296-2dba-470d-8f9f-014793f6829e'
+  values:
+    name: Free text activity
+    questions: Question 1
+2:
+  type: true_false
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: '1317e30a-844c-46c6-8964-f4010d73a060'
+  values:
+    name: True / False
+    question: TF Question 2
+    description: 'desc 2'
+    bool_expected: false
+3:
+  type: select_single
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: '4cd85f37-8bf7-408a-b8f9-10d977376565'
+  values:
+    name: Single select
+    question: Single select question 3
+    answers:
+      -
+        answer: 'Answer 1 (correct)'
+        correct: true
+      -
+        answer: 'Answer 2 (incorrect)'
+        correct: false
+      -
+        answer: 'Answer 3 (incorrect)'
+        correct: false
+4:
+  type: no_answer
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: '28734437-ad45-4791-b056-6aa2d0f6d23f'
+  values:
+    name: No answer
+5:
+  type: select_multiple
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: '18731437-9d35-4591-b056-6aa2d9f6d23f'
+  values:
+    name: Multiple select
+    question: Multiple select question 5
+    answers:
+      -
+        answer: 'Answer 1 (correct)'
+        correct: true
+      -
+        answer: 'Answer 2 (incorrect)'
+        correct: false
+      -
+        answer: 'Answer 3 (incorrect)'
+        correct: false
+      -
+        answer: 'Answer 4 (correct)'
+        correct: true
+6:
+  type: true_false
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: '2217e31a-844d-46v6-8965-f4410d77a160'
+  values:
+    name: True / false 2
+    question: TF Question 7
+    description: 'desc 7'
+    bool_expected: true
+7:
+  type: free_text
+  owner_uuid: 'bf8b0be9-c128-4eae-b6d7-8807d20291fb'
+  uuid: '18732437-9f35-4531-b066-6bb2d9f6d23f'
+  values:
+    name: Admin activity
+    questions: Admin question 8
+8:
+  type: free_text_feedback
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: '649f29c3-3cd0-4e6e-9f43-089a525ac182'
+  values:
+    name: Free text with feedback
+    question: 'Question here. Phrases that need to be included: test, some answer or any answer'
+    minimum_characters: 10
+    phrase_feedback:
+      -
+        phrase: test
+        feedback_present: Nice one!
+        feedback_absent: Oh no!
+      -
+        phrase: some answer|any answer
+        feedback_present: Good!
+        feedback_absent: Try again!
+9:
+  type: true_false_feedback
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: '5e60479d-94e1-44a7-bd77-a12f2b7b159a'
+  values:
+    name: True / False with feedback
+    question: True or false?
+    bool_expected: true
+    description: True is the answer
+    feedback_if_correct:
+      value: Nice one!
+    feedback_if_wrong:
+      value: Wrong.
+10:
+  type: select_single_feedback
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: '6bf4c752-53e3-4a89-9984-83c46addc0ed'
+  values:
+    name: Select single with feedback
+    question: Select the right answer
+    answers:
+      -
+        answer: 'Answer 1 (incorrect)'
+        correct: false
+      -
+        answer: 'Answer 2 (correct)'
+        correct: true
+      -
+        answer: 'Answer 3 (incorrect)'
+        correct: false
+    feedback_if_correct:
+      value: Great work!
+    feedback_if_wrong:
+      value: Read the answers first ;)
+11:
+  type: select_multiple_feedback
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: 'f6aa630a-9796-4040-b093-9a83f23b3a1a'
+  values:
+    name: Select multiple with feedback
+    question: Select the right answers
+    answers:
+      -
+        answer: 'Answer 1'
+        correct: true
+      -
+        answer: 'Answer 2'
+        correct: false
+      -
+        answer: 'Answer 3'
+        correct: true
+      -
+        answer: 'Answer 4'
+        correct: true
+    feedback_if_correct:
+      value: That was easy!
+    feedback_if_wrong:
+      value: Wrong, hint - 134, hope that'll help.
+12:
+  type: free_text
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: 'a7b8c9d0-e1f2-3a4b-5c6d-7e8f90a1b2c3'
+  values:
+    name: Free text zero max score
+    questions: This activity has zero max score and should be auto-evaluated
+13:
+  type: fill_in_the_blanks
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: 'b8c9d0e1-f2a3-4b5c-6d7e-8f90a1b2c3d4'
+  values:
+    name: Fill in the blanks
+    field_question_text: 'The [capital] of France is [Paris].'
+    field_distraction_words:
+      -
+        value: 'London'
+      -
+        value: 'Berlin'
+      -
+        value: 'city'
+14:
+  type: fill_in_the_blanks_feedback
+  owner_uuid: '0d3a9d8f-33d9-49ea-b492-1f02933cc99a'
+  uuid: 'c9d0e1f2-a3b4-5c6d-7e8f-90a1b2c3d4e5'
+  values:
+    name: Fill in the blanks with feedback
+    field_question_text: 'Water freezes at [zero] degrees [Celsius].'
+    field_distraction_words:
+      -
+        value: 'one'
+      -
+        value: 'hundred'
+      -
+        value: 'Fahrenheit'
+    field_feedback_if_correct:
+      value: Excellent! You know the freezing point of water.
+    field_feedback_if_wrong:
+      value: Not quite. Water freezes at zero degrees Celsius.

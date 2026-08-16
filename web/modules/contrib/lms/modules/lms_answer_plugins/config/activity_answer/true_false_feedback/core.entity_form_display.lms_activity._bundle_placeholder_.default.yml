@@ -1,0 +1,65 @@
+status: true
+dependencies:
+  config:
+    - field.field.lms_activity._bundle_placeholder_.bool_expected
+    - field.field.lms_activity._bundle_placeholder_.feedback_if_correct
+    - field.field.lms_activity._bundle_placeholder_.feedback_if_wrong
+    - field.field.lms_activity._bundle_placeholder_.description
+    - field.field.lms_activity._bundle_placeholder_.question
+    - lms.lms_activity_type._bundle_placeholder_
+  module:
+    - text
+id: lms_activity._bundle_placeholder_.default
+targetEntityType: lms_activity
+bundle: _bundle_placeholder_
+mode: default
+content:
+  name:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  question:
+    type: text_textarea
+    weight: 1
+    region: content
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+  description:
+    type: string_textarea
+    weight: 2
+    region: content
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+  bool_expected:
+    type: options_buttons
+    weight: 3
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  feedback_if_correct:
+    type: text_textarea
+    weight: 4
+    region: content
+    settings:
+      rows: 3
+      placeholder: ''
+    third_party_settings: {  }
+  feedback_if_wrong:
+    type: text_textarea
+    weight: 5
+    region: content
+    settings:
+      rows: 3
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  created: true
+  uid: true
