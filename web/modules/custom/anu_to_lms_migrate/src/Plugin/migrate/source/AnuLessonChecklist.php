@@ -78,6 +78,13 @@ final class AnuLessonChecklist extends SourcePluginBase {
   /**
    * {@inheritdoc}
    */
+  public function __toString(): string {
+    return 'Anu LMS lesson_checklist paragraphs';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function initializeIterator(): \Iterator {
     $storage = $this->entityTypeManager->getStorage('paragraph');
     $ids = $storage->getQuery()
