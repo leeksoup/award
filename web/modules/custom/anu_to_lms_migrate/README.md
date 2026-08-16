@@ -30,9 +30,40 @@ activity type and field configuration are created, then run the slice:
 
 ```bash
 drush en anu_to_lms_migrate -y
+drush updb -y
 drush cr
 drush migrate:import anu_to_lms_paragraph_lesson_checklists -y
 drush migrate:import anu_to_lms_node_module_lessons -y
+```
+
+### Stale placeholder definitions
+
+An import failure saying that destination plugin `""` does not exist means
+Drupal is still using the old scaffold definition, whose YAML destination was
+`null`. A matching `migrate:status` total of zero is another indication that
+the cached `embedded_data` source is still active. Update `10002` clears those
+cached plugin definitions. After deploying the current code, always run:
+
+```bash
+drush updb -y
+drush cr
+```
+
+The active definitions can be checked directly. The expected result is
+`anu_lesson_checklist` / `entity:lms_activity` for the checklist migration and
+`anu_checklist_lesson` / `entity:lms_lesson` for the lesson migration.
+
+```bash
+drush php:eval '$m = \Drupal::service("plugin.manager.migration")->createInstance("anu_to_lms_paragraph_lesson_checklists"); var_export([$m->getSourceConfiguration()["plugin"] ?? NULL, $m->getDestinationConfiguration()["plugin"] ?? NULL]);'
+drush php:eval '$m = \Drupal::service("plugin.manager.migration")->createInstance("anu_to_lms_node_module_lessons"); var_export([$m->getSourceConfiguration()["plugin"] ?? NULL, $m->getDestinationConfiguration()["plugin"] ?? NULL]);'
+```
+
+If the definitions are current but the total remains zero, verify that the
+active database actually contains current revisions of the source bundles:
+
+```bash
+drush php:eval 'echo \Drupal::entityQuery("paragraph")->accessCheck(FALSE)->condition("type", "lesson_checklist")->count()->execute(), PHP_EOL;'
+drush php:eval 'echo \Drupal::entityQuery("node")->accessCheck(FALSE)->condition("type", "module_lesson")->count()->execute(), PHP_EOL;'
 ```
 
 Rollback is the reverse of import order:
