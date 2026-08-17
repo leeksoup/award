@@ -47,16 +47,23 @@ final class AnuAssessmentQuestion extends SourcePluginBase {
    * {@inheritdoc}
    */
   protected function initializeIterator(): \Iterator {
-    $paragraph_storage = \Drupal::entityTypeManager()->getStorage('paragraph');
-    $ids = $paragraph_storage->getQuery()
+    $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+    $assessment_ids = $node_storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('type', ['question_single_choice', 'question_multi_choice'], 'IN')
-      ->condition('parent_type', 'node')
-      ->condition('parent_field_name', 'field_module_assessment_items')
-      ->sort('id')
+      ->condition('type', 'module_assessment')
+      ->sort('nid')
       ->execute();
 
-    foreach ($paragraph_storage->loadMultiple($ids) as $wrapper) {
+    $wrappers = [];
+    foreach ($node_storage->loadMultiple($assessment_ids) as $assessment) {
+      foreach ($assessment->get('field_module_assessment_items')->referencedEntities() as $item) {
+        if (in_array($item->bundle(), ['question_single_choice', 'question_multi_choice'], TRUE)) {
+          $wrappers[(int) $item->id()] = $item;
+        }
+      }
+    }
+
+    foreach ($wrappers as $wrapper) {
       $question = $wrapper->get('field_question')->entity;
       if ($question === NULL) {
         throw new MigrateException(sprintf(

@@ -315,6 +315,19 @@ checklist and lesson audits in this runbook pass cleanly.
 After the lesson-content gates pass, run the supported question and assessment
 migrations in dependency order:
 
+First inventory the active source rows. These commands distinguish an empty
+source database from a source-discovery problem:
+
+```bash
+drush php:eval 'echo "module_assessment: ", \Drupal::entityQuery("node")->accessCheck(FALSE)->condition("type", "module_assessment")->count()->execute(), PHP_EOL;'
+drush php:eval 'echo "single choice wrappers: ", \Drupal::entityQuery("paragraph")->accessCheck(FALSE)->condition("type", "question_single_choice")->count()->execute(), PHP_EOL; echo "multiple choice wrappers: ", \Drupal::entityQuery("paragraph")->accessCheck(FALSE)->condition("type", "question_multi_choice")->count()->execute(), PHP_EOL;'
+```
+
+The question source follows the current `field_module_assessment_items`
+references from assessment nodes rather than relying on paragraph parent
+metadata. Consequently, orphaned question paragraphs are intentionally not
+migrated.
+
 ```bash
 drush en lms_answer_plugins -y
 drush updb -y

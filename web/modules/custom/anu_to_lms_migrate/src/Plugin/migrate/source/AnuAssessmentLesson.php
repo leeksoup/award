@@ -76,7 +76,10 @@ final class AnuAssessmentLesson extends SourcePluginBase {
         ));
       }
       if ($activities === []) {
-        continue;
+        throw new MigrateException(sprintf(
+          'Assessment node %s has no supported activities.',
+          $assessment->id(),
+        ));
       }
 
       yield [

@@ -33,6 +33,9 @@ questions to LMS `select` activities and each supported `module_assessment` to
 an LMS lesson. Short/long answer, scale, and Likert questions remain deferred.
 Existing installations must enable `lms_answer_plugins` before running database
 updates for this slice.
+Question discovery follows the current `field_module_assessment_items`
+references on `module_assessment` nodes, so it works with revisioned paragraph
+references and excludes orphaned question wrappers.
 
 Target LMS configuration uses reusable names (`checklist` and
 `field_checklist_body`) so authors can create new LMS-native checklist
