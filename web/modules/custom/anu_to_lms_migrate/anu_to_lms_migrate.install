@@ -120,3 +120,10 @@ function anu_to_lms_migrate_update_10005(): void {
   );
   \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
 }
+
+/**
+ * Clears cached definitions for the runnable course migration slice.
+ */
+function anu_to_lms_migrate_update_10006(): void {
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}

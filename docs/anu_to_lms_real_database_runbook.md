@@ -354,3 +354,70 @@ order. Roll back assessment lessons before question activities:
 drush migrate:rollback anu_to_lms_node_module_assessments -y
 drush migrate:rollback anu_to_lms_paragraph_assessment_questions -y
 ```
+
+## Course staging slice
+
+The course migration intentionally discards Anu module titles and boundaries.
+It traverses modules in field order, flattens their lesson references in field
+order, and writes that sequence to the native LMS course `lessons` field. Run
+it only after the lesson migration has completed successfully.
+
+```bash
+drush updb -y
+drush cr
+drush migrate:status anu_to_lms_node_module_lessons
+drush migrate:status anu_to_lms_node_courses
+drush migrate:import anu_to_lms_node_courses -y
+```
+
+The expected source total is three courses. Audit destination counts, ordered
+lesson IDs, broken references, and navigation settings:
+
+```bash
+drush php:eval '
+$lookup = \Drupal::service("migrate.lookup");
+$course_storage = \Drupal::entityTypeManager()->getStorage("group");
+$lesson_storage = \Drupal::entityTypeManager()->getStorage("lms_lesson");
+$source_ids = \Drupal::entityQuery("node")
+  ->accessCheck(FALSE)
+  ->condition("type", "course")
+  ->sort("nid")
+  ->execute();
+
+foreach ($source_ids as $source_id) {
+  $destinations = $lookup->lookup("anu_to_lms_node_courses", [$source_id]);
+  $destination_id = $destinations[0]["id"] ?? NULL;
+  if (!$destination_id || !($course = $course_storage->load($destination_id))) {
+    printf("ERROR source course %d has no destination course\n", $source_id);
+    continue;
+  }
+
+  $lesson_ids = [];
+  $broken = [];
+  foreach ($course->get("lessons") as $item) {
+    $lesson_ids[] = (int) $item->target_id;
+    if (!$lesson_storage->load($item->target_id)) {
+      $broken[] = (int) $item->target_id;
+    }
+  }
+
+  printf(
+    "source:%d destination:%d lessons:[%s] free_navigation:%d broken:[%s]\n",
+    $source_id,
+    $course->id(),
+    implode(",", $lesson_ids),
+    (int) $course->get("free_navigation")->value,
+    implode(",", $broken),
+  );
+}
+'
+```
+
+Confirm that the three destination courses contain 11, 15, and 13 lessons in
+the same order as the source audit. Spot-check guided/free navigation in the
+course UI. Roll back courses before rolling back lessons:
+
+```bash
+drush migrate:rollback anu_to_lms_node_courses -y
+drush cr
+```

@@ -56,6 +56,31 @@ drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 drush migrate:import anu_to_lms_node_module_lessons -y
 drush migrate:import anu_to_lms_paragraph_assessment_questions -y
 drush migrate:import anu_to_lms_node_module_assessments -y
+drush migrate:import anu_to_lms_node_courses -y
+```
+
+## Runnable course slice
+
+The course migration traverses each Anu course's `field_course_module`
+paragraphs and flattens every module's `field_module_lessons` references into
+the native ordered Drupal LMS `lessons` field. Module titles and boundaries
+are intentionally not migrated. Anu linear progression is mapped to the
+inverse LMS `free_navigation` setting.
+
+Run the lesson migration first, then import courses:
+
+```bash
+drush updb -y
+drush cr
+drush migrate:status anu_to_lms_node_courses
+drush migrate:import anu_to_lms_node_courses -y
+```
+
+Rollback deletes only courses created by this migration; it does not delete
+their referenced LMS lessons:
+
+```bash
+drush migrate:rollback anu_to_lms_node_courses -y
 ```
 
 If checklist activities were imported by a version earlier than the formatted

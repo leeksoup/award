@@ -92,16 +92,15 @@ Use Quiz module later only if needed for features like:
 | course | `field_course_linear_progress` | Boolean | LMS Course settings | linear/sequential | Copy boolean | P0 |
 | course | `field_course_finish_button` | Link | LMS Course settings | finish CTA/redirect | Map URL/title where supported; fallback metadata | P2 |
 | course | `field_weight` | Weight | LMS listing/order | sort weight | Copy integer | P2 |
-| course | `field_course_module` | ERR (`course_modules`) | LMS Course structure | module/lesson sequence | Expand paragraph refs by delta order | P0 |
+| course | `field_course_module` | ERR (`course_modules`) | LMS Course | `lessons` | Traverse modules and flatten their lesson refs in module/lesson delta order | P0 |
 
 ## B. Course module paragraph (`paragraph.course_modules`) mapping
 
 | Source entity | Source field | Source type | Target entity | Target field/plugin | Transform rule | Priority |
 |---|---|---|---|---|---|---|
-| course_modules | parent course | Paragraph parent | LMS Course sequence | section/module grouping | Create sequence container per paragraph | P0 |
-| course_modules | `field_module_lessons` | Node refs (`module_lesson`) | LMS Course sequence | lesson entries | Resolve lesson map; attach in source order | P0 |
-| course_modules | `field_module_assessment` (optional) | Node ref (`module_assessment`) | LMS Course sequence | assessment entry | Attach at configured position (typically after lesson group) | P1 |
-| course_modules | paragraph delta | implicit | LMS Course sequence | module order | Preserve exact order | P0 |
+| course_modules | parent course | Paragraph parent | No destination entity | traversal context | Do not preserve module titles or boundaries in v1 | P0 |
+| course_modules | `field_module_lessons` | Node refs (`module_lesson`) | LMS Course | `lessons` entries | Resolve lesson migration map and append in source order | P0 |
+| course_modules | paragraph delta | implicit | LMS Course | `lessons` order | Preserve module order while flattening lesson references | P0 |
 
 ## C. Lesson (`node.module_lesson`) mapping
 
@@ -213,7 +212,8 @@ Use Quiz module later only if needed for features like:
 - ✅ Milestone 2 (**Migration scaffold complete**) marked complete on April 11, 2026 after adding scaffold migrations through course-sequence assembly (`anu_to_lms_course_structure`).
 - 🚧 Milestone 3 (**Lesson content pipeline**) is in progress. The checklist-to-activity slice has been imported and validated; lesson sections, embedded video, audio, and remaining content blocks are not runnable yet.
 - 🚧 Milestone 4 (**Assessment pipeline**) has a runnable single/multiple-choice slice awaiting staging validation; remaining question bundles are deferred.
-- ⏳ Milestone 5 (**Course structure pipeline**) is scaffolded but not runtime-validated.
+- ⏳ Milestone 5 (**Course structure pipeline**) has a runnable flattened
+  course-to-lessons migration and awaits real-database validation.
 - ⏳ Milestone 6 (**Achievements/semantics parity**) has audit scaffolding only and resumes after the core content path is runnable.
 
 ## Phase 0 — Discovery freeze (1–2 days)
