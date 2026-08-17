@@ -1,0 +1,29 @@
+langcode: en
+status: true
+dependencies:
+  config: [field.field.lms_activity.audio.field_audio_file, field.field.lms_activity.audio.field_audio_name, lms.lms_activity_type.audio]
+  module: [file]
+id: lms_activity.audio.default
+targetEntityType: lms_activity
+bundle: audio
+mode: default
+content:
+  field_audio_name:
+    type: string
+    label: hidden
+    settings: { }
+    third_party_settings: { }
+    weight: 0
+    region: content
+  field_audio_file:
+    type: file_audio
+    label: hidden
+    settings:
+      controls: true
+      autoplay: false
+      loop: false
+      multiple_file_display_type: tags
+    third_party_settings: { }
+    weight: 1
+    region: content
+hidden: { }

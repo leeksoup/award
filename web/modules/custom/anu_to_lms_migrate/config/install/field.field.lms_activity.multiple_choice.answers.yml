@@ -1,0 +1,19 @@
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.answers
+    - lms.lms_activity_type.multiple_choice
+  module:
+    - lms_answer_plugins
+id: lms_activity.multiple_choice.answers
+field_name: answers
+entity_type: lms_activity
+bundle: multiple_choice
+label: Answers
+description: ''
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: lms_answer
