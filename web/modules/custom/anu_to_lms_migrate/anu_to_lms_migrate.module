@@ -23,4 +23,10 @@ function anu_to_lms_migrate_group_insert(GroupInterface $group): void {
     // creates this membership when creator_membership is enabled.
     $group->addMember($owner);
   }
+  if ($owner !== NULL && !$owner->hasRole('lms_teacher')) {
+    // The synchronized lms_course-teacher Group role derives from this global
+    // role, so the owner receives course management permissions immediately.
+    $owner->addRole('lms_teacher');
+    $owner->save();
+  }
 }

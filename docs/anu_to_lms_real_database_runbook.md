@@ -447,6 +447,21 @@ rewriting even though the page itself is already restricted by the
 row filter so administrators can list courses owned by preserved source
 authors. It does not change access to individual course routes.
 
+Course owners also require an authorized insider Group role. Update `10010`
+installs the synchronized `lms_teacher` user role and `lms_course-teacher`
+Group role, then assigns the user role to every migrated course owner:
+
+```bash
+drush updb -y
+drush cr
+drush config:get user.role.lms_teacher status
+drush config:get group.role.lms_course-teacher permissions
+drush php:eval '$ids = \Drupal::entityQuery("group")->accessCheck(FALSE)->condition("type", "lms_course")->execute(); foreach (\Drupal::entityTypeManager()->getStorage("group")->loadMultiple($ids) as $course) { $owner = $course->getOwner(); $roles = $course->getMember($owner)?->getRoles() ?? []; printf("course:%d owner:%d user_teacher:%s group_roles:[%s] view:%s take:%s\n", $course->id(), $owner->id(), $owner->hasRole("lms_teacher") ? "yes" : "no", implode(",", array_keys($roles)), $course->access("view", $owner) ? "yes" : "no", $course->access("take", $owner) ? "yes" : "no"); }'
+```
+
+Every owner must report `user_teacher:yes`, include
+`lms_course-teacher` in `group_roles`, and report `view:yes take:yes`.
+
 Roll back courses before rolling back lessons:
 
 ```bash

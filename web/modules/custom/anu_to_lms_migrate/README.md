@@ -90,6 +90,10 @@ the listing. Update `10009` adds the creator memberships omitted when course
 groups were created through Migrate, then restores normal Group access query
 filtering on the administrative View.
 
+Update `10010` installs the synchronized `lms_teacher` user and course Group
+roles, assigns the user role to migrated course owners, and thereby grants
+owners the course-level view/edit/take permissions expected by Drupal LMS.
+
 If checklist activities were imported by a version earlier than the formatted
 field-item fix, update them in place after deploying current code. This
 replaces body values stored as the literal string `Array` without changing the

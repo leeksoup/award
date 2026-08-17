@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - group
+    - lms
+id: lms_teacher
+label: 'LMS Teacher'
+weight: 3
+is_admin: false
+permissions:
+  - 'access administration pages'
+  - 'access group overview'
+  - 'create lms_activity entities'
+  - 'create lms_course group'
+  - 'create lms_lesson entities'
+  - 'view the administration theme'

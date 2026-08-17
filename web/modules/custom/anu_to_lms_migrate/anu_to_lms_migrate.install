@@ -220,3 +220,33 @@ function _anu_to_lms_migrate_ensure_course_owner_membership(
     $group->addMember($owner);
   }
 }
+
+/**
+ * Installs and assigns the LMS teacher role to migrated course owners.
+ */
+function anu_to_lms_migrate_update_10010(): void {
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+
+  $storage = \Drupal::entityTypeManager()->getStorage('group');
+  $ids = $storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'lms_course')
+    ->execute();
+
+  foreach ($storage->loadMultiple($ids) as $course) {
+    $owner = $course->getOwner();
+    if ($owner !== NULL && !$owner->hasRole('lms_teacher')) {
+      $owner->addRole('lms_teacher');
+      $owner->save();
+    }
+    _anu_to_lms_migrate_ensure_course_owner_membership($course);
+  }
+
+  \Drupal::service('cache_tags.invalidator')->invalidateTags([
+    'config:group.role.lms_course-teacher',
+    'group_relationship_list:plugin:group_membership',
+  ]);
+}
