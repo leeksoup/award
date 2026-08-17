@@ -28,7 +28,9 @@ plugin. Text, approved YouTube/Vimeo, and audio blocks become reusable
 are appended inside the immediately preceding checklist activity body as
 linked resource names followed by their descriptions.
 Heading blocks are used as names/titles for the immediately following
-supported activity and are not migrated as standalone activities. It then
+supported activity and are not migrated as standalone activities. Divider and
+currently unsupported image blocks are ignored when pairing a heading with the
+next migrated activity. It then
 migrates every `module_lesson` containing supported content to an `lms_lesson`,
 preserving page/block order. Other lesson block types are intentionally not
 included yet.

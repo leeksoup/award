@@ -31,6 +31,16 @@ final class AnuLessonBlockHelper {
   ];
 
   /**
+   * Source blocks ignored when associating headings/resources to activities.
+   */
+  private const TRANSPARENT_BUNDLES = [
+    'lesson_divider',
+    'lesson_image',
+    'lesson_image_thumbnail',
+    'lesson_image_wide',
+  ];
+
+  /**
    * Checks whether a lesson-section block should become an LMS activity.
    */
   public static function isLessonActivityBundle(string $bundle): bool {
@@ -65,6 +75,10 @@ final class AnuLessonBlockHelper {
         return $pending_heading;
       }
 
+      if (self::isTransparentBundle($item->bundle())) {
+        continue;
+      }
+
       $pending_heading = NULL;
     }
 
@@ -90,7 +104,7 @@ final class AnuLessonBlockHelper {
         continue;
       }
 
-      if ($item->bundle() === 'lesson_heading') {
+      if (self::isTransparentBundle($item->bundle())) {
         continue;
       }
 
@@ -103,6 +117,13 @@ final class AnuLessonBlockHelper {
     }
 
     return $resources;
+  }
+
+  /**
+   * Checks whether a source bundle is ignored for adjacency decisions.
+   */
+  private static function isTransparentBundle(string $bundle): bool {
+    return in_array($bundle, self::TRANSPARENT_BUNDLES, TRUE);
   }
 
   /**

@@ -12,7 +12,8 @@ also covers the media/resource lesson-content slice:
    `video`, and `audio` display activities. Resource document blocks are
    appended as links inside the immediately preceding checklist activity body.
    Heading blocks are used as names/titles for the immediately following
-   supported activity; they are not standalone LMS activities.
+   supported activity; they are not standalone LMS activities. Divider and
+   currently unsupported image blocks are ignored for heading adjacency.
 
 This is a staging/verification procedure, not a production cutover runbook.
 Images, short/long-answer questions, scale/Likert questions, and complete
@@ -278,7 +279,8 @@ Spot-check at least three lessons at `/admin/lms/lesson`. Confirm checklist
 activities and text/media activities appear in the same page/block order as the
 Anu lesson. Confirm resource documents appear inside the immediately preceding
 checklist activity, and confirm Anu heading text appears as the following
-activity's name/title rather than as its own activity.
+activity's name/title rather than as its own activity, including when a divider
+or currently unsupported image block appears between the heading and activity.
 
 ## 11. Record final status and logs
 
