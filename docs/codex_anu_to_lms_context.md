@@ -41,9 +41,12 @@ anu_to_lms_node_module_assessments          (currently zero source rows)
 anu_to_lms_node_courses
 ```
 
-The lesson-section activity migration currently supports text, headings,
-approved YouTube/Vimeo URLs, audio files, and checklist references. Unsupported
-providers and unresolved required audio files must fail with source context.
+The lesson-section activity migration currently supports text, approved
+YouTube/Vimeo URLs, audio files, resource documents, and checklist references.
+Anu heading blocks are not standalone LMS activities; the nearest immediately
+preceding heading is used as the migrated activity name/title for the following
+supported activity. Unsupported providers and unresolved required audio or
+resource files must fail with source context.
 
 ## Course migration decisions
 
@@ -113,25 +116,35 @@ Validated from user-provided staging output:
   `group_roles:[lms_course-teacher]`, `view:yes`, `take:yes`, and
   `update:yes`.
 
+Validated from user-provided browser feedback:
+
+- courses appear through normal Group-filtered `/admin/group` and
+  `/admin/lms/courses` listings;
+- owner route access and course navigation appear to work;
+- an unrelated account receives a "Page not found" response for migrated
+  course access, which is acceptable if owner access to the same route works.
+
+New staging blockers from browser UAT:
+
+- lesson activities were not appearing in the correct Anu order;
+- Anu heading blocks were incorrectly migrated as standalone activities instead
+  of naming the following activity;
+- student resource/worksheet document blocks must be migrated and shown as
+  activities.
+
 Still pending explicit staging acceptance:
 
-- courses appearing through normal Group-filtered `/admin/group` and
-  `/admin/lms/courses` listings;
-- owner access to `/group/COURSE_ID` and `/course/COURSE_ID/start`;
-- denial for an unrelated account without authorized Group access;
-- full learner playback/navigation UAT for all three courses;
-- remaining unsupported lesson paragraph bundles;
+- updated lesson activity order after re-running section and lesson imports;
+- heading-to-following-activity title behavior;
+- resource document rendering/downloads;
 - achievements/completion integration and Commerce enrollment.
 
 ## Immediate next action
 
-Next validate the UI acceptance criteria through normal Group-filtered
-listings and browser routes. If a listing or route still fails despite the
-programmatic access audit passing, inspect the installed Group 3.3 and LMS
-route/View code before adding another update hook. Do not bypass Group access.
-
-Only after browser-level course access passes should implementation continue
-to the next content-parity or achievements slice.
+Next deploy the lesson ordering/resource slice, run update `10011`, update the
+section and lesson migrations in place, and re-check browser lesson playback.
+Only after lesson order, headings, and resource downloads pass should
+implementation continue to the next content-parity or achievements slice.
 
 ## Known documentation debt
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\anu_to_lms_migrate\Plugin\migrate\source;
 
+use Drupal\anu_to_lms_migrate\AnuLessonBlockHelper;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
 
@@ -96,10 +97,11 @@ final class AnuAssessmentQuestion extends SourcePluginBase {
       }
 
       $name = trim((string) $question->label());
+      $heading = AnuLessonBlockHelper::headingForActivity($wrapper);
       yield [
         'paragraph_id' => (int) $wrapper->id(),
         'activity_type' => $wrapper->bundle() === 'question_multi_choice' ? 'multiple_choice' : 'single_choice',
-        'name' => mb_strimwidth($name, 0, 255, '…'),
+        'name' => mb_strimwidth($heading ?? $name, 0, 255, '…'),
         'question' => [[
           'value' => $name,
           'format' => 'minimal_html',

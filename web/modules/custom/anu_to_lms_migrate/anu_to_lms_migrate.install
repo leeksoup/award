@@ -249,3 +249,14 @@ function anu_to_lms_migrate_update_10010(): void {
     'group_relationship_list:plugin:group_membership',
   ]);
 }
+
+/**
+ * Installs resource activities and refreshes lesson section migration metadata.
+ */
+function anu_to_lms_migrate_update_10011(): void {
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}

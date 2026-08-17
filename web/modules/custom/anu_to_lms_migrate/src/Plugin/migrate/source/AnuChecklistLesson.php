@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\anu_to_lms_migrate\Plugin\migrate\source;
 
+use Drupal\anu_to_lms_migrate\AnuLessonBlockHelper;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
 
 /**
@@ -58,22 +59,20 @@ final class AnuChecklistLesson extends SourcePluginBase {
 
     foreach ($storage->loadMultiple($ids) as $lesson) {
       $activities = [];
+      $delta = 0;
       if ($lesson->hasField('field_module_lesson_content')) {
         foreach ($lesson->get('field_module_lesson_content')->referencedEntities() as $section) {
           if (!$section->hasField('field_lesson_section_content')) {
             continue;
           }
           foreach ($section->get('field_lesson_section_content')->referencedEntities() as $block) {
-            if (!in_array($block->bundle(), [
-              'lesson_text',
-              'lesson_heading',
-              'lesson_embedded_video',
-              'lesson_audio',
-              'lesson_checklist',
-            ], TRUE)) {
+            if (!AnuLessonBlockHelper::isLessonActivityBundle($block->bundle())) {
               continue;
             }
-            $activities[] = ['paragraph_id' => (int) $block->id()];
+            $activities[] = [
+              'delta' => $delta++,
+              'paragraph_id' => (int) $block->id(),
+            ];
           }
         }
       }

@@ -35,6 +35,14 @@ process:
     plugin: skip_on_empty
     method: process
     source: audio_file_id
+  field_resource_description:
+    plugin: skip_on_empty
+    method: process
+    source: resource_description
+  field_resource_file/target_id:
+    plugin: skip_on_empty
+    method: process
+    source: resource_file_id
 
 destination:
   plugin: 'entity:lms_activity'

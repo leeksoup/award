@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\anu_to_lms_migrate\Plugin\migrate\source;
 
+use Drupal\anu_to_lms_migrate\AnuLessonBlockHelper;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
 
 /**
@@ -77,10 +78,11 @@ final class AnuLessonChecklist extends SourcePluginBase {
       $title = $plain_title === ''
         ? 'Checklist ' . $checklist->id()
         : 'Checklist: ' . mb_strimwidth($plain_title, 0, 220, '…');
+      $heading = AnuLessonBlockHelper::headingForActivity($checklist);
 
       yield [
         'paragraph_id' => (int) $checklist->id(),
-        'title' => (string) $title,
+        'title' => (string) ($heading ?? $title),
         'items' => $items,
         'status' => 1,
         'uid' => 1,

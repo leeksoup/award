@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\anu_to_lms_migrate\Plugin\migrate\source;
 
+use Drupal\anu_to_lms_migrate\AnuLessonBlockHelper;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
 
@@ -58,14 +59,16 @@ final class AnuAssessmentLesson extends SourcePluginBase {
 
     foreach ($storage->loadMultiple($ids) as $assessment) {
       $activities = [];
+      $delta = 0;
       foreach ($assessment->get('field_module_assessment_items')->referencedEntities() as $item) {
-        if (in_array($item->bundle(), [
-          'lesson_text',
-          'lesson_heading',
-          'question_single_choice',
-          'question_multi_choice',
-        ], TRUE)) {
-          $activities[] = ['paragraph_id' => (int) $item->id()];
+        if ($item->bundle() === 'lesson_heading') {
+          continue;
+        }
+        if (AnuLessonBlockHelper::isAssessmentActivityBundle($item->bundle())) {
+          $activities[] = [
+            'delta' => $delta++,
+            'paragraph_id' => (int) $item->id(),
+          ];
           continue;
         }
         throw new MigrateException(sprintf(
