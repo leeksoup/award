@@ -23,6 +23,11 @@ This document is the code-ready pseudocode companion to the migration plan and i
   - `lesson_checklist` + `checklist_item` => LMS `no_answer` activity payload.
   - `checklist_item.field_checkbox_option.value` is the canonical item text.
   - `checklist_item.field_lesson_text_content.value` is optional description.
+- Media is P0 for the next lesson slice:
+  - `lesson_embedded_video.field_lesson_embedded_video_url.uri` => normalized YouTube/Vimeo URL in a `video` display activity.
+  - `lesson_audio.field_audio_name.value` => accessible audio label.
+  - `lesson_audio.field_audio_file.target_id` => required lookup through `anu_to_lms_media_files` into an `audio` display activity.
+  - Unsupported video providers and unresolved audio files are migration errors, not raw-HTML fallbacks.
 - Keep source IDs in migration map tables to support later relationship assembly.
 
 ## Migration ID specs
@@ -75,8 +80,16 @@ Pseudo process:
 - Source bundle: `lesson_section`.
 - Traverse ordered `field_lesson_section_content`.
 - For each block paragraph:
-  - map by bundle (`lesson_text`, `lesson_heading`, `lesson_image`, etc.)
+  - map initial P0 bundles (`lesson_text`, `lesson_heading`, `lesson_embedded_video`, `lesson_audio`, `lesson_checklist`)
   - route `lesson_checklist` to checklist activity lookup.
+- For `lesson_embedded_video`:
+  - validate host against the approved YouTube/Vimeo provider list
+  - normalize watch/share URLs to a canonical provider URL
+  - create/lookup a `video` `no_answer` activity; never copy iframe HTML from source input.
+- For `lesson_audio`:
+  - copy the human-readable `field_audio_name`
+  - require a successful file migration lookup for `field_audio_file.target_id`
+  - create/lookup an `audio` `no_answer` activity with an accessible player display.
 - Destination: lesson-section staging entity.
 
 ### `anu_to_lms_node_module_lessons`

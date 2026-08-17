@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  config: [field.field.lms_activity.checklist.field_checklist_body, lms.lms_activity_type.checklist]
+  module: [text]
+id: lms_activity.checklist.default
+targetEntityType: lms_activity
+bundle: checklist
+mode: default
+content:
+  field_checklist_body:
+    type: text_textarea
+    weight: 0
+    region: content
+    settings:
+      rows: 9
+      placeholder: ''
+    third_party_settings: { }
+hidden: { }

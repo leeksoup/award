@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  config: [field.field.lms_activity.audio.field_audio_file, field.field.lms_activity.audio.field_audio_name, lms.lms_activity_type.audio]
+  module: [file]
+id: lms_activity.audio.default
+targetEntityType: lms_activity
+bundle: audio
+mode: default
+content:
+  field_audio_name:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: { }
+  field_audio_file:
+    type: file_generic
+    weight: 1
+    region: content
+    settings:
+      progress_indicator: throbber
+    third_party_settings: { }
+hidden: { }
