@@ -1,5 +1,5 @@
 id: anu_to_lms_node_courses
-label: 'Anu LMS courses to LMS course staging'
+label: 'Anu LMS courses to LMS courses'
 migration_group: anu_to_lms
 migration_tags:
   - achievements_learning
@@ -7,39 +7,49 @@ migration_tags:
   - course
 
 source:
-  # TODO: Replace with your source plugin once implementation starts.
-  plugin: embedded_data
-  data_rows: []
-  ids:
-    nid:
-      type: integer
+  plugin: anu_course
 
 process:
-  nid: nid
-  title: title
-  status:
+  type:
     plugin: default_value
-    default_value: 1
-  summary/value: body
-  summary/format:
-    plugin: default_value
-    default_value: minimal_html
-  course_module_source_ids:
-    plugin: anu_to_lms_ordered_target_ids
-    source: field_course_modules
-  course_module_ids:
-    plugin: migration_lookup
-    migration:
-      - anu_to_lms_paragraph_course_modules
-    source: "@course_module_source_ids"
-    no_stub: true
+    default_value: lms_course
+  label: label
+  status: status
+  uid: uid
+  created: created
+  changed: changed
+  free_navigation:
+    plugin: static_map
+    source: linear_progress
+    map:
+      0: 1
+      1: 0
+  lessons:
+    plugin: sub_process
+    source: lessons
+    process:
+      target_id:
+        plugin: migration_lookup
+        migration: anu_to_lms_node_module_lessons
+        source: nid
+        no_stub: true
+      data/mandatory:
+        plugin: default_value
+        default_value: true
+      data/required_score:
+        plugin: default_value
+        default_value: 0
+      data/auto_repeat_failed:
+        plugin: default_value
+        default_value: false
+      data/time_limit:
+        plugin: default_value
+        default_value: 0
 
 destination:
-  # TODO: Swap to final destination plugin/entity once schema is finalized.
-  plugin: null
+  plugin: 'entity:group'
+  default_bundle: lms_course
 
 migration_dependencies:
   required:
-    - anu_to_lms_paragraph_course_modules
-    - anu_to_lms_taxonomy
-    - anu_to_lms_media_files
+    - anu_to_lms_node_module_lessons

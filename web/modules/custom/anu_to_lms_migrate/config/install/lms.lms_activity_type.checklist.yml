@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies: { }
+id: checklist
+name: 'Checklist'
+description: 'Display-oriented checklist content that is completed by advancing to the next activity.'
+pluginId: no_answer
+pluginConfiguration: { }
+defaultMaxScore: 0

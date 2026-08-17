@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies: { }
+id: audio
+name: 'Audio'
+description: 'Display-oriented audio file content.'
+pluginId: no_answer
+pluginConfiguration: { }
+defaultMaxScore: 0
