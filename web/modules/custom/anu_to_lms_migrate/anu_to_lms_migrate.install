@@ -1,0 +1,81 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the Anu to LMS migration module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Installs configuration required by the first checklist migration slice.
+ */
+function anu_to_lms_migrate_update_10001(): void {
+  // config/install is applied automatically on a fresh installation. Existing
+  // scaffold installations need the newly added activity bundle and fields.
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+}
+
+/**
+ * Clears placeholder migration definitions cached before the runnable slice.
+ */
+function anu_to_lms_migrate_update_10002(): void {
+  // The scaffold used an empty embedded_data source and a YAML null
+  // destination. Migration plugin definitions are cached, so sites that had
+  // already discovered the scaffold can otherwise continue to report zero
+  // rows and fail with a blank destination plugin after deploying the slice.
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
+ * Renames Anu-specific target configuration for ongoing LMS authoring.
+ */
+function anu_to_lms_migrate_update_10003(): void {
+  $config_installer = \Drupal::service('config.installer');
+  $config_installer->installDefaultConfig('module', 'anu_to_lms_migrate');
+
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $activity_storage = $entity_type_manager->getStorage('lms_activity');
+  $activity_ids = $activity_storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'anu_checklist')
+    ->execute();
+
+  foreach ($activity_ids as $activity_id) {
+    $activity = $activity_storage->load($activity_id);
+    $body = $activity->hasField('field_anu_checklist_body')
+      ? $activity->get('field_anu_checklist_body')->getValue()
+      : [];
+
+    // Save the bundle change first, then reload so Drupal builds the field
+    // definitions for the new bundle before the body is copied.
+    $activity->set('type', 'checklist');
+    $activity->save();
+    $activity_storage->resetCache([$activity_id]);
+
+    $activity = $activity_storage->load($activity_id);
+    $activity->set('field_checklist_body', $body);
+    $activity->save();
+  }
+
+  $old_display = $entity_type_manager->getStorage('entity_view_display')
+    ->load('lms_activity.anu_checklist.default');
+  $old_display?->delete();
+
+  $old_field = $entity_type_manager->getStorage('field_config')
+    ->load('lms_activity.anu_checklist.field_anu_checklist_body');
+  $old_field?->delete();
+
+  $old_storage = $entity_type_manager->getStorage('field_storage_config')
+    ->load('lms_activity.field_anu_checklist_body');
+  $old_storage?->delete();
+
+  $old_bundle = $entity_type_manager->getStorage('lms_activity_type')
+    ->load('anu_checklist');
+  $old_bundle?->delete();
+
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
