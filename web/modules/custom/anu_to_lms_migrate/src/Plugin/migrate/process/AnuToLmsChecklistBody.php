@@ -42,7 +42,10 @@ final class AnuToLmsChecklistBody extends ProcessPluginBase {
         continue;
       }
       $description = trim((string) ($item['description'] ?? ''));
-      $line = '<strong>' . $text . '</strong>';
+      // Source values are formatted HTML and commonly include a block-level
+      // <p>. Keep that markup directly inside the list item rather than
+      // producing invalid <strong><p>...</p></strong> nesting.
+      $line = $text;
       if ($description !== '') {
         $line .= '<div>' . $description . '</div>';
       }
