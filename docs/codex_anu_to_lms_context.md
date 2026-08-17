@@ -45,9 +45,10 @@ The lesson-section activity migration currently supports text, approved
 YouTube/Vimeo URLs, audio files, and checklist references. Anu heading blocks
 are not standalone LMS activities; the nearest immediately preceding heading is
 used as the migrated activity name/title for the following supported activity.
-Anu resource documents are appended as links inside the immediately preceding
-checklist activity body. Unsupported providers and unresolved required audio or
-resource files must fail with source context.
+Anu resource documents are appended inside the immediately preceding checklist
+activity body using `RESOURCE_NAME: RESOURCE_DESCRIPTION`, with the resource
+name linked to the document file. Unsupported providers and unresolved
+required audio or resource files must fail with source context.
 
 ## Course migration decisions
 

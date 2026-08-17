@@ -180,7 +180,8 @@ Spot-check at least three activities at `/admin/lms/activity`. Confirm that:
 - the checklist body contains the expected source text;
 - list items retain their source order;
 - resource documents following a checklist appear as links in that checklist
-  body;
+  body using the resource name as the link text followed by the resource
+  description;
 - the checklist body text format is `filtered_html`;
 - there is no literal `Array` value;
 - paragraph markup is not wrapped in invalid `<strong><p>…</p></strong>`

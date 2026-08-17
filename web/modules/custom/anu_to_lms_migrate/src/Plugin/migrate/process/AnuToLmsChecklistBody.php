@@ -97,7 +97,7 @@ final class AnuToLmsChecklistBody extends ProcessPluginBase {
         . '</a>';
       $description = trim((string) ($resource['description'] ?? ''));
       if ($description !== '') {
-        $line .= '<div>' . Html::escape($description) . '</div>';
+        $line .= ': ' . Html::escape($description);
       }
       $items[] = '<li class="anu-checklist-resource">' . $line . '</li>';
     }

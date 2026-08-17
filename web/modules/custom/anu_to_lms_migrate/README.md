@@ -25,7 +25,8 @@ The first executable slice migrates every current `lesson_checklist` paragraph
 to an LMS `checklist` activity backed by the LMS 1.1.18 `no_answer`
 plugin. Text, approved YouTube/Vimeo, and audio blocks become reusable
 `content`, `video`, and `audio` display activities. Resource document blocks
-are appended as links inside the immediately preceding checklist activity body.
+are appended inside the immediately preceding checklist activity body as
+linked resource names followed by their descriptions.
 Heading blocks are used as names/titles for the immediately following
 supported activity and are not migrated as standalone activities. It then
 migrates every `module_lesson` containing supported content to an `lms_lesson`,
