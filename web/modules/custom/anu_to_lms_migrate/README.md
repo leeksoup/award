@@ -36,13 +36,15 @@ preserving page/block order. Other lesson block types are intentionally not
 included yet.
 
 The next runnable assessment slice converts single- and multiple-choice
-questions to LMS `select` activities and each supported `module_assessment` to
-an LMS lesson. Short/long answer, scale, and Likert questions remain deferred.
+questions to LMS `select` activities, short/long-answer questions to LMS
+`free_text` activities, and each supported `module_assessment` to an LMS
+lesson. Scale and Likert questions remain deferred.
 Existing installations must enable `lms_answer_plugins` before running database
 updates for this slice.
 Question discovery follows the current `field_module_assessment_items`
-references on `module_assessment` nodes, so it works with revisioned paragraph
-references and excludes orphaned question wrappers.
+references on `module_assessment` nodes and the ordered
+`field_lesson_section_content` references on lesson sections, so it works with
+revisioned paragraph references and excludes orphaned question wrappers.
 
 Target LMS configuration uses reusable names (`checklist` and
 `field_checklist_body`) so authors can create new LMS-native checklist
@@ -60,8 +62,8 @@ drush updb -y
 drush cr
 drush migrate:import anu_to_lms_paragraph_lesson_checklists -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections -y
-drush migrate:import anu_to_lms_node_module_lessons -y
 drush migrate:import anu_to_lms_paragraph_assessment_questions -y
+drush migrate:import anu_to_lms_node_module_lessons -y
 drush migrate:import anu_to_lms_node_module_assessments -y
 drush migrate:import anu_to_lms_node_courses -y
 ```
@@ -73,6 +75,7 @@ migrations with `--update` after `drush updb -y` and `drush cr`:
 ```bash
 drush migrate:import anu_to_lms_paragraph_lesson_checklists --update -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections --update -y
+drush migrate:import anu_to_lms_paragraph_assessment_questions --update -y
 drush migrate:import anu_to_lms_node_module_lessons --update -y
 ```
 

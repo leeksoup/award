@@ -304,3 +304,14 @@ function anu_to_lms_migrate_update_10012(): void {
 
   \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
 }
+
+/**
+ * Installs free-text question config and refreshes question discovery.
+ */
+function anu_to_lms_migrate_update_10013(): void {
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}

@@ -16,10 +16,10 @@ also covers the media/resource lesson-content slice:
    currently unsupported image blocks are ignored for heading adjacency.
 
 This is a staging/verification procedure, not a production cutover runbook.
-Images, short/long-answer questions, scale/Likert questions, and complete
-learning paths are not runnable yet. Single/multiple choice assessments are
-available as a staging slice. Treat all new activity types as requiring staging
-validation before production use.
+Images, scale/Likert questions, and complete learning paths are not runnable
+yet. Single/multiple-choice and short/long-answer questions are available as a
+staging slice. Treat all new activity types as requiring staging validation
+before production use.
 
 The source and destination are in the same active Drupal database. Always take
 a restorable backup before running database updates or migrations.
@@ -342,13 +342,14 @@ source database from a source-discovery problem:
 
 ```bash
 drush php:eval 'echo "module_assessment: ", \Drupal::entityQuery("node")->accessCheck(FALSE)->condition("type", "module_assessment")->count()->execute(), PHP_EOL;'
-drush php:eval 'echo "single choice wrappers: ", \Drupal::entityQuery("paragraph")->accessCheck(FALSE)->condition("type", "question_single_choice")->count()->execute(), PHP_EOL; echo "multiple choice wrappers: ", \Drupal::entityQuery("paragraph")->accessCheck(FALSE)->condition("type", "question_multi_choice")->count()->execute(), PHP_EOL;'
+drush php:eval 'foreach (["question_single_choice", "question_multi_choice", "question_short_answer", "question_long_answer"] as $type) { echo $type, ": ", \Drupal::entityQuery("paragraph")->accessCheck(FALSE)->condition("type", $type)->count()->execute(), PHP_EOL; }'
 ```
 
 The question source follows the current `field_module_assessment_items`
-references from assessment nodes rather than relying on paragraph parent
-metadata. Consequently, orphaned question paragraphs are intentionally not
-migrated.
+references from assessment nodes and the ordered `field_lesson_section_content`
+references from lesson sections rather than relying on paragraph parent
+metadata alone. Consequently, orphaned question paragraphs are intentionally
+not migrated.
 
 ```bash
 drush en lms_answer_plugins -y
@@ -358,22 +359,27 @@ drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 drush migrate:status anu_to_lms_paragraph_assessment_questions
 drush migrate:status anu_to_lms_node_module_assessments
 drush migrate:import anu_to_lms_paragraph_assessment_questions -y
+drush migrate:import anu_to_lms_node_module_lessons --update -y
 drush migrate:import anu_to_lms_node_module_assessments -y
 ```
 
-The slice supports only `question_single_choice` and
-`question_multi_choice`. It preserves option order and correctness flags.
-Assessment text and heading blocks are resolved through the section-activity
-migration. Do not treat an assessment containing deferred question bundles as
-complete; inventory those bundles before UAT.
+The slice supports `question_single_choice`, `question_multi_choice`,
+`question_short_answer`, and `question_long_answer`. Choice questions preserve
+option order and correctness flags. Short/long-answer questions become
+manually evaluated `free_text` activities. Assessment text and heading blocks
+are resolved through the section-activity migration. Do not treat an assessment
+containing scale or Likert question bundles as complete; inventory those
+bundles before UAT.
 
-Spot-check both activity bundles at `/admin/lms/activity` and assessment lessons
-at `/admin/lms/lesson`. Confirm radio buttons for single choice, checkboxes for
-multiple choice, correct option order, scoring behavior, and assessment item
-order. Roll back assessment lessons before question activities:
+Spot-check all imported question activity bundles at `/admin/lms/activity` and
+assessment lessons at `/admin/lms/lesson`. Confirm radio buttons for single
+choice, checkboxes for multiple choice, text entry for free-text questions,
+correct option order, scoring/manual-evaluation behavior, and assessment item
+order. Roll back dependent lessons before question activities:
 
 ```bash
 drush migrate:rollback anu_to_lms_node_module_assessments -y
+drush migrate:rollback anu_to_lms_node_module_lessons -y
 drush migrate:rollback anu_to_lms_paragraph_assessment_questions -y
 ```
 

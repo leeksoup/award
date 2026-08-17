@@ -34,6 +34,7 @@ process:
         migration:
           - anu_to_lms_paragraph_lesson_checklists
           - anu_to_lms_paragraph_lesson_sections
+          - anu_to_lms_paragraph_assessment_questions
         source: paragraph_id
         no_stub: true
       data/max_score:
@@ -47,3 +48,4 @@ migration_dependencies:
   required:
     - anu_to_lms_paragraph_lesson_checklists
     - anu_to_lms_paragraph_lesson_sections
+    - anu_to_lms_paragraph_assessment_questions

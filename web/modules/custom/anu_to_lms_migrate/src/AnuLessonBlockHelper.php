@@ -19,6 +19,10 @@ final class AnuLessonBlockHelper {
     'lesson_embedded_video',
     'lesson_audio',
     'lesson_checklist',
+    'question_single_choice',
+    'question_multi_choice',
+    'question_short_answer',
+    'question_long_answer',
   ];
 
   /**
@@ -28,6 +32,8 @@ final class AnuLessonBlockHelper {
     'lesson_text',
     'question_single_choice',
     'question_multi_choice',
+    'question_short_answer',
+    'question_long_answer',
   ];
 
   /**

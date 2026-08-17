@@ -19,8 +19,8 @@ real-database procedure remains authoritative for execution and rollback:
   target bodies were audited successfully after fixing the literal `Array`
   value problem.
 - 39 `module_lesson` nodes were migrated to LMS lessons.
-- The source database contains no assessments to migrate. Assessment support
-  exists for later content but zero rows is currently expected.
+- The source database contains no standalone assessment nodes to migrate, but
+  lesson-embedded question paragraphs may produce question activity rows.
 - There are 3 courses containing 39 distinct ordered lesson references:
   - course 870: 11 lessons
   - course 896: 15 lessons
@@ -35,8 +35,8 @@ Do not put redacted course or lesson titles into committed documentation.
 ```text
 anu_to_lms_paragraph_lesson_checklists
 anu_to_lms_paragraph_lesson_sections
+anu_to_lms_paragraph_assessment_questions
 anu_to_lms_node_module_lessons
-anu_to_lms_paragraph_assessment_questions   (currently zero source rows)
 anu_to_lms_node_module_assessments          (currently zero source rows)
 anu_to_lms_node_courses
 ```
@@ -52,6 +52,9 @@ Anu resource documents are appended inside the immediately preceding checklist
 activity body using `RESOURCE_NAME: RESOURCE_DESCRIPTION`, with the resource
 name linked to the document file. Unsupported providers and unresolved
 required audio or resource files must fail with source context.
+Question activity migration supports single/multiple-choice wrappers as LMS
+`select` activities and short/long-answer wrappers as manually evaluated LMS
+`free_text` activities. Scale and Likert questions remain deferred.
 
 ## Course migration decisions
 

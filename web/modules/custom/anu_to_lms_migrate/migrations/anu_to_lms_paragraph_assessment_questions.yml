@@ -1,5 +1,5 @@
 id: anu_to_lms_paragraph_assessment_questions
-label: 'Anu LMS single/multiple choice questions to LMS activities'
+label: 'Anu LMS assessment questions to LMS activities'
 migration_group: anu_to_lms
 migration_tags: [assessment, activity]
 
@@ -15,8 +15,18 @@ process:
   uid:
     plugin: default_value
     default_value: 1
-  question: question
-  answers: answers
+  question:
+    plugin: skip_on_empty
+    method: process
+    source: question
+  questions:
+    plugin: skip_on_empty
+    method: process
+    source: questions
+  answers:
+    plugin: skip_on_empty
+    method: process
+    source: answers
 
 destination:
   plugin: 'entity:lms_activity'
