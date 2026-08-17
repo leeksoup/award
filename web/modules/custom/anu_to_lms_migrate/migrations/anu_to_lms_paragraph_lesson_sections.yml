@@ -1,37 +1,42 @@
 id: anu_to_lms_paragraph_lesson_sections
-label: 'Anu LMS lesson sections to LMS section staging'
+label: 'Anu LMS supported lesson section blocks to LMS activities'
 migration_group: anu_to_lms
 migration_tags:
   - achievements_learning
   - paragraph
   - section
+  - activity
 
 source:
-  # TODO: Replace with your source plugin once implementation starts.
-  plugin: embedded_data
-  data_rows: []
-  ids:
-    paragraph_id:
-      type: integer
+  plugin: anu_lesson_section_activity
 
 process:
-  paragraph_id: paragraph_id
-  section_title: title
-  section_sequence_weight: delta
-  section_content_blocks:
-    plugin: anu_to_lms_sort_by_delta
-    source: field_lesson_section_content
-  section_checklist_activity_ids:
-    plugin: migration_lookup
-    migration:
-      - anu_to_lms_paragraph_lesson_checklists
-    source: field_lesson_checklist_ids
-    no_stub: true
+  type: activity_type
+  name: name
+  status:
+    plugin: default_value
+    default_value: 1
+  uid:
+    plugin: default_value
+    default_value: 1
+  field_content_body:
+    plugin: skip_on_empty
+    method: process
+    source: body
+  field_video_url/uri:
+    plugin: skip_on_empty
+    method: process
+    source: video_url
+  field_audio_name:
+    plugin: skip_on_empty
+    method: process
+    source: audio_name
+  field_audio_file/target_id:
+    plugin: skip_on_empty
+    method: process
+    source: audio_file_id
 
 destination:
-  # TODO: Swap to final destination plugin/entity once schema is finalized.
-  plugin: null
+  plugin: 'entity:lms_activity'
 
-migration_dependencies:
-  required:
-    - anu_to_lms_paragraph_lesson_checklists
+migration_dependencies: { }

@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config: [field.field.lms_activity.content.field_content_body, lms.lms_activity_type.content]
+  module: [text]
+id: lms_activity.content.default
+targetEntityType: lms_activity
+bundle: content
+mode: default
+content:
+  field_content_body:
+    type: text_default
+    label: hidden
+    settings: { }
+    third_party_settings: { }
+    weight: 0
+    region: content
+hidden: { }

@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  module: [lms_answer_plugins]
+id: multiple_choice
+name: 'Multiple choice'
+description: 'A question with one or more correct selectable answers.'
+pluginId: select
+pluginConfiguration:
+  selection_type: multiple
+defaultMaxScore: 1

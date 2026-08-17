@@ -92,16 +92,15 @@ Use Quiz module later only if needed for features like:
 | course | `field_course_linear_progress` | Boolean | LMS Course settings | linear/sequential | Copy boolean | P0 |
 | course | `field_course_finish_button` | Link | LMS Course settings | finish CTA/redirect | Map URL/title where supported; fallback metadata | P2 |
 | course | `field_weight` | Weight | LMS listing/order | sort weight | Copy integer | P2 |
-| course | `field_course_module` | ERR (`course_modules`) | LMS Course structure | module/lesson sequence | Expand paragraph refs by delta order | P0 |
+| course | `field_course_module` | ERR (`course_modules`) | LMS Course | `lessons` | Traverse modules and flatten their lesson refs in module/lesson delta order | P0 |
 
 ## B. Course module paragraph (`paragraph.course_modules`) mapping
 
 | Source entity | Source field | Source type | Target entity | Target field/plugin | Transform rule | Priority |
 |---|---|---|---|---|---|---|
-| course_modules | parent course | Paragraph parent | LMS Course sequence | section/module grouping | Create sequence container per paragraph | P0 |
-| course_modules | `field_module_lessons` | Node refs (`module_lesson`) | LMS Course sequence | lesson entries | Resolve lesson map; attach in source order | P0 |
-| course_modules | `field_module_assessment` (optional) | Node ref (`module_assessment`) | LMS Course sequence | assessment entry | Attach at configured position (typically after lesson group) | P1 |
-| course_modules | paragraph delta | implicit | LMS Course sequence | module order | Preserve exact order | P0 |
+| course_modules | parent course | Paragraph parent | No destination entity | traversal context | Do not preserve module titles or boundaries in v1 | P0 |
+| course_modules | `field_module_lessons` | Node refs (`module_lesson`) | LMS Course | `lessons` entries | Resolve lesson migration map and append in source order | P0 |
+| course_modules | paragraph delta | implicit | LMS Course | `lessons` order | Preserve module order while flattening lesson references | P0 |
 
 ## C. Lesson (`node.module_lesson`) mapping
 
@@ -130,8 +129,8 @@ Use Quiz module later only if needed for features like:
 | `lesson_text` | rich text | content block | Copy formatted text safely | P0 |
 | `lesson_heading` | heading | heading block | Map heading text/level | P1 |
 | `lesson_image`, `lesson_image_wide`, `lesson_image_thumbnail` | image blocks | image/media block | Copy media + caption/alt | P1 |
-| `lesson_embedded_video` | video embed | embed/video block | Normalize provider URL/embed | P1 |
-| `lesson_audio` | audio block | audio/media block | Copy audio file refs | P2 |
+| `lesson_embedded_video` | YouTube/Vimeo URL | dedicated `video` `no_answer` activity | Normalize and validate `field_lesson_embedded_video_url.uri`; render through a provider-safe embed formatter | P0 |
+| `lesson_audio` | named audio file | dedicated `audio` `no_answer` activity | Preserve `field_audio_name`; resolve `field_audio_file` through the file migration; render with an accessible audio player | P0 |
 | `lesson_divider` | visual divider | divider block | Simple structural map | P3 |
 | `lesson_footnotes` | footnotes | text block | Flatten if no native footnote type | P3 |
 | `lesson_highlight`, `lesson_highlight_marker` | callout/highlight | callout block | Preserve style intent where possible | P2 |
@@ -211,10 +210,11 @@ Use Quiz module later only if needed for features like:
 ## Milestone status
 
 - ✅ Milestone 2 (**Migration scaffold complete**) marked complete on April 11, 2026 after adding scaffold migrations through course-sequence assembly (`anu_to_lms_course_structure`).
-- ✅ Milestone 3 (**Lesson content pipeline complete**) marked complete on April 11, 2026 after implementing ordered checklist-body transforms, ordered section mapping, and lesson-to-section migration lookups.
-- ✅ Milestone 4 (**Assessment pipeline complete**) marked complete on April 26, 2026 after implementing ordered assessment mapping, explicit fallback-bundle capture, and normalized scoring semantics transforms.
-- ✅ Milestone 5 (**Course structure pipeline complete**) marked complete on April 28, 2026 with ordered module/course lookups, learning-path payload assembly, and sequence-parity reporting transforms.
-- 🚧 Milestone 6 (**Achievements/semantics parity complete**) started on May 9, 2026 with a dedicated semantics parity audit migration and milestone-parity transform plugin.
+- 🚧 Milestone 3 (**Lesson content pipeline**) is in progress. The checklist-to-activity slice has been imported and validated; lesson sections, embedded video, audio, and remaining content blocks are not runnable yet.
+- 🚧 Milestone 4 (**Assessment pipeline**) has a runnable single/multiple-choice slice awaiting staging validation; remaining question bundles are deferred.
+- ⏳ Milestone 5 (**Course structure pipeline**) has a runnable flattened
+  course-to-lessons migration and awaits real-database validation.
+- ⏳ Milestone 6 (**Achievements/semantics parity**) has audit scaffolding only and resumes after the core content path is runnable.
 
 ## Phase 0 — Discovery freeze (1–2 days)
 1. Export source field config and sample content snapshots.
@@ -234,10 +234,11 @@ Deliverable: frozen field map + migration acceptance criteria.
 Deliverable: runnable migration skeleton.
 
 ## Phase 2 — Core content migration (3–6 days)
-1. Migrate `module_lesson` and section/block trees.
-2. Implement checklist→`no_answer` transform.
-3. Migrate `module_assessment` to LMS activity plugins.
-4. Migrate `course` and sequence structure from `course_modules`.
+1. Complete the `module_lesson` and ordered section/block pipeline.
+2. Implement the media-first lesson slice: embedded video and audio, alongside text, headings, and the completed checklist→`no_answer` transform.
+3. Validate video provider URLs, audio file resolution, accessibility, and playback before expanding lower-priority block types.
+4. Migrate `module_assessment` to LMS activity plugins.
+5. Migrate `course` and sequence structure from `course_modules`.
 
 Deliverable: all 3 courses render and sequence correctly in Drupal LMS.
 
@@ -295,6 +296,9 @@ Deliverable: production-ready migration package.
 |---|---|---|
 | LMS plugin mismatch for certain question types | medium | define fallback plugin or custom plugin extension path |
 | Checklist flattening loses per-item interaction detail | low/medium | accepted in v1; document behavior change |
+| Video provider URL drift or unsupported hosts | high | validate and normalize YouTube/Vimeo URLs; report unsupported URLs without emitting raw embed HTML |
+| Missing/private audio files | high | make file lookup required, verify URI access, and report unresolved source file IDs before lesson publication |
+| Media playback accessibility regressions | high | require player controls, titles/transcripts where available, keyboard operation, and representative browser/device UAT |
 | Hidden content edge cases in paragraph trees | medium | add discovery fixtures from real content before final run |
 | Commerce enrollment complexity | high | treat as dedicated stream with clear event contract |
 | Achievement trigger drift after LMS swap | medium | add parity test matrix before go-live |
@@ -303,6 +307,9 @@ Deliverable: production-ready migration package.
 
 ## Decision log (current)
 - checklists should be implemented as LMS `no_answer` activities in v1
+- embedded video and audio are P0 lesson content and must ship in the next runnable slice
+- use dedicated display-oriented `no_answer` activity bundles for video/audio unless LMS gains a suitable native media activity type
+- accept only normalized provider URLs for embeds; do not migrate arbitrary iframe markup
 - LMS Activity plugins are preferred over Quiz module for current scope
 - historical progress migration is intentionally excluded
 - achievements behavior should remain consistent with current `achievements_learning` product plan
@@ -310,7 +317,8 @@ Deliverable: production-ready migration package.
 ---
 
 ## Next actions
-1. Approve this plan as v1 migration baseline.
-2. Create migration module scaffold and seed migration group files.
-3. Implement lesson/section/checklist transform first (highest value path).
-4. Run first staging dry-run on one course and iterate.
+1. Inventory real `lesson_embedded_video` providers and `lesson_audio` file extensions, missing files, and access schemes.
+2. Add `video` and `audio` display activity bundles and their URL/file/name fields and view displays.
+3. Replace the lesson-section placeholder with a source that emits text, heading, checklist, video, and audio blocks in exact source order.
+4. Expand the lesson migration beyond checklist-bearing lessons and resolve every emitted activity in page/block order.
+5. Dry-run one video-heavy course and require successful video/audio playback before implementing assessments.

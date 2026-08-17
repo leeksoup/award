@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  module: [lms_answer_plugins]
+id: single_choice
+name: 'Single choice'
+description: 'A question with one correct selectable answer.'
+pluginId: select
+pluginConfiguration:
+  selection_type: single
+defaultMaxScore: 1
