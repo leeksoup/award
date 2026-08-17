@@ -1,5 +1,8 @@
 # Anu to LMS migration module
 
+The backed-up staging/real-database procedure is documented in
+[`docs/anu_to_lms_real_database_runbook.md`](../../../../docs/anu_to_lms_real_database_runbook.md).
+
 This slice targets the vendored Drupal LMS **1.1.18** API. In particular, it
 uses the `lms_activity` and `lms_lesson` entity destinations, the
 `no_answer` activity plugin, and the lesson `activities` LMS reference field.
