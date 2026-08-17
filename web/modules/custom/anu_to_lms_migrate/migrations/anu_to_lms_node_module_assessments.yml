@@ -1,46 +1,42 @@
 id: anu_to_lms_node_module_assessments
-label: 'Anu LMS module assessments to LMS activity-set staging'
+label: 'Anu LMS module assessments to LMS lessons'
 migration_group: anu_to_lms
-migration_tags:
-  - achievements_learning
-  - node
-  - assessment
-  - activity
+migration_tags: [assessment, lesson]
 
 source:
-  # TODO: Replace with your source plugin once implementation starts.
-  plugin: embedded_data
-  data_rows: []
-  ids:
-    nid:
-      type: integer
+  plugin: anu_assessment_lesson
 
 process:
-  nid: nid
-  title: title
-  status:
+  lms_lesson_type:
     plugin: default_value
-    default_value: 1
-  assessment_items_ordered:
-    plugin: anu_to_lms_sort_by_delta
-    source: field_module_assessment_items_payload
-  assessment_items:
-    plugin: anu_to_lms_map_assessment_items
-    source: "@assessment_items_ordered"
-    fallback_plugin: custom_or_nearest
-  assessment_fallback_bundles:
-    plugin: anu_to_lms_fallback_bundles
-    source: "@assessment_items"
-    fallback_plugin: custom_or_nearest
-  assessment_scoring:
-    plugin: anu_to_lms_assessment_scoring
-    source: field_assessment_scoring
+    default_value: lesson
+  name: title
+  status: status
+  uid: uid
+  created: created
+  changed: changed
+  backwards_navigation:
+    plugin: default_value
+    default_value: true
+  activities:
+    plugin: sub_process
+    source: activities
+    process:
+      target_id:
+        plugin: migration_lookup
+        migration:
+          - anu_to_lms_paragraph_assessment_questions
+          - anu_to_lms_paragraph_lesson_sections
+        source: paragraph_id
+        no_stub: true
+      data/max_score:
+        plugin: default_value
+        default_value: 1
 
 destination:
-  # TODO: Swap to final destination plugin/entity once schema is finalized.
-  plugin: null
+  plugin: 'entity:lms_lesson'
 
 migration_dependencies:
   required:
-    - anu_to_lms_media_files
-    - anu_to_lms_taxonomy
+    - anu_to_lms_paragraph_assessment_questions
+    - anu_to_lms_paragraph_lesson_sections

@@ -1,0 +1,174 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the Anu to LMS migration module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_install().
+ */
+function anu_to_lms_migrate_install(): void {
+  _anu_to_lms_migrate_configure_courses_admin_view();
+}
+
+/**
+ * Installs configuration required by the first checklist migration slice.
+ */
+function anu_to_lms_migrate_update_10001(): void {
+  // config/install is applied automatically on a fresh installation. Existing
+  // scaffold installations need the newly added activity bundle and fields.
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+}
+
+/**
+ * Clears placeholder migration definitions cached before the runnable slice.
+ */
+function anu_to_lms_migrate_update_10002(): void {
+  // The scaffold used an empty embedded_data source and a YAML null
+  // destination. Migration plugin definitions are cached, so sites that had
+  // already discovered the scaffold can otherwise continue to report zero
+  // rows and fail with a blank destination plugin after deploying the slice.
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
+ * Renames Anu-specific target configuration for ongoing LMS authoring.
+ */
+function anu_to_lms_migrate_update_10003(): void {
+  $config_installer = \Drupal::service('config.installer');
+  $config_installer->installDefaultConfig('module', 'anu_to_lms_migrate');
+
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $activity_storage = $entity_type_manager->getStorage('lms_activity');
+  $activity_ids = $activity_storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'anu_checklist')
+    ->execute();
+
+  $bodies = [];
+  foreach ($activity_ids as $activity_id) {
+    $activity = $activity_storage->load($activity_id);
+    $bodies[$activity_id] = $activity->hasField('field_anu_checklist_body')
+      ? $activity->get('field_anu_checklist_body')->getValue()
+      : [];
+  }
+
+  // Drupal deliberately prevents changing the bundle of an existing content
+  // entity through Entity::save(). Update the bundle columns together before
+  // reloading the entities under their new field definitions. IDs and lesson
+  // references remain unchanged.
+  $database = \Drupal::database();
+  $schema = $database->schema();
+  foreach ([
+    'lms_activity',
+    'lms_activity_field_data',
+    'lms_activity_revision',
+    'lms_activity_field_revision',
+  ] as $table) {
+    if ($schema->tableExists($table) && $schema->fieldExists($table, 'type')) {
+      $database->update($table)
+        ->fields(['type' => 'checklist'])
+        ->condition('type', 'anu_checklist')
+        ->execute();
+    }
+  }
+
+  $activity_storage->resetCache($activity_ids);
+
+  foreach ($bodies as $activity_id => $body) {
+    $activity = $activity_storage->load($activity_id);
+    $activity->set('field_checklist_body', $body);
+    $activity->save();
+  }
+
+  $old_display = $entity_type_manager->getStorage('entity_view_display')
+    ->load('lms_activity.anu_checklist.default');
+  $old_display?->delete();
+
+  $old_field = $entity_type_manager->getStorage('field_config')
+    ->load('lms_activity.anu_checklist.field_anu_checklist_body');
+  $old_field?->delete();
+
+  $old_storage = $entity_type_manager->getStorage('field_storage_config')
+    ->load('lms_activity.field_anu_checklist_body');
+  $old_storage?->delete();
+
+  $old_bundle = $entity_type_manager->getStorage('lms_activity_type')
+    ->load('anu_checklist');
+  $old_bundle?->delete();
+
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
+ * Installs reusable content, video, and audio activity configuration.
+ */
+function anu_to_lms_migrate_update_10004(): void {
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
+ * Installs LMS single/multiple choice assessment activity configuration.
+ */
+function anu_to_lms_migrate_update_10005(): void {
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
+ * Clears cached definitions for the runnable course migration slice.
+ */
+function anu_to_lms_migrate_update_10006(): void {
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
+ * Installs the LMS administrative course View when it is missing.
+ */
+function anu_to_lms_migrate_update_10007(): void {
+  if (\Drupal::configFactory()->get('views.view.courses_admin')->isNew()) {
+    // Some existing sites enabled LMS before the courses_admin default View
+    // was available. Re-running default config installation only creates
+    // missing configuration and leaves customized active configuration intact.
+    \Drupal::service('config.installer')->installDefaultConfig('module', 'lms');
+  }
+}
+
+/**
+ * Makes the LMS administrative course View show every course.
+ */
+function anu_to_lms_migrate_update_10008(): void {
+  _anu_to_lms_migrate_configure_courses_admin_view();
+}
+
+/**
+ * Disables entity-access query rewriting on the protected admin listing.
+ */
+function _anu_to_lms_migrate_configure_courses_admin_view(): void {
+  $view = \Drupal::configFactory()->getEditable('views.view.courses_admin');
+  if ($view->isNew()) {
+    return;
+  }
+
+  // The LMS View already requires `create lms_course group`, but its default
+  // query still applies Group entity-access rewriting. That hides courses from
+  // administrators who did not create or join them, including courses whose
+  // original Anu author was preserved by the migration.
+  $view->set(
+    'display.default.display_options.query.options.disable_sql_rewrite',
+    TRUE,
+  )->save();
+}
