@@ -7,6 +7,8 @@
 
 declare(strict_types=1);
 
+use Drupal\group\Entity\GroupInterface;
+
 /**
  * Implements hook_install().
  */
@@ -173,3 +175,48 @@ function _anu_to_lms_migrate_configure_courses_admin_view(): void {
   )->save();
 }
 
+
+/**
+ * Adds missing owner memberships and restores Group filtering to the View.
+ */
+function anu_to_lms_migrate_update_10009(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('group');
+  $ids = $storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'lms_course')
+    ->execute();
+
+  foreach ($storage->loadMultiple($ids) as $course) {
+    _anu_to_lms_migrate_ensure_course_owner_membership($course);
+  }
+
+  $view = \Drupal::configFactory()->getEditable('views.view.courses_admin');
+  if (!$view->isNew()) {
+    // Owner memberships make the courses visible through normal Group query
+    // access. Restore access rewriting so the listing does not disclose rows
+    // that the current account cannot view.
+    $view->set(
+      'display.default.display_options.query.options.disable_sql_rewrite',
+      FALSE,
+    )->save();
+  }
+}
+
+/**
+ * Ensures a course owner also has the creator membership Group expects.
+ */
+function _anu_to_lms_migrate_ensure_course_owner_membership(
+  GroupInterface $course,
+): void {
+  if ($course->bundle() !== 'lms_course') {
+    return;
+  }
+
+  $owner = $course->getOwner();
+  if ($owner !== NULL && !$course->getMember($owner)) {
+    $course->addMember($owner);
+    // Entity migration bypasses Group's course creation form, which normally
+    // creates this membership when creator_membership is enabled.
+    $group->addMember($owner);
+  }
+}

@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * Runtime hooks for the Anu to LMS migration module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\group\Entity\GroupInterface;
+
+/**
+ * Implements hook_group_insert().
+ */
+function anu_to_lms_migrate_group_insert(GroupInterface $group): void {
+  if ($group->bundle() !== 'lms_course') {
+    return;
+  }
+
+  $owner = $group->getOwner();
+  if ($owner !== NULL && !$group->getMember($owner)) {
+    // Entity migration bypasses Group's course creation form, which normally
+    // creates this membership when creator_membership is enabled.
+    $group->addMember($owner);
+  }
+}
