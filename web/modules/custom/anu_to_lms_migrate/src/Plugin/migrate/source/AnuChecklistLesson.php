@@ -7,9 +7,7 @@ namespace Drupal\anu_to_lms_migrate\Plugin\migrate\source;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
 
 /**
- * Reads Anu lessons and their checklists in page/content order.
- *
- * Lessons without a checklist are deliberately excluded from this first slice.
+ * Reads Anu lessons and supported activities in page/content order.
  *
  * @MigrateSource(
  *   id = "anu_checklist_lesson"
@@ -25,7 +23,7 @@ final class AnuChecklistLesson extends SourcePluginBase {
       'nid' => $this->t('Source lesson node ID'),
       'title' => $this->t('Lesson title'),
       'description' => $this->t('Lesson description'),
-      'checklists' => $this->t('Ordered checklist paragraph IDs'),
+      'activities' => $this->t('Ordered supported activity paragraph IDs'),
       'status' => $this->t('Published status'),
       'uid' => $this->t('Author ID'),
       'created' => $this->t('Created timestamp'),
@@ -44,7 +42,7 @@ final class AnuChecklistLesson extends SourcePluginBase {
    * {@inheritdoc}
    */
   public function __toString(): string {
-    return 'Anu LMS module_lesson nodes containing checklists';
+    return 'Anu LMS module_lesson nodes containing supported activities';
   }
 
   /**
@@ -59,22 +57,28 @@ final class AnuChecklistLesson extends SourcePluginBase {
       ->execute();
 
     foreach ($storage->loadMultiple($ids) as $lesson) {
-      $checklists = [];
+      $activities = [];
       if ($lesson->hasField('field_module_lesson_content')) {
         foreach ($lesson->get('field_module_lesson_content')->referencedEntities() as $section) {
           if (!$section->hasField('field_lesson_section_content')) {
             continue;
           }
           foreach ($section->get('field_lesson_section_content')->referencedEntities() as $block) {
-            if ($block->bundle() !== 'lesson_checklist') {
+            if (!in_array($block->bundle(), [
+              'lesson_text',
+              'lesson_heading',
+              'lesson_embedded_video',
+              'lesson_audio',
+              'lesson_checklist',
+            ], TRUE)) {
               continue;
             }
-            $checklists[] = ['paragraph_id' => (int) $block->id()];
+            $activities[] = ['paragraph_id' => (int) $block->id()];
           }
         }
       }
 
-      if ($checklists === []) {
+      if ($activities === []) {
         continue;
       }
 
@@ -82,7 +86,7 @@ final class AnuChecklistLesson extends SourcePluginBase {
         'nid' => (int) $lesson->id(),
         'title' => (string) $lesson->label(),
         'description' => '',
-        'checklists' => $checklists,
+        'activities' => $activities,
         'status' => (int) $lesson->isPublished(),
         'uid' => (int) ($lesson->getOwnerId() ?: 1),
         'created' => (int) $lesson->getCreatedTime(),

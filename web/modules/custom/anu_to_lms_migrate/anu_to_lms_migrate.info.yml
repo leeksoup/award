@@ -10,6 +10,7 @@ dependencies:
   - drupal:taxonomy
   - drupal:text
   - drupal:file
+  - drupal:link
   - drupal:node
   - paragraphs:paragraphs
   - lms:lms

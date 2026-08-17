@@ -1,0 +1,141 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\anu_to_lms_migrate\Plugin\migrate\source;
+
+use Drupal\Component\Utility\Html;
+use Drupal\anu_to_lms_migrate\VideoUrlNormalizer;
+use Drupal\migrate\MigrateException;
+use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
+
+/**
+ * Reads supported non-checklist blocks from Anu lesson sections.
+ *
+ * @MigrateSource(
+ *   id = "anu_lesson_section_activity"
+ * )
+ */
+final class AnuLessonSectionActivity extends SourcePluginBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function fields(): array {
+    return [
+      'paragraph_id' => $this->t('Source block paragraph ID'),
+      'activity_type' => $this->t('Target LMS activity bundle'),
+      'name' => $this->t('Activity name'),
+      'body' => $this->t('Formatted content body'),
+      'video_url' => $this->t('Normalized video embed URL'),
+      'audio_name' => $this->t('Accessible audio name'),
+      'audio_file_id' => $this->t('Existing audio file ID'),
+    ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getIds(): array {
+    return ['paragraph_id' => ['type' => 'integer']];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __toString(): string {
+    return 'Supported Anu lesson section content blocks';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function initializeIterator(): \Iterator {
+    $storage = \Drupal::entityTypeManager()->getStorage('paragraph');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', [
+        'lesson_text',
+        'lesson_heading',
+        'lesson_embedded_video',
+        'lesson_audio',
+      ], 'IN')
+      ->condition('parent_type', 'paragraph')
+      ->condition('parent_field_name', 'field_lesson_section_content')
+      ->sort('id')
+      ->execute();
+
+    foreach ($storage->loadMultiple($ids) as $block) {
+      $row = [
+        'paragraph_id' => (int) $block->id(),
+        'activity_type' => 'content',
+        'name' => 'Content ' . $block->id(),
+        'body' => [],
+        'video_url' => NULL,
+        'audio_name' => NULL,
+        'audio_file_id' => NULL,
+      ];
+
+      switch ($block->bundle()) {
+        case 'lesson_text':
+          $item = $block->get('field_lesson_text_content')->first();
+          if ($item === NULL || trim((string) $item->value) === '') {
+            continue 2;
+          }
+          $row['name'] = mb_strimwidth(trim(strip_tags((string) $item->value)), 0, 220, '…');
+          $row['body'] = [[
+            'value' => (string) $item->value,
+            'format' => (string) ($item->format ?: 'minimal_html'),
+          ]];
+          break;
+
+        case 'lesson_heading':
+          $heading = trim((string) $block->get('field_lesson_heading_value')->value);
+          if ($heading === '') {
+            continue 2;
+          }
+          $size = (string) $block->get('field_lesson_heading_size')->value;
+          $tag = in_array($size, ['h2', 'h3', 'h4', 'h5', 'h6'], TRUE) ? $size : 'h2';
+          $row['name'] = $heading;
+          $row['body'] = [[
+            'value' => '<' . $tag . '>' . Html::escape($heading) . '</' . $tag . '>',
+            'format' => 'minimal_html',
+          ]];
+          break;
+
+        case 'lesson_embedded_video':
+          $source_url = (string) $block->get('field_lesson_embedded_video_url')->uri;
+          $embed_url = VideoUrlNormalizer::normalize($source_url);
+          if ($embed_url === NULL) {
+            throw new MigrateException(sprintf(
+              'Unsupported video URL in paragraph %s: %s',
+              $block->id(),
+              $source_url,
+            ));
+          }
+          $row['activity_type'] = 'video';
+          $row['name'] = 'Video ' . $block->id();
+          $row['video_url'] = $embed_url;
+          break;
+
+        case 'lesson_audio':
+          $file_id = $block->get('field_audio_file')->target_id;
+          if (!$file_id || !\Drupal::entityTypeManager()->getStorage('file')->load($file_id)) {
+            throw new MigrateException(sprintf(
+              'Missing audio file in paragraph %s.',
+              $block->id(),
+            ));
+          }
+          $audio_name = trim((string) $block->get('field_audio_name')->value);
+          $row['activity_type'] = 'audio';
+          $row['name'] = $audio_name !== '' ? $audio_name : 'Audio ' . $block->id();
+          $row['audio_name'] = $row['name'];
+          $row['audio_file_id'] = (int) $file_id;
+          break;
+      }
+
+      yield $row;
+    }
+  }
+
+}

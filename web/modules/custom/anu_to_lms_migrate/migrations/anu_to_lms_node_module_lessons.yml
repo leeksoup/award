@@ -27,11 +27,13 @@ process:
     default_value: true
   activities:
     plugin: sub_process
-    source: checklists
+    source: activities
     process:
       target_id:
         plugin: migration_lookup
-        migration: anu_to_lms_paragraph_lesson_checklists
+        migration:
+          - anu_to_lms_paragraph_lesson_checklists
+          - anu_to_lms_paragraph_lesson_sections
         source: paragraph_id
         no_stub: true
       data/max_score:
@@ -44,3 +46,4 @@ destination:
 migration_dependencies:
   required:
     - anu_to_lms_paragraph_lesson_checklists
+    - anu_to_lms_paragraph_lesson_sections

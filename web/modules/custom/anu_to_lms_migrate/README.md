@@ -19,13 +19,14 @@ drush cr
 drush migrate:status | grep 'anu_to_lms'
 ```
 
-## First runnable vertical slice
+## Runnable lesson-content slice
 
 The first executable slice migrates every current `lesson_checklist` paragraph
 to an LMS `checklist` activity backed by the LMS 1.1.18 `no_answer`
-plugin. It then migrates every `module_lesson` containing at least one of those
-checklists to an `lms_lesson`, preserving checklist order across lesson pages.
-Other lesson content is intentionally not included yet.
+plugin. Text, heading, approved YouTube/Vimeo, and audio blocks become reusable
+`content`, `video`, and `audio` display activities. It then migrates every
+`module_lesson` containing supported content to an `lms_lesson`, preserving
+page/block order. Other lesson block types are intentionally not included yet.
 
 Target LMS configuration uses reusable names (`checklist` and
 `field_checklist_body`) so authors can create new LMS-native checklist
@@ -42,6 +43,7 @@ drush en anu_to_lms_migrate -y
 drush updb -y
 drush cr
 drush migrate:import anu_to_lms_paragraph_lesson_checklists -y
+drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 drush migrate:import anu_to_lms_node_module_lessons -y
 ```
 

@@ -2,17 +2,19 @@
 
 ## Purpose and current scope
 
-This runbook covers the currently validated checklist-first migration slice:
+This runbook began with the validated checklist-first migration slice and now
+also covers the media-first lesson-content slice:
 
 1. Anu `lesson_checklist` paragraphs become Drupal LMS `checklist` activities.
 2. Anu `module_lesson` nodes containing those checklists become Drupal LMS
    lessons with ordered activity references.
+3. Text, heading, approved YouTube/Vimeo, and audio section blocks become
+   `content`, `video`, and `audio` display activities.
 
 This is a staging/verification procedure, not a production cutover runbook.
-Lesson sections, text blocks, embedded video, audio, assessments, course
-groups, and complete learning paths are not runnable yet. In particular, do
-not use the current slice as evidence that a video-centered lesson has been
-fully migrated.
+Images, resources, assessments, course groups, and complete learning paths are
+not runnable yet. Treat video/audio as requiring staging playback validation,
+not as production-validated until the media audits pass.
 
 The source and destination are in the same active Drupal database. Always take
 a restorable backup before running database updates or migrations.
@@ -126,6 +128,7 @@ importing anything.
 
 ```bash
 drush migrate:status anu_to_lms_paragraph_lesson_checklists
+drush migrate:status anu_to_lms_paragraph_lesson_sections
 drush migrate:status anu_to_lms_node_module_lessons
 ```
 
@@ -178,7 +181,43 @@ Spot-check at least three activities at `/admin/lms/activity`. Confirm that:
 - advancing the activity provides the intended v1 whole-activity completion
   behavior.
 
-## 9. Import checklist-bearing lessons
+## 9. Import section activities and lessons
+
+Import supported non-checklist section activities first:
+
+```bash
+drush migrate:import anu_to_lms_paragraph_lesson_sections -y
+```
+
+The import stops on unsupported video providers or missing audio files. Resolve
+every reported source paragraph before continuing.
+
+Audit the created media activities before importing/updating lessons:
+
+```bash
+drush php:eval '
+$storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
+$issues = [];
+foreach (["video", "audio"] as $bundle) {
+  $ids = \Drupal::entityQuery("lms_activity")->accessCheck(FALSE)->condition("type", $bundle)->execute();
+  foreach ($storage->loadMultiple($ids) as $activity) {
+    if ($bundle === "video" && $activity->get("field_video_url")->isEmpty()) {
+      $issues[] = ["video", $activity->id(), "missing URL"];
+    }
+    if ($bundle === "audio" && ($activity->get("field_audio_name")->isEmpty() || $activity->get("field_audio_file")->isEmpty())) {
+      $issues[] = ["audio", $activity->id(), "missing name or file"];
+    }
+  }
+}
+var_export($issues);
+echo PHP_EOL;
+'
+```
+
+The audit must return an empty array. At `/admin/lms/activity`, spot-check at
+least three videos across the providers present in the source and three audio
+activities. Confirm iframe playback, audio controls, keyboard operation, and
+that no player autostarts.
 
 On a first run:
 
@@ -224,8 +263,10 @@ activities appear in the same page/block order as the Anu lesson.
 
 ```bash
 drush migrate:status anu_to_lms_paragraph_lesson_checklists
+drush migrate:status anu_to_lms_paragraph_lesson_sections
 drush migrate:status anu_to_lms_node_module_lessons
 drush migrate:messages anu_to_lms_paragraph_lesson_checklists
+drush migrate:messages anu_to_lms_paragraph_lesson_sections
 drush migrate:messages anu_to_lms_node_module_lessons
 drush watchdog:show --severity=Error --count=100
 ```
@@ -250,6 +291,7 @@ Rollback dependent lessons before activities:
 
 ```bash
 drush migrate:rollback anu_to_lms_node_module_lessons -y
+drush migrate:rollback anu_to_lms_paragraph_lesson_sections -y
 drush migrate:rollback anu_to_lms_paragraph_lesson_checklists -y
 drush cr
 ```
