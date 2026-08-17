@@ -10,10 +10,11 @@ This document is the code-ready pseudocode companion to the migration plan and i
 4. `anu_to_lms_paragraph_lesson_checklists`
 5. `anu_to_lms_paragraph_lesson_sections`
 6. `anu_to_lms_node_module_lessons`
-7. `anu_to_lms_node_module_assessments`
-8. `anu_to_lms_paragraph_course_modules`
-9. `anu_to_lms_node_courses`
-10. `anu_to_lms_course_structure`
+7. `anu_to_lms_paragraph_assessment_questions`
+8. `anu_to_lms_node_module_assessments`
+9. `anu_to_lms_paragraph_course_modules`
+10. `anu_to_lms_node_courses`
+11. `anu_to_lms_course_structure`
 
 ## Shared transform rules
 
@@ -115,6 +116,12 @@ Pseudo process:
   - short/long answer => free_text plugin
   - scale/likert => nearest available plugin or custom plugin fallback
 - Destination: LMS activity set destination.
+
+Current runnable slice:
+- `question_single_choice` => `single_choice` activity using LMS `select` with `selection_type: single`
+- `question_multi_choice` => `multiple_choice` activity using LMS `select` with `selection_type: multiple`
+- preserve option delta order and correctness flags
+- stop on unsupported assessment item bundles so incomplete assessments cannot be published silently
 
 ### `anu_to_lms_paragraph_course_modules`
 

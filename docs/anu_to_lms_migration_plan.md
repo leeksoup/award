@@ -212,7 +212,7 @@ Use Quiz module later only if needed for features like:
 
 - ✅ Milestone 2 (**Migration scaffold complete**) marked complete on April 11, 2026 after adding scaffold migrations through course-sequence assembly (`anu_to_lms_course_structure`).
 - 🚧 Milestone 3 (**Lesson content pipeline**) is in progress. The checklist-to-activity slice has been imported and validated; lesson sections, embedded video, audio, and remaining content blocks are not runnable yet.
-- ⏳ Milestone 4 (**Assessment pipeline**) is scaffolded but not runtime-validated.
+- 🚧 Milestone 4 (**Assessment pipeline**) has a runnable single/multiple-choice slice awaiting staging validation; remaining question bundles are deferred.
 - ⏳ Milestone 5 (**Course structure pipeline**) is scaffolded but not runtime-validated.
 - ⏳ Milestone 6 (**Achievements/semantics parity**) has audit scaffolding only and resumes after the core content path is runnable.
 

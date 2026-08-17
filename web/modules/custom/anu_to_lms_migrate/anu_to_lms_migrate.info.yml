@@ -14,3 +14,4 @@ dependencies:
   - drupal:node
   - paragraphs:paragraphs
   - lms:lms
+  - lms:lms_answer_plugins

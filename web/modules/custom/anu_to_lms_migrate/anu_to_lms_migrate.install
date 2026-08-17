@@ -109,3 +109,14 @@ function anu_to_lms_migrate_update_10004(): void {
   );
   \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
 }
+
+/**
+ * Installs LMS single/multiple choice assessment activity configuration.
+ */
+function anu_to_lms_migrate_update_10005(): void {
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}

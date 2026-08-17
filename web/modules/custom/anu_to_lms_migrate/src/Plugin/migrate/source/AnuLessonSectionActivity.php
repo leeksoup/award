@@ -52,16 +52,24 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
    */
   protected function initializeIterator(): \Iterator {
     $storage = \Drupal::entityTypeManager()->getStorage('paragraph');
-    $ids = $storage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('type', [
+    $query = $storage->getQuery()->accessCheck(FALSE);
+    $lesson_parent = $query->andConditionGroup()
+      ->condition('parent_type', 'paragraph')
+      ->condition('parent_field_name', 'field_lesson_section_content');
+    $assessment_parent = $query->andConditionGroup()
+      ->condition('parent_type', 'node')
+      ->condition('parent_field_name', 'field_module_assessment_items');
+    $parent = $query->orConditionGroup()
+      ->condition($lesson_parent)
+      ->condition($assessment_parent);
+
+    $ids = $query->condition('type', [
         'lesson_text',
         'lesson_heading',
         'lesson_embedded_video',
         'lesson_audio',
       ], 'IN')
-      ->condition('parent_type', 'paragraph')
-      ->condition('parent_field_name', 'field_lesson_section_content')
+      ->condition($parent)
       ->sort('id')
       ->execute();
 

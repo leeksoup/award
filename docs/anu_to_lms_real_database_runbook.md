@@ -12,9 +12,10 @@ also covers the media-first lesson-content slice:
    `content`, `video`, and `audio` display activities.
 
 This is a staging/verification procedure, not a production cutover runbook.
-Images, resources, assessments, course groups, and complete learning paths are
-not runnable yet. Treat video/audio as requiring staging playback validation,
-not as production-validated until the media audits pass.
+Images, resources, short/long-answer questions, scale/Likert questions, course
+groups, and complete learning paths are not runnable yet. Single/multiple
+choice assessments are available as a staging slice. Treat all new activity
+types as requiring staging validation before production use.
 
 The source and destination are in the same active Drupal database. Always take
 a restorable backup before running database updates or migrations.
@@ -308,3 +309,35 @@ update-hook failures.
 
 Do not continue to video/audio, assessment, or course migrations until the
 checklist and lesson audits in this runbook pass cleanly.
+
+## Assessment staging slice
+
+After the lesson-content gates pass, run the supported question and assessment
+migrations in dependency order:
+
+```bash
+drush en lms_answer_plugins -y
+drush updb -y
+drush cr
+drush migrate:import anu_to_lms_paragraph_lesson_sections -y
+drush migrate:status anu_to_lms_paragraph_assessment_questions
+drush migrate:status anu_to_lms_node_module_assessments
+drush migrate:import anu_to_lms_paragraph_assessment_questions -y
+drush migrate:import anu_to_lms_node_module_assessments -y
+```
+
+The slice supports only `question_single_choice` and
+`question_multi_choice`. It preserves option order and correctness flags.
+Assessment text and heading blocks are resolved through the section-activity
+migration. Do not treat an assessment containing deferred question bundles as
+complete; inventory those bundles before UAT.
+
+Spot-check both activity bundles at `/admin/lms/activity` and assessment lessons
+at `/admin/lms/lesson`. Confirm radio buttons for single choice, checkboxes for
+multiple choice, correct option order, scoring behavior, and assessment item
+order. Roll back assessment lessons before question activities:
+
+```bash
+drush migrate:rollback anu_to_lms_node_module_assessments -y
+drush migrate:rollback anu_to_lms_paragraph_assessment_questions -y
+```

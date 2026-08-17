@@ -28,6 +28,12 @@ plugin. Text, heading, approved YouTube/Vimeo, and audio blocks become reusable
 `module_lesson` containing supported content to an `lms_lesson`, preserving
 page/block order. Other lesson block types are intentionally not included yet.
 
+The next runnable assessment slice converts single- and multiple-choice
+questions to LMS `select` activities and each supported `module_assessment` to
+an LMS lesson. Short/long answer, scale, and Likert questions remain deferred.
+Existing installations must enable `lms_answer_plugins` before running database
+updates for this slice.
+
 Target LMS configuration uses reusable names (`checklist` and
 `field_checklist_body`) so authors can create new LMS-native checklist
 activities after migration. Migration IDs, module names, and source plugins
@@ -45,6 +51,8 @@ drush cr
 drush migrate:import anu_to_lms_paragraph_lesson_checklists -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 drush migrate:import anu_to_lms_node_module_lessons -y
+drush migrate:import anu_to_lms_paragraph_assessment_questions -y
+drush migrate:import anu_to_lms_node_module_assessments -y
 ```
 
 If checklist activities were imported by a version earlier than the formatted
