@@ -86,7 +86,9 @@ drush migrate:rollback anu_to_lms_node_courses -y
 Migrated courses are listed at `/admin/lms/courses`. Update `10007` installs
 that LMS default View on existing sites where `views.view.courses_admin` is
 missing. After deployment, run `drush updb -y` and `drush cr` before opening
-the listing.
+the listing. Update `10008` disables Group entity-access query rewriting on
+this permission-protected administrative View so course administrators see
+courses owned by other source authors.
 
 If checklist activities were imported by a version earlier than the formatted
 field-item fix, update them in place after deploying current code. This

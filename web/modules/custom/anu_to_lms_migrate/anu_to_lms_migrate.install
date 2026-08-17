@@ -8,6 +8,13 @@
 declare(strict_types=1);
 
 /**
+ * Implements hook_install().
+ */
+function anu_to_lms_migrate_install(): void {
+  _anu_to_lms_migrate_configure_courses_admin_view();
+}
+
+/**
  * Installs configuration required by the first checklist migration slice.
  */
 function anu_to_lms_migrate_update_10001(): void {
@@ -139,3 +146,30 @@ function anu_to_lms_migrate_update_10007(): void {
     \Drupal::service('config.installer')->installDefaultConfig('module', 'lms');
   }
 }
+
+/**
+ * Makes the LMS administrative course View show every course.
+ */
+function anu_to_lms_migrate_update_10008(): void {
+  _anu_to_lms_migrate_configure_courses_admin_view();
+}
+
+/**
+ * Disables entity-access query rewriting on the protected admin listing.
+ */
+function _anu_to_lms_migrate_configure_courses_admin_view(): void {
+  $view = \Drupal::configFactory()->getEditable('views.view.courses_admin');
+  if ($view->isNew()) {
+    return;
+  }
+
+  // The LMS View already requires `create lms_course group`, but its default
+  // query still applies Group entity-access rewriting. That hides courses from
+  // administrators who did not create or join them, including courses whose
+  // original Anu author was preserved by the migration.
+  $view->set(
+    'display.default.display_options.query.options.disable_sql_rewrite',
+    TRUE,
+  )->save();
+}
+

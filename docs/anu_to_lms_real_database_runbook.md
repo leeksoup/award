@@ -432,6 +432,21 @@ have the `create lms_course group` permission. A missing or inaccessible View
 does not mean that the migrated group entities are absent; use the entity and
 migration-map audit above as the authoritative data check.
 
+If the page loads but its table is empty, deploy the current migration module
+and run its View access update:
+
+```bash
+drush updb -y
+drush cr
+drush config:get views.view.courses_admin display.default.display_options.query.options.disable_sql_rewrite
+```
+
+The final value must be `true`. The LMS default View applies Group access query
+rewriting even though the page itself is already restricted by the
+`create lms_course group` permission. Update `10008` disables that additional
+row filter so administrators can list courses owned by preserved source
+authors. It does not change access to individual course routes.
+
 Roll back courses before rolling back lessons:
 
 ```bash
