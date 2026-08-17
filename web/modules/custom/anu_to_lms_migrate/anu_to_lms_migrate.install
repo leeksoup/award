@@ -44,18 +44,37 @@ function anu_to_lms_migrate_update_10003(): void {
     ->condition('type', 'anu_checklist')
     ->execute();
 
+  $bodies = [];
   foreach ($activity_ids as $activity_id) {
     $activity = $activity_storage->load($activity_id);
-    $body = $activity->hasField('field_anu_checklist_body')
+    $bodies[$activity_id] = $activity->hasField('field_anu_checklist_body')
       ? $activity->get('field_anu_checklist_body')->getValue()
       : [];
+  }
 
-    // Save the bundle change first, then reload so Drupal builds the field
-    // definitions for the new bundle before the body is copied.
-    $activity->set('type', 'checklist');
-    $activity->save();
-    $activity_storage->resetCache([$activity_id]);
+  // Drupal deliberately prevents changing the bundle of an existing content
+  // entity through Entity::save(). Update the bundle columns together before
+  // reloading the entities under their new field definitions. IDs and lesson
+  // references remain unchanged.
+  $database = \Drupal::database();
+  $schema = $database->schema();
+  foreach ([
+    'lms_activity',
+    'lms_activity_field_data',
+    'lms_activity_revision',
+    'lms_activity_field_revision',
+  ] as $table) {
+    if ($schema->tableExists($table) && $schema->fieldExists($table, 'type')) {
+      $database->update($table)
+        ->fields(['type' => 'checklist'])
+        ->condition('type', 'anu_checklist')
+        ->execute();
+    }
+  }
 
+  $activity_storage->resetCache($activity_ids);
+
+  foreach ($bodies as $activity_id => $body) {
     $activity = $activity_storage->load($activity_id);
     $activity->set('field_checklist_body', $body);
     $activity->save();
