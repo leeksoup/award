@@ -315,3 +315,16 @@ function anu_to_lms_migrate_update_10013(): void {
   );
   \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
 }
+
+/**
+ * Ensures free-text question activity bundles exist on staged databases.
+ */
+function anu_to_lms_migrate_update_10014(): void {
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+  \Drupal::service('entity_type.bundle.info')->clearCachedBundles();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}

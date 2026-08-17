@@ -60,6 +60,7 @@ activity type and field configuration are created, then run the slice:
 drush en anu_to_lms_migrate -y
 drush updb -y
 drush cr
+drush config:get lms.lms_activity_type.free_text
 drush migrate:import anu_to_lms_paragraph_lesson_checklists -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 drush migrate:import anu_to_lms_paragraph_assessment_questions -y

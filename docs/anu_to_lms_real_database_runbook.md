@@ -355,6 +355,7 @@ not migrated.
 drush en lms_answer_plugins -y
 drush updb -y
 drush cr
+drush config:get lms.lms_activity_type.free_text
 drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 drush migrate:status anu_to_lms_paragraph_assessment_questions
 drush migrate:status anu_to_lms_node_module_assessments
@@ -370,6 +371,13 @@ manually evaluated `free_text` activities. Assessment text and heading blocks
 are resolved through the section-activity migration. Do not treat an assessment
 containing scale or Likert question bundles as complete; inventory those
 bundles before UAT.
+
+If the Drupal UI reports `Undefined array key "free_text"` from
+`LMSReferenceTable`, the active site has `free_text` activities but is missing
+the matching `lms.lms_activity_type.free_text` bundle configuration. Deploy the
+revision containing update `10014`, then run `drush updb -y` and `drush cr`.
+The `drush config:get lms.lms_activity_type.free_text` command above must show
+`pluginId: free_text` before reopening lesson edit forms.
 
 Spot-check all imported question activity bundles at `/admin/lms/activity` and
 assessment lessons at `/admin/lms/lesson`. Confirm radio buttons for single
