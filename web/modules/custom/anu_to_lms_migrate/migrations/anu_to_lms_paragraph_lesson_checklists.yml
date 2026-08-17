@@ -13,13 +13,13 @@ source:
 process:
   type:
     plugin: default_value
-    default_value: anu_checklist
+    default_value: checklist
   name: title
   status: status
   uid: uid
   created: created
   changed: changed
-  field_anu_checklist_body:
+  field_checklist_body:
     plugin: anu_to_lms_checklist_body
     source: items
 

@@ -19,10 +19,16 @@ drush migrate:status | grep 'anu_to_lms'
 ## First runnable vertical slice
 
 The first executable slice migrates every current `lesson_checklist` paragraph
-to an LMS `anu_checklist` activity backed by the LMS 1.1.18 `no_answer`
+to an LMS `checklist` activity backed by the LMS 1.1.18 `no_answer`
 plugin. It then migrates every `module_lesson` containing at least one of those
 checklists to an `lms_lesson`, preserving checklist order across lesson pages.
 Other lesson content is intentionally not included yet.
+
+Target LMS configuration uses reusable names (`checklist` and
+`field_checklist_body`) so authors can create new LMS-native checklist
+activities after migration. Migration IDs, module names, and source plugins
+retain the `anu_to_lms`/`anu_` prefix because they describe migration
+provenance and are required to preserve existing migration map tables.
 
 The migration reads the Anu nodes and paragraphs from the active Drupal site;
 it does not require a second database connection. Install the module so its
