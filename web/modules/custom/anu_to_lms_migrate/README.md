@@ -83,6 +83,11 @@ their referenced LMS lessons:
 drush migrate:rollback anu_to_lms_node_courses -y
 ```
 
+Migrated courses are listed at `/admin/lms/courses`. Update `10007` installs
+that LMS default View on existing sites where `views.view.courses_admin` is
+missing. After deployment, run `drush updb -y` and `drush cr` before opening
+the listing.
+
 If checklist activities were imported by a version earlier than the formatted
 field-item fix, update them in place after deploying current code. This
 replaces body values stored as the literal string `Array` without changing the

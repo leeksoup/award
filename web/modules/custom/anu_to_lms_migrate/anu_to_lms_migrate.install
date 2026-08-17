@@ -127,3 +127,15 @@ function anu_to_lms_migrate_update_10005(): void {
 function anu_to_lms_migrate_update_10006(): void {
   \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
 }
+
+/**
+ * Installs the LMS administrative course View when it is missing.
+ */
+function anu_to_lms_migrate_update_10007(): void {
+  if (\Drupal::configFactory()->get('views.view.courses_admin')->isNew()) {
+    // Some existing sites enabled LMS before the courses_admin default View
+    // was available. Re-running default config installation only creates
+    // missing configuration and leaves customized active configuration intact.
+    \Drupal::service('config.installer')->installDefaultConfig('module', 'lms');
+  }
+}

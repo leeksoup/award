@@ -415,7 +415,24 @@ foreach ($source_ids as $source_id) {
 
 Confirm that the three destination courses contain 11, 15, and 13 lessons in
 the same order as the source audit. Spot-check guided/free navigation in the
-course UI. Roll back courses before rolling back lessons:
+course UI at `/admin/lms/courses`.
+
+If that URL is missing, verify and install its default View through the module
+update before treating it as a migration failure:
+
+```bash
+drush config:get views.view.courses_admin status
+drush updb -y
+drush cr
+drush config:get views.view.courses_admin status
+```
+
+The final command must report `true`. The listing requires the current user to
+have the `create lms_course group` permission. A missing or inaccessible View
+does not mean that the migrated group entities are absent; use the entity and
+migration-map audit above as the authoritative data check.
+
+Roll back courses before rolling back lessons:
 
 ```bash
 drush migrate:rollback anu_to_lms_node_courses -y
