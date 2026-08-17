@@ -21,7 +21,9 @@ process:
   changed: changed
   field_checklist_body:
     plugin: anu_to_lms_checklist_body
-    source: items
+    source:
+      - items
+      - resources
 
 destination:
   plugin: 'entity:lms_activity'

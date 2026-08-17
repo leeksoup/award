@@ -19,7 +19,6 @@ final class AnuLessonBlockHelper {
     'lesson_embedded_video',
     'lesson_audio',
     'lesson_checklist',
-    'lesson_resource',
   ];
 
   /**
@@ -49,25 +48,13 @@ final class AnuLessonBlockHelper {
    * Returns the nearest immediately preceding Anu heading for an activity.
    */
   public static function headingForActivity(ContentEntityInterface $activity): ?string {
-    $parent_type = $activity->get('parent_type')->value ?? NULL;
-    $parent_id = $activity->get('parent_id')->value ?? NULL;
-    $parent_field = $activity->get('parent_field_name')->value ?? NULL;
-    if (!$parent_type || !$parent_id || !$parent_field) {
-      return NULL;
-    }
-
-    $parent = \Drupal::entityTypeManager()
-      ->getStorage((string) $parent_type)
-      ->load((int) $parent_id);
-    if (
-      !$parent instanceof ContentEntityInterface
-      || !$parent->hasField((string) $parent_field)
-    ) {
+    $siblings = self::orderedSiblings($activity);
+    if ($siblings === []) {
       return NULL;
     }
 
     $pending_heading = NULL;
-    foreach ($parent->get((string) $parent_field)->referencedEntities() as $item) {
+    foreach ($siblings as $item) {
       if ($item->bundle() === 'lesson_heading') {
         $heading = trim((string) $item->get('field_lesson_heading_value')->value);
         $pending_heading = $heading !== '' ? $heading : NULL;
@@ -82,6 +69,64 @@ final class AnuLessonBlockHelper {
     }
 
     return NULL;
+  }
+
+  /**
+   * Returns source resource paragraphs that belong to a checklist activity.
+   */
+  public static function followingResourcesForChecklist(
+    ContentEntityInterface $checklist,
+  ): array {
+    $siblings = self::orderedSiblings($checklist);
+    if ($siblings === []) {
+      return [];
+    }
+
+    $found_checklist = FALSE;
+    $resources = [];
+    foreach ($siblings as $item) {
+      if (!$found_checklist) {
+        $found_checklist = (int) $item->id() === (int) $checklist->id();
+        continue;
+      }
+
+      if ($item->bundle() === 'lesson_heading') {
+        continue;
+      }
+
+      if ($item->bundle() === 'lesson_resource') {
+        $resources[] = $item;
+        continue;
+      }
+
+      break;
+    }
+
+    return $resources;
+  }
+
+  /**
+   * Returns the ordered sibling paragraph list for an Anu content block.
+   */
+  private static function orderedSiblings(ContentEntityInterface $activity): array {
+    $parent_type = $activity->get('parent_type')->value ?? NULL;
+    $parent_id = $activity->get('parent_id')->value ?? NULL;
+    $parent_field = $activity->get('parent_field_name')->value ?? NULL;
+    if (!$parent_type || !$parent_id || !$parent_field) {
+      return [];
+    }
+
+    $parent = \Drupal::entityTypeManager()
+      ->getStorage((string) $parent_type)
+      ->load((int) $parent_id);
+    if (
+      !$parent instanceof ContentEntityInterface
+      || !$parent->hasField((string) $parent_field)
+    ) {
+      return [];
+    }
+
+    return $parent->get((string) $parent_field)->referencedEntities();
   }
 
 }

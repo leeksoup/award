@@ -135,7 +135,7 @@ Use Quiz module later only if needed for features like:
 | `lesson_footnotes` | footnotes | text block | Flatten if no native footnote type | P3 |
 | `lesson_highlight`, `lesson_highlight_marker` | callout/highlight | callout block | Preserve style intent where possible | P2 |
 | `lesson_list`, `lesson_img_list`, `lesson_img_list_item` | list content | list/content block | Preserve ordering and item content | P2 |
-| `lesson_resource` | downloadable resource | `resource` `no_answer` activity | Copy document file, label, and description metadata | P1 |
+| `lesson_resource` | downloadable resource | preceding checklist body | Insert document links into the immediately preceding checklist activity; fail if the required document media/file is missing | P1 |
 | `lesson_table` | tabular content | table/HTML block | Preserve valid markup | P2 |
 | `lesson_checklist` | checklist container | **`no_answer` activity** | Convert to instructional/progression activity | P0 |
 | `checklist_item` | checklist line item | content inside `no_answer` activity | Flatten items into activity body/instructions | P0 |

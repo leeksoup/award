@@ -1,9 +1,0 @@
-langcode: en
-status: true
-dependencies: { }
-id: resource
-name: 'Resource'
-description: 'Display-oriented downloadable student resource.'
-pluginId: no_answer
-pluginConfiguration: { }
-defaultMaxScore: 0

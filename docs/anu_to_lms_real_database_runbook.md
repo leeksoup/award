@@ -8,8 +8,9 @@ also covers the media/resource lesson-content slice:
 1. Anu `lesson_checklist` paragraphs become Drupal LMS `checklist` activities.
 2. Anu `module_lesson` nodes containing those checklists become Drupal LMS
    lessons with ordered activity references.
-3. Text, approved YouTube/Vimeo, audio, and resource document section blocks
-   become `content`, `video`, `audio`, and `resource` display activities.
+3. Text, approved YouTube/Vimeo, and audio section blocks become `content`,
+   `video`, and `audio` display activities. Resource document blocks are
+   appended as links inside the immediately preceding checklist activity body.
    Heading blocks are used as names/titles for the immediately following
    supported activity; they are not standalone LMS activities.
 
@@ -178,6 +179,9 @@ Spot-check at least three activities at `/admin/lms/activity`. Confirm that:
 
 - the checklist body contains the expected source text;
 - list items retain their source order;
+- resource documents following a checklist appear as links in that checklist
+  body;
+- the checklist body text format is `filtered_html`;
 - there is no literal `Array` value;
 - paragraph markup is not wrapped in invalid `<strong><p>…</p></strong>`
   markup;
@@ -193,16 +197,15 @@ drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 ```
 
 If this migration has already run on the staging database, update the existing
-activities in place so preceding Anu headings become activity names and new
-resource activities are added without changing existing destination IDs:
+activities in place so preceding Anu headings become activity names without
+changing existing destination IDs:
 
 ```bash
 drush migrate:import anu_to_lms_paragraph_lesson_sections --update -y
 ```
 
-The import stops on unsupported video providers, missing audio files, missing
-resource document files, or resource paragraphs without names. Resolve every
-reported source paragraph before continuing.
+The import stops on unsupported video providers or missing audio files. Resolve
+every reported source paragraph before continuing.
 
 Audit the created media activities before importing/updating lessons:
 
@@ -210,7 +213,7 @@ Audit the created media activities before importing/updating lessons:
 drush php:eval '
 $storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
 $issues = [];
-foreach (["video", "audio", "resource"] as $bundle) {
+foreach (["video", "audio"] as $bundle) {
   $ids = \Drupal::entityQuery("lms_activity")->accessCheck(FALSE)->condition("type", $bundle)->execute();
   foreach ($storage->loadMultiple($ids) as $activity) {
     if ($bundle === "video" && $activity->get("field_video_url")->isEmpty()) {
@@ -218,9 +221,6 @@ foreach (["video", "audio", "resource"] as $bundle) {
     }
     if ($bundle === "audio" && ($activity->get("field_audio_name")->isEmpty() || $activity->get("field_audio_file")->isEmpty())) {
       $issues[] = ["audio", $activity->id(), "missing name or file"];
-    }
-    if ($bundle === "resource" && $activity->get("field_resource_file")->isEmpty()) {
-      $issues[] = ["resource", $activity->id(), "missing file"];
     }
   }
 }
@@ -231,9 +231,8 @@ echo PHP_EOL;
 
 The audit must return an empty array. At `/admin/lms/activity`, spot-check at
 least three videos across the providers present in the source and three audio
-activities. Spot-check resource activities and confirm document links/downloads
-work. Confirm iframe playback, audio controls, keyboard operation, and that no
-player autostarts.
+activities. Confirm iframe playback, audio controls, keyboard operation, and
+that no player autostarts.
 
 On a first run:
 
@@ -247,9 +246,9 @@ If the lesson migration has already run and its process mapping changed:
 drush migrate:import anu_to_lms_node_module_lessons --update -y
 ```
 
-Run the lesson update after deploying the heading/order/resource slice so
-existing LMS lessons drop old standalone heading references and add resource
-activities in Anu source order. Require zero failed and zero ignored rows.
+Run the lesson update after deploying the heading/checklist-resource slice so
+existing LMS lessons drop old standalone heading or resource references and
+preserve Anu source order. Require zero failed and zero ignored rows.
 
 ## 10. Audit lesson activity references
 
@@ -275,9 +274,10 @@ echo PHP_EOL;
 ```
 
 Spot-check at least three lessons at `/admin/lms/lesson`. Confirm checklist
-activities, text/media activities, and resource activities appear in the same
-page/block order as the Anu lesson. Confirm Anu heading text appears as the
-following activity's name/title rather than as its own activity.
+activities and text/media activities appear in the same page/block order as the
+Anu lesson. Confirm resource documents appear inside the immediately preceding
+checklist activity, and confirm Anu heading text appears as the following
+activity's name/title rather than as its own activity.
 
 ## 11. Record final status and logs
 

@@ -42,10 +42,11 @@ anu_to_lms_node_courses
 ```
 
 The lesson-section activity migration currently supports text, approved
-YouTube/Vimeo URLs, audio files, resource documents, and checklist references.
-Anu heading blocks are not standalone LMS activities; the nearest immediately
-preceding heading is used as the migrated activity name/title for the following
-supported activity. Unsupported providers and unresolved required audio or
+YouTube/Vimeo URLs, audio files, and checklist references. Anu heading blocks
+are not standalone LMS activities; the nearest immediately preceding heading is
+used as the migrated activity name/title for the following supported activity.
+Anu resource documents are appended as links inside the immediately preceding
+checklist activity body. Unsupported providers and unresolved required audio or
 resource files must fail with source context.
 
 ## Course migration decisions
@@ -129,21 +130,21 @@ New staging blockers from browser UAT:
 - lesson activities were not appearing in the correct Anu order;
 - Anu heading blocks were incorrectly migrated as standalone activities instead
   of naming the following activity;
-- student resource/worksheet document blocks must be migrated and shown as
-  activities.
+- student resource/worksheet document blocks must be inserted into the
+  immediately preceding checklist activity rather than shown as activities.
 
 Still pending explicit staging acceptance:
 
 - updated lesson activity order after re-running section and lesson imports;
 - heading-to-following-activity title behavior;
-- resource document rendering/downloads;
+- resource document links inside checklist activity bodies;
 - achievements/completion integration and Commerce enrollment.
 
 ## Immediate next action
 
-Next deploy the lesson ordering/resource slice, run update `10011`, update the
-section and lesson migrations in place, and re-check browser lesson playback.
-Only after lesson order, headings, and resource downloads pass should
+Next deploy the checklist-resource slice, run database updates, update the
+checklist and lesson migrations in place, and re-check browser lesson playback.
+Only after lesson order, headings, and checklist resource links pass should
 implementation continue to the next content-parity or achievements slice.
 
 ## Known documentation debt

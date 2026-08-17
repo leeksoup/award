@@ -251,12 +251,56 @@ function anu_to_lms_migrate_update_10010(): void {
 }
 
 /**
- * Installs resource activities and refreshes lesson section migration metadata.
+ * Refreshes lesson section migration metadata for heading handling.
  */
 function anu_to_lms_migrate_update_10011(): void {
   \Drupal::service('config.installer')->installDefaultConfig(
     'module',
     'anu_to_lms_migrate',
   );
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
+ * Removes the retired standalone resource activity slice.
+ */
+function anu_to_lms_migrate_update_10012(): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+
+  $activity_storage = $entity_type_manager->getStorage('lms_activity');
+  $activity_ids = $activity_storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'resource')
+    ->execute();
+  if ($activity_ids !== []) {
+    $activity_storage->delete($activity_storage->loadMultiple($activity_ids));
+  }
+
+  foreach ([
+    'entity_form_display' => [
+      'lms_activity.resource.default',
+    ],
+    'entity_view_display' => [
+      'lms_activity.resource.default',
+    ],
+    'field_config' => [
+      'lms_activity.resource.field_resource_description',
+      'lms_activity.resource.field_resource_file',
+    ],
+    'field_storage_config' => [
+      'lms_activity.field_resource_description',
+      'lms_activity.field_resource_file',
+    ],
+    'lms_activity_type' => [
+      'resource',
+    ],
+  ] as $entity_type_id => $ids) {
+    $storage = $entity_type_manager->getStorage($entity_type_id);
+    foreach ($ids as $id) {
+      $entity = $storage->load($id);
+      $entity?->delete();
+    }
+  }
+
   \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
 }

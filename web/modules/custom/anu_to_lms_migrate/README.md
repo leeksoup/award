@@ -23,13 +23,14 @@ drush migrate:status | grep 'anu_to_lms'
 
 The first executable slice migrates every current `lesson_checklist` paragraph
 to an LMS `checklist` activity backed by the LMS 1.1.18 `no_answer`
-plugin. Text, approved YouTube/Vimeo, audio, and resource document blocks
-become reusable `content`, `video`, `audio`, and `resource` display
-activities. Heading blocks are used as names/titles for the immediately
-following supported activity and are not migrated as standalone activities. It
-then migrates every `module_lesson` containing supported content to an
-`lms_lesson`, preserving page/block order. Other lesson block types are
-intentionally not included yet.
+plugin. Text, approved YouTube/Vimeo, and audio blocks become reusable
+`content`, `video`, and `audio` display activities. Resource document blocks
+are appended as links inside the immediately preceding checklist activity body.
+Heading blocks are used as names/titles for the immediately following
+supported activity and are not migrated as standalone activities. It then
+migrates every `module_lesson` containing supported content to an `lms_lesson`,
+preserving page/block order. Other lesson block types are intentionally not
+included yet.
 
 The next runnable assessment slice converts single- and multiple-choice
 questions to LMS `select` activities and each supported `module_assessment` to
@@ -62,9 +63,9 @@ drush migrate:import anu_to_lms_node_module_assessments -y
 drush migrate:import anu_to_lms_node_courses -y
 ```
 
-On a staging database where the section and lesson migrations already ran
-before heading/resource support, run the affected migrations with `--update`
-after `drush updb -y` and `drush cr`:
+On a staging database where the checklist, section, and lesson migrations
+already ran before heading/checklist-resource support, run the affected
+migrations with `--update` after `drush updb -y` and `drush cr`:
 
 ```bash
 drush migrate:import anu_to_lms_paragraph_lesson_checklists --update -y

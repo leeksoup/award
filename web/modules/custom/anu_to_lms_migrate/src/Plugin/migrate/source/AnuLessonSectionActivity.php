@@ -6,7 +6,6 @@ namespace Drupal\anu_to_lms_migrate\Plugin\migrate\source;
 
 use Drupal\anu_to_lms_migrate\AnuLessonBlockHelper;
 use Drupal\anu_to_lms_migrate\VideoUrlNormalizer;
-use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
 
@@ -31,8 +30,6 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
       'video_url' => $this->t('Normalized video embed URL'),
       'audio_name' => $this->t('Accessible audio name'),
       'audio_file_id' => $this->t('Existing audio file ID'),
-      'resource_description' => $this->t('Student resource description'),
-      'resource_file_id' => $this->t('Existing resource file ID'),
     ];
   }
 
@@ -70,7 +67,6 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
         'lesson_text',
         'lesson_embedded_video',
         'lesson_audio',
-        'lesson_resource',
       ], 'IN')
       ->condition($parent)
       ->sort('id')
@@ -85,8 +81,6 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
         'video_url' => NULL,
         'audio_name' => NULL,
         'audio_file_id' => NULL,
-        'resource_description' => NULL,
-        'resource_file_id' => NULL,
       ];
 
       $heading = AnuLessonBlockHelper::headingForActivity($block);
@@ -134,32 +128,6 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
             ?? ($audio_name !== '' ? $audio_name : 'Audio ' . $block->id());
           $row['audio_name'] = $row['name'];
           $row['audio_file_id'] = (int) $file_id;
-          break;
-
-        case 'lesson_resource':
-          $media = $block->get('field_resource_file')->entity;
-          $file_id = $media instanceof ContentEntityInterface
-            && $media->hasField('field_media_document')
-            ? $media->get('field_media_document')->target_id
-            : NULL;
-          if (!$file_id || !\Drupal::entityTypeManager()->getStorage('file')->load($file_id)) {
-            throw new MigrateException(sprintf(
-              'Missing resource document file in paragraph %s.',
-              $block->id(),
-            ));
-          }
-          $resource_name = trim((string) $block->get('field_resource_name')->value);
-          if ($resource_name === '') {
-            throw new MigrateException(sprintf(
-              'Missing resource name in paragraph %s.',
-              $block->id(),
-            ));
-          }
-          $row['activity_type'] = 'resource';
-          $row['name'] = $heading ?? $resource_name;
-          $row['resource_description'] = (string) $block
-            ->get('field_resource_description')->value;
-          $row['resource_file_id'] = (int) $file_id;
           break;
       }
 
