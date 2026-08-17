@@ -214,10 +214,9 @@ function _anu_to_lms_migrate_ensure_course_owner_membership(
 
   $owner = $course->getOwner();
   if ($owner !== NULL && !$course->getMember($owner)) {
-    $course->addMember($owner);
     // Entity migration bypasses Group's course creation form, which normally
     // creates this membership when creator_membership is enabled.
-    $group->addMember($owner);
+    $course->addMember($owner);
   }
 }
 

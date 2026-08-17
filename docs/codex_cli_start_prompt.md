@@ -12,24 +12,74 @@ Before doing anything:
 3. Read the course section of docs/anu_to_lms_real_database_runbook.md.
 4. Inspect git status and the latest commits. Do not assume patches from an
    earlier chat are present unless they are in the worktree/history.
-5. Inspect the installed Group 2.3 and Drupal LMS 1.1.18 code before changing
+5. Inspect the installed Group 3.3.x and Drupal LMS 1.1.18 code before changing
    role or access behavior.
 
-Current gate: migrated LMS course groups and owner memberships exist. Before
-update 10010, owner memberships had no effective Group roles and owners could
-not view or take their courses. The repository now intends to install the
-lms_teacher user role and synchronized lms_course-teacher Group role, assign
-the user role to migrated owners, and keep Group query access enforcement
-enabled.
+Current gate: update 10010 now assigns the lms_teacher user role and
+synchronized lms_course-teacher Group role to migrated course owners, and the
+programmatic owner access audit passes. Finish browser/listing validation while
+keeping Group query access enforcement enabled.
 
 Latest staging output:
 [PASTE drush updb, role audit, access audit, and browser results here]
+ -------------------- ----------- --------------- -------------------------
+  Module               Update ID   Type            Description
+ -------------------- ----------- --------------- -------------------------
+  anu_to_lms_migrate   10010       hook_update_n   10010 - Installs and
+                                                   assigns the LMS teacher
+                                                   role to migrated course
+                                                   owners.
+ -------------------- ----------- --------------- -------------------------
+
+
+ // Do you wish to run the specified pending updates?: yes.
+
+>  [notice] Update started: anu_to_lms_migrate_update_10010
+>  [notice] Update completed: anu_to_lms_migrate_update_10010
+ [success] Finished performing updates.
+ [success] Cache rebuild complete.
+
+$ drush config:get user.role.lms_teacher status
+drush config:get group.role.lms_course-teacher status
+drush config:get group.role.lms_course-teacher global_role
+drush config:get group.role.lms_course-teacher permissions
+'user.role.lms_teacher:status': true
+
+'group.role.lms_course-teacher:status': true
+
+'group.role.lms_course-teacher:global_role': lms_teacher
+
+'group.role.lms_course-teacher:permissions':
+  - 'administer members'
+  - 'delete group'
+  - 'delete group revisions'
+  - 'edit group'
+  - 'grade students'
+  - 'leave group'
+  - 'revert group revisions'
+  - 'take course'
+  - 'update own group_membership relationship'
+  - 'view all group revisions'
+  - 'view any unpublished group'
+  - 'view group'
+  - 'view group revisions'
+  - 'view group_membership relationship'
+  - 'view latest group version'
+  - 'view own unpublished group'
+
+Verify owner authorization
+course:10 owner:1 member:yes user_teacher:yes group_roles:[lms_course-teacher] view:yes take:yes update:yes
+course:11 owner:59 member:yes user_teacher:yes group_roles:[lms_course-teacher] view:yes take:yes update:yes
+course:12 owner:59 member:yes user_teacher:yes group_roles:[lms_course-teacher] view:yes take:yes update:yes
+
 
 Tasks:
-- Determine whether update 10010 and the synchronized Group role are correct
-  for the vendored Group/LMS versions.
-- If staging output shows a failure, identify the actual cause from code and
-  config before editing. Do not disable Group access or SQL query rewriting.
+- Validate `/admin/group`, `/admin/lms/courses`, `/group/COURSE_ID`, and
+  `/course/COURSE_ID/start` with course owners and an unrelated unauthorized
+  account.
+- If browser or listing validation fails, identify the actual cause from code
+  and config before editing. Do not disable Group access or SQL query
+  rewriting.
 - Make the smallest robust fix for existing migrated courses and future
   imports. Use a new monotonic update hook only if needed.
 - Add or update copyable staging audits and rollback/recovery guidance.
@@ -53,10 +103,10 @@ Acceptance criteria:
 After the access gate passes, start a new Codex turn with:
 
 ```text
-Read AGENTS.md and docs/codex_anu_to_lms_context.md. The course access gate now
-passes; update the context and migration plan to record the evidence, then
-identify and implement the next smallest runnable slice from the remaining
-content-parity or achievements work. Preserve the validated migrations and
-Group access behavior. Show the proposed acceptance criteria before making a
-broad architectural change.
+Read AGENTS.md and docs/codex_anu_to_lms_context.md. The browser-level course
+access gate now passes; update the context and migration plan to record the
+evidence, then identify and implement the next smallest runnable slice from the
+remaining content-parity or achievements work. Preserve the validated
+migrations and Group access behavior. Show the proposed acceptance criteria
+before making a broad architectural change.
 ```

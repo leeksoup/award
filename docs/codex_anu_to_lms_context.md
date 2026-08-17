@@ -76,8 +76,8 @@ The following repairs are committed:
 - future course inserts also assign the owner the `lms_teacher` user role.
 
 The user confirmed owner memberships existed but had no roles before update
-`10010`. **Update `10010` and its browser/access acceptance criteria have not
-yet been reported as passing.** This is the current validation gate.
+`10010`. Later staging output showed update `10010` installed the synchronized
+roles and granted every migrated owner `view`, `take`, and `update` access.
 
 Expected post-update conditions for every migrated course owner:
 
@@ -105,11 +105,16 @@ Validated from user-provided staging output:
 - course source inventory and flattened lesson counts/order;
 - course migration programmatic audit before UI access was tested;
 - missing LMS courses admin View repair;
-- owner membership repair itself (`owner_member:yes`).
+- owner membership repair itself (`owner_member:yes`);
+- synchronized teacher role configuration after update `10010`
+  (`global_role: lms_teacher`);
+- owner authorization after update `10010` for destination courses 10, 11,
+  and 12: `member:yes`, `user_teacher:yes`,
+  `group_roles:[lms_course-teacher]`, `view:yes`, `take:yes`, and
+  `update:yes`.
 
 Still pending explicit staging acceptance:
 
-- synchronized teacher role assignment and access after update `10010`;
 - courses appearing through normal Group-filtered `/admin/group` and
   `/admin/lms/courses` listings;
 - owner access to `/group/COURSE_ID` and `/course/COURSE_ID/start`;
@@ -120,13 +125,13 @@ Still pending explicit staging acceptance:
 
 ## Immediate next action
 
-First validate update `10010` using the commands in the runbook. If role
-configuration exists but the synchronized role is absent from a membership,
-inspect Group 2.3 role synchronization and permission calculation in the
-installed code before adding another update hook. Do not bypass Group access.
+Next validate the UI acceptance criteria through normal Group-filtered
+listings and browser routes. If a listing or route still fails despite the
+programmatic access audit passing, inspect the installed Group 3.3 and LMS
+route/View code before adding another update hook. Do not bypass Group access.
 
-Only after course access passes should implementation continue to the next
-content-parity or achievements slice.
+Only after browser-level course access passes should implementation continue
+to the next content-parity or achievements slice.
 
 ## Known documentation debt
 
@@ -135,4 +140,3 @@ Some older milestone/next-action prose in
 assessment, and course slices. Treat this handoff and the real-database runbook
 as the current operational status, and correct the plan when the access gate is
 validated.
-
