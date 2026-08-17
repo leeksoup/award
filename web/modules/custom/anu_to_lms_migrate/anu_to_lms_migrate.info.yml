@@ -8,7 +8,10 @@ dependencies:
   - drupal:migrate_plus
   - drupal:migrate_tools
   - drupal:taxonomy
+  - drupal:text
   - drupal:file
+  - drupal:link
   - drupal:node
   - drupal:paragraphs
   - lms:lms
+  - lms:lms_answer_plugins

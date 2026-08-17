@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config: [field.storage.lms_activity.field_audio_file, lms.lms_activity_type.audio]
+  module: [file]
+id: lms_activity.audio.field_audio_file
+field_name: field_audio_file
+entity_type: lms_activity
+bundle: audio
+label: 'Audio file'
+description: ''
+required: true
+translatable: true
+default_value: { }
+default_value_callback: ''
+settings:
+  file_directory: 'audio/[date:custom:Y]-[date:custom:m]'
+  file_extensions: 'mp3 wav acc aac'
+  max_filesize: ''
+  description_field: false
+  handler: 'default:file'
+  handler_settings: { }
+field_type: file

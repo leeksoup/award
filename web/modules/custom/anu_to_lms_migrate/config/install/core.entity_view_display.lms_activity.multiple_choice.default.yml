@@ -1,0 +1,24 @@
+status: true
+dependencies:
+  config:
+    - field.field.lms_activity.multiple_choice.answers
+    - field.field.lms_activity.multiple_choice.question
+    - lms.lms_activity_type.multiple_choice
+  module:
+    - text
+id: lms_activity.multiple_choice.default
+targetEntityType: lms_activity
+bundle: multiple_choice
+mode: default
+content:
+  question:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  answers: true
+  name: true
+  uid: true

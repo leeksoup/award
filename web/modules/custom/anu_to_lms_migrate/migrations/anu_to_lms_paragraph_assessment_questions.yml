@@ -1,0 +1,24 @@
+id: anu_to_lms_paragraph_assessment_questions
+label: 'Anu LMS single/multiple choice questions to LMS activities'
+migration_group: anu_to_lms
+migration_tags: [assessment, activity]
+
+source:
+  plugin: anu_assessment_question
+
+process:
+  type: activity_type
+  name: name
+  status:
+    plugin: default_value
+    default_value: 1
+  uid:
+    plugin: default_value
+    default_value: 1
+  question: question
+  answers: answers
+
+destination:
+  plugin: 'entity:lms_activity'
+
+migration_dependencies: { }

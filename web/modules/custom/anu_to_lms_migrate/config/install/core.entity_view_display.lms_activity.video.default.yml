@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config: [field.field.lms_activity.video.field_video_url, lms.lms_activity_type.video]
+  module: [anu_to_lms_migrate]
+id: lms_activity.video.default
+targetEntityType: lms_activity
+bundle: video
+mode: default
+content:
+  field_video_url:
+    type: safe_video_embed
+    label: hidden
+    settings: { }
+    third_party_settings: { }
+    weight: 0
+    region: content
+hidden: { }
