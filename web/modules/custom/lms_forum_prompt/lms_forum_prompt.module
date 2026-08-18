@@ -126,11 +126,24 @@ function _lms_forum_prompt_add_forum_return_link(array &$build, NodeInterface $t
     }
   }
 
-  $build['lms_forum_prompt_return_link'] = [
+  if (isset($build['body'])) {
+    $body_weight = (int) ($build['body']['#weight'] ?? 0);
+    $build['lms_forum_prompt_return_link_after_prompt'] = _lms_forum_prompt_return_link_build($url);
+    $build['lms_forum_prompt_return_link_after_prompt']['#weight'] = $body_weight + 1;
+  }
+
+  $build['lms_forum_prompt_return_link'] = _lms_forum_prompt_return_link_build($url);
+  $build['lms_forum_prompt_return_link']['#weight'] = 100;
+}
+
+/**
+ * Builds a return-to-course link render array.
+ */
+function _lms_forum_prompt_return_link_build(Url $url): array {
+  return [
     '#type' => 'container',
     '#attributes' => ['class' => ['lms-forum-prompt-return']],
     'link' => Link::fromTextAndUrl(t('When finished, click here to return to the lesson'), $url)->toRenderable(),
-    '#weight' => 100,
     '#cache' => [
       'max-age' => 0,
     ],
