@@ -77,10 +77,10 @@ final class AnuLessonChecklist extends SourcePluginBase {
         }
       }
 
-      $plain_title = trim(strip_tags((string) ($items[0]['text'] ?? '')));
-      $title = $plain_title === ''
-        ? 'Checklist ' . $checklist->id()
-        : 'Checklist: ' . mb_strimwidth($plain_title, 0, 220, '…');
+      $title = AnuLessonBlockHelper::compactTitle(
+        (string) ($items[0]['text'] ?? ''),
+        'Checklist ' . $checklist->id(),
+      );
       $heading = AnuLessonBlockHelper::headingForActivity($checklist);
       $resources = [];
       foreach (

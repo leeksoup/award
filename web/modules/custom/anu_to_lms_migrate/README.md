@@ -80,6 +80,12 @@ drush migrate:import anu_to_lms_paragraph_assessment_questions --update -y
 drush migrate:import anu_to_lms_node_module_lessons --update -y
 ```
 
+Database update `10015` removes stale, unreferenced migrated activities from
+older lesson-section test runs when their source paragraph bundle is no longer
+supported by the current migration. Checklist fallback names are shortened from
+the first four words of the first checklist item, and fallback video names are
+numbered per source lesson.
+
 If free-text question activities were imported before the `free_text` bundle
 fields were installed, update the question migration after `drush updb -y`.
 Reset the affected staging course progress with `drush lms:reset-course` so

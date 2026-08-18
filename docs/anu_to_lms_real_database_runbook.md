@@ -81,6 +81,10 @@ earlier test bundle/field (`anu_checklist` and
 `field_anu_checklist_body`) to reusable LMS names (`checklist` and
 `field_checklist_body`). It preserves activity IDs so existing lesson
 references and migration map entries remain valid.
+Update `10015` removes stale migrated LMS activities from older lesson-section
+test runs when their source paragraph bundle is no longer migrated and no
+current LMS lesson references the activity. It intentionally does not delete
+author-created LMS activities or currently supported migrated activities.
 
 Verify that there are no pending database updates:
 
@@ -251,6 +255,11 @@ drush migrate:import anu_to_lms_node_module_lessons --update -y
 Run the lesson update after deploying the heading/checklist-resource slice so
 existing LMS lessons drop old standalone heading or resource references and
 preserve Anu source order. Require zero failed and zero ignored rows.
+Checklist fallback names are shortened from the first four words of the first
+checklist item when no preceding heading is available. Video fallback names are
+numbered within each source lesson (`Video 1`, `Video 2`, and so on), not by
+global paragraph ID. Re-run the checklist and section migrations with
+`--update` after deploying this naming behavior.
 
 ## 10. Audit lesson activity references
 
@@ -272,6 +281,32 @@ foreach ($lesson_storage->loadMultiple($lesson_ids) as $lesson) {
 }
 var_export($missing);
 echo PHP_EOL;
+'
+```
+
+The following audit lists migrated activities that are not referenced by any
+current LMS lesson. After update `10015`, expected remaining rows should be
+limited to deliberately standalone LMS-native activities or migrated activities
+whose dependent lessons have not yet been updated:
+
+```bash
+drush php:eval '
+$referenced = [];
+$lesson_storage = \Drupal::entityTypeManager()->getStorage("lms_lesson");
+foreach ($lesson_storage->loadMultiple(\Drupal::entityQuery("lms_lesson")->accessCheck(FALSE)->execute()) as $lesson) {
+  foreach ($lesson->get("activities") as $item) {
+    if (!$item->isEmpty()) {
+      $referenced[(int) $item->target_id] = TRUE;
+    }
+  }
+}
+$activity_storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
+$ids = \Drupal::entityQuery("lms_activity")->accessCheck(FALSE)->execute();
+foreach ($activity_storage->loadMultiple($ids) as $activity) {
+  if (!isset($referenced[(int) $activity->id()])) {
+    echo $activity->id(), " ", $activity->bundle(), " ", $activity->label(), PHP_EOL;
+  }
+}
 '
 ```
 

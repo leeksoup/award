@@ -110,7 +110,10 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
             ));
           }
           $row['activity_type'] = 'video';
-          $row['name'] = $heading ?? 'Video ' . $block->id();
+          $row['name'] = $heading ?? 'Video ' . AnuLessonBlockHelper::lessonBundleOrdinal(
+            $block,
+            'lesson_embedded_video',
+          );
           $row['video_url'] = $embed_url;
           break;
 

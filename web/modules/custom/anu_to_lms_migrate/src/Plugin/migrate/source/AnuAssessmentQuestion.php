@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\anu_to_lms_migrate\Plugin\migrate\source;
 
+use Drupal\anu_to_lms_migrate\AnuLessonBlockHelper;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
@@ -149,19 +150,10 @@ final class AnuAssessmentQuestion extends SourcePluginBase {
    * Builds a compact activity title from the full Anu question prompt.
    */
   private function activityName(string $prompt, int $paragraph_id): string {
-    $plain = trim(preg_replace('/\s+/', ' ', strip_tags($prompt)) ?? '');
-    if ($plain === '') {
-      return 'Question ' . $paragraph_id;
-    }
-
-    $words = preg_split('/\s+/', $plain) ?: [];
-    $words = array_slice($words, 0, 4);
-    $title = trim(implode(' ', $words), " \t\n\r\0\x0B.,;:!?()[]{}");
-    if ($title === '') {
-      return 'Question ' . $paragraph_id;
-    }
-
-    return mb_strimwidth($title, 0, 80, '...');
+    return AnuLessonBlockHelper::compactTitle(
+      $prompt,
+      'Question ' . $paragraph_id,
+    );
   }
 
   /**

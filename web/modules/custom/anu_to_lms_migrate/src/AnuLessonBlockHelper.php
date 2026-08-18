@@ -61,6 +61,61 @@ final class AnuLessonBlockHelper {
   }
 
   /**
+   * Builds a compact title from the first words of source text.
+   */
+  public static function compactTitle(
+    string $text,
+    string $fallback,
+    int $word_count = 4,
+  ): string {
+    $plain = trim(preg_replace('/\s+/', ' ', strip_tags($text)) ?? '');
+    if ($plain === '') {
+      return $fallback;
+    }
+
+    $words = preg_split('/\s+/', $plain) ?: [];
+    $title = trim(
+      implode(' ', array_slice($words, 0, $word_count)),
+      " \t\n\r\0\x0B.,;:!?()[]{}",
+    );
+    return $title === '' ? $fallback : mb_strimwidth($title, 0, 80, '...');
+  }
+
+  /**
+   * Returns the 1-based ordinal of this block within its lesson for a bundle.
+   */
+  public static function lessonBundleOrdinal(
+    ContentEntityInterface $activity,
+    string $bundle,
+  ): int {
+    $lesson = self::parentLesson($activity);
+    if (
+      $lesson === NULL
+      || !$lesson->hasField('field_module_lesson_content')
+    ) {
+      return 1;
+    }
+
+    $ordinal = 0;
+    foreach ($lesson->get('field_module_lesson_content')->referencedEntities() as $section) {
+      if (!$section->hasField('field_lesson_section_content')) {
+        continue;
+      }
+      foreach ($section->get('field_lesson_section_content')->referencedEntities() as $item) {
+        if ($item->bundle() !== $bundle) {
+          continue;
+        }
+        $ordinal++;
+        if ((int) $item->id() === (int) $activity->id()) {
+          return $ordinal;
+        }
+      }
+    }
+
+    return 1;
+  }
+
+  /**
    * Returns the nearest immediately preceding Anu heading for an activity.
    */
   public static function headingForActivity(ContentEntityInterface $activity): ?string {
@@ -130,6 +185,41 @@ final class AnuLessonBlockHelper {
    */
   private static function isTransparentBundle(string $bundle): bool {
     return in_array($bundle, self::TRANSPARENT_BUNDLES, TRUE);
+  }
+
+  /**
+   * Returns the parent lesson node for an Anu lesson-section content block.
+   */
+  private static function parentLesson(ContentEntityInterface $activity): ?ContentEntityInterface {
+    $parent_type = $activity->get('parent_type')->value ?? NULL;
+    $parent_id = $activity->get('parent_id')->value ?? NULL;
+    if (!$parent_type || !$parent_id) {
+      return NULL;
+    }
+
+    $section = \Drupal::entityTypeManager()
+      ->getStorage((string) $parent_type)
+      ->load((int) $parent_id);
+    if (!$section instanceof ContentEntityInterface) {
+      return NULL;
+    }
+    if (
+      !$section->hasField('parent_type')
+      || !$section->hasField('parent_id')
+    ) {
+      return NULL;
+    }
+
+    $lesson_type = $section->get('parent_type')->value ?? NULL;
+    $lesson_id = $section->get('parent_id')->value ?? NULL;
+    if (!$lesson_type || !$lesson_id) {
+      return NULL;
+    }
+
+    $lesson = \Drupal::entityTypeManager()
+      ->getStorage((string) $lesson_type)
+      ->load((int) $lesson_id);
+    return $lesson instanceof ContentEntityInterface ? $lesson : NULL;
   }
 
   /**
