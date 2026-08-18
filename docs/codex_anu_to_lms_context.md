@@ -59,6 +59,11 @@ If Drupal UI lesson edit forms warn about an undefined `free_text` array key in
 the LMS reference-table widget, run update `10014`; it covers staged databases
 that may have already executed an earlier cache-only `10013` before the
 `free_text` bundle config was added.
+If student/course playback reaches a `free_text` activity but renders only
+Back/Submit buttons, re-run `anu_to_lms_paragraph_assessment_questions` with
+`--update`, update `anu_to_lms_node_module_lessons`, and reset the test course
+status. The missing answer widget means the active activity revision has an
+empty LMS `questions` field.
 
 ## Course migration decisions
 

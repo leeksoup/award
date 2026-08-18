@@ -80,6 +80,11 @@ drush migrate:import anu_to_lms_paragraph_assessment_questions --update -y
 drush migrate:import anu_to_lms_node_module_lessons --update -y
 ```
 
+If free-text question activities were imported before the `free_text` bundle
+fields were installed, update the question migration after `drush updb -y`.
+Reset the affected staging course progress with `drush lms:reset-course` so
+student playback uses the current lesson/activity revisions.
+
 ## Runnable course slice
 
 The course migration traverses each Anu course's `field_course_module`

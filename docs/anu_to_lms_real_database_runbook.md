@@ -379,6 +379,23 @@ revision containing update `10014`, then run `drush updb -y` and `drush cr`.
 The `drush config:get lms.lms_activity_type.free_text` command above must show
 `pluginId: free_text` before reopening lesson edit forms.
 
+If a free-text activity loads in student/course playback with only Back/Submit
+buttons and no answer field, its `questions` field is empty in the active
+activity revision. This can happen when the question migration was first run
+before the `free_text` field configuration existed. Re-run the question and
+lesson migrations in update mode, then reset the affected test course progress
+so LMS recreates lesson statuses from the current activity list/revisions:
+
+```bash
+drush migrate:import anu_to_lms_paragraph_assessment_questions --update -y
+drush migrate:import anu_to_lms_node_module_lessons --update -y
+drush lms:reset-course COURSE_ID USER_ID
+drush cr
+```
+
+Use `drush lms:reset-course COURSE_ID` only on staging when all course
+progress/answers for that course can be discarded.
+
 Spot-check all imported question activity bundles at `/admin/lms/activity` and
 assessment lessons at `/admin/lms/lesson`. Confirm radio buttons for single
 choice, checkboxes for multiple choice, text entry for free-text questions,
