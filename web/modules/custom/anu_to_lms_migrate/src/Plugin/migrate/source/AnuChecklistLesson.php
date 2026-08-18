@@ -60,12 +60,26 @@ final class AnuChecklistLesson extends SourcePluginBase {
     foreach ($storage->loadMultiple($ids) as $lesson) {
       $activities = [];
       $delta = 0;
+      $previous_free_text_question = FALSE;
       if ($lesson->hasField('field_module_lesson_content')) {
         foreach ($lesson->get('field_module_lesson_content')->referencedEntities() as $section) {
           if (!$section->hasField('field_lesson_section_content')) {
             continue;
           }
           foreach ($section->get('field_lesson_section_content')->referencedEntities() as $block) {
+            if (AnuLessonBlockHelper::isFreeTextQuestionBundle($block->bundle())) {
+              if ($previous_free_text_question) {
+                continue;
+              }
+              $previous_free_text_question = TRUE;
+              $activities[] = [
+                'delta' => $delta++,
+                'paragraph_id' => (int) $block->id(),
+              ];
+              continue;
+            }
+
+            $previous_free_text_question = FALSE;
             if (!AnuLessonBlockHelper::isLessonActivityBundle($block->bundle())) {
               continue;
             }

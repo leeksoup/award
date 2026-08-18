@@ -37,6 +37,14 @@ final class AnuLessonBlockHelper {
   ];
 
   /**
+   * Anu question bundles that map to the LMS free_text questions field.
+   */
+  private const FREE_TEXT_QUESTION_BUNDLES = [
+    'question_short_answer',
+    'question_long_answer',
+  ];
+
+  /**
    * Source blocks ignored when associating headings/resources to activities.
    */
   private const TRANSPARENT_BUNDLES = [
@@ -58,6 +66,13 @@ final class AnuLessonBlockHelper {
    */
   public static function isAssessmentActivityBundle(string $bundle): bool {
     return in_array($bundle, self::ASSESSMENT_ACTIVITY_BUNDLES, TRUE);
+  }
+
+  /**
+   * Checks whether an Anu question wrapper maps to LMS free_text.
+   */
+  public static function isFreeTextQuestionBundle(string $bundle): bool {
+    return in_array($bundle, self::FREE_TEXT_QUESTION_BUNDLES, TRUE);
   }
 
   /**

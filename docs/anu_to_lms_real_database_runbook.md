@@ -85,6 +85,8 @@ Update `10015` removes stale migrated LMS activities from older lesson-section
 test runs when their source paragraph bundle is no longer migrated and no
 current LMS lesson references the activity. It intentionally does not delete
 author-created LMS activities or currently supported migrated activities.
+Update `10016` clears cached migration definitions so adjacent short/long
+answer questions are discovered as grouped LMS `free_text` activities.
 
 Verify that there are no pending database updates:
 
@@ -407,8 +409,11 @@ drush migrate:import anu_to_lms_node_module_assessments -y
 The slice supports `question_single_choice`, `question_multi_choice`,
 `question_short_answer`, and `question_long_answer`. Choice questions preserve
 option order and correctness flags. Short/long-answer questions become
-manually evaluated `free_text` activities. Assessment text and heading blocks
-are resolved through the section-activity migration. Do not treat an assessment
+manually evaluated `free_text` activities. Adjacent short/long-answer question
+blocks in the same lesson or assessment are grouped into one LMS `free_text`
+activity keyed by the first source paragraph ID; each Anu prompt is stored as
+one item in the LMS `questions` field. Assessment text and heading blocks are
+resolved through the section-activity migration. Do not treat an assessment
 containing scale or Likert question bundles as complete; inventory those
 bundles before UAT.
 Migrated question activity names are intentionally short titles derived from
@@ -433,6 +438,7 @@ so LMS recreates lesson statuses from the current activity list/revisions:
 ```bash
 drush migrate:import anu_to_lms_paragraph_assessment_questions --update -y
 drush migrate:import anu_to_lms_node_module_lessons --update -y
+drush migrate:import anu_to_lms_node_module_assessments --update -y
 drush lms:reset-course COURSE_ID USER_ID
 drush cr
 ```

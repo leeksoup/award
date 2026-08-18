@@ -155,8 +155,8 @@ Use Quiz module later only if needed for features like:
 |---|---|---|---|
 | `question_single_choice` | `select` (or feedback variant) | map prompt/options/correct answer | P0 |
 | `question_multi_choice` | `select` (multi if supported) | map prompt/options/correct set | P0 |
-| `question_short_answer` | `free_text` (or feedback variant) | map prompt + expected guidance | P1 |
-| `question_long_answer` | `free_text` | map prompt + rubric hints | P1 |
+| `question_short_answer` | `free_text` (or feedback variant) | map prompt + expected guidance; group adjacent short/long-answer lesson or assessment questions into one activity using the LMS `questions` array | P1 |
+| `question_long_answer` | `free_text` | map prompt + rubric hints; group adjacent short/long-answer lesson or assessment questions into one activity using the LMS `questions` array | P1 |
 | `question_scale` / `question_likert_scale` | closest LMS plugin or custom plugin | implement transform after capability validation | P1 |
 | `single_multi_choice_item` | option row | attach to parent question in order | P0 |
 

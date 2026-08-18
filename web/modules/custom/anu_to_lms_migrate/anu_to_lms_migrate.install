@@ -350,6 +350,13 @@ function anu_to_lms_migrate_update_10015(): void {
 }
 
 /**
+ * Refreshes migration discovery for grouped free-text question activities.
+ */
+function anu_to_lms_migrate_update_10016(): void {
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
  * Deletes unreferenced mapped activities whose source bundles are now ignored.
  */
 function _anu_to_lms_migrate_delete_stale_activity_map_rows(
