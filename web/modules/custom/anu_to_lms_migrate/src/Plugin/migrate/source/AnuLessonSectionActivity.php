@@ -91,8 +91,10 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
           if ($item === NULL || trim((string) $item->value) === '') {
             continue 2;
           }
-          $default_name = mb_strimwidth(trim(strip_tags((string) $item->value)), 0, 220, '…');
-          $row['name'] = $heading ?? $default_name;
+          $row['name'] = $heading ?? AnuLessonBlockHelper::compactTitle(
+            (string) $item->value,
+            'Content ' . $block->id(),
+          );
           $row['body'] = [[
             'value' => (string) $item->value,
             'format' => (string) ($item->format ?: 'minimal_html'),
@@ -110,7 +112,17 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
             ));
           }
           $row['activity_type'] = 'video';
-          $row['name'] = $heading ?? 'Video ' . $block->id();
+          $video_count = AnuLessonBlockHelper::lessonBundleCount(
+            $block,
+            'lesson_embedded_video',
+          );
+          $video_name = $video_count === 1
+            ? 'Video'
+            : 'Video ' . AnuLessonBlockHelper::lessonBundleOrdinal(
+              $block,
+              'lesson_embedded_video',
+            );
+          $row['name'] = $heading ?? $video_name;
           $row['video_url'] = $embed_url;
           break;
 

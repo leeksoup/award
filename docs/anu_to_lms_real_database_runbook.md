@@ -16,10 +16,10 @@ also covers the media/resource lesson-content slice:
    currently unsupported image blocks are ignored for heading adjacency.
 
 This is a staging/verification procedure, not a production cutover runbook.
-Images, short/long-answer questions, scale/Likert questions, and complete
-learning paths are not runnable yet. Single/multiple choice assessments are
-available as a staging slice. Treat all new activity types as requiring staging
-validation before production use.
+Images, scale/Likert questions, and complete learning paths are not runnable
+yet. Single/multiple-choice and short/long-answer questions are available as a
+staging slice. Treat all new activity types as requiring staging validation
+before production use.
 
 The source and destination are in the same active Drupal database. Always take
 a restorable backup before running database updates or migrations.
@@ -81,6 +81,12 @@ earlier test bundle/field (`anu_checklist` and
 `field_anu_checklist_body`) to reusable LMS names (`checklist` and
 `field_checklist_body`). It preserves activity IDs so existing lesson
 references and migration map entries remain valid.
+Update `10015` removes stale migrated LMS activities from older lesson-section
+test runs when their source paragraph bundle is no longer migrated and no
+current LMS lesson references the activity. It intentionally does not delete
+author-created LMS activities or currently supported migrated activities.
+Update `10016` clears cached migration definitions so adjacent short/long
+answer questions are discovered as grouped LMS `free_text` activities.
 
 Verify that there are no pending database updates:
 
@@ -251,6 +257,16 @@ drush migrate:import anu_to_lms_node_module_lessons --update -y
 Run the lesson update after deploying the heading/checklist-resource slice so
 existing LMS lessons drop old standalone heading or resource references and
 preserve Anu source order. Require zero failed and zero ignored rows.
+Checklist fallback names are shortened from the first four words of the first
+checklist item when no preceding heading is available, except the first
+checklist in each lesson is named `Ready Check`. The first checklist also gets
+`Silence distractions` and `Have a pen ready` at the end of its body bullets.
+Text/content fallback names are shortened from the first four source words
+when no preceding heading is available. Video fallback names are `Video` when
+there is only one video in a source lesson, or numbered within the source
+lesson (`Video 1`, `Video 2`, and so on) when there are multiple videos. Re-run
+the checklist and section migrations with `--update` after deploying this
+naming behavior.
 
 ## 10. Audit lesson activity references
 
@@ -272,6 +288,32 @@ foreach ($lesson_storage->loadMultiple($lesson_ids) as $lesson) {
 }
 var_export($missing);
 echo PHP_EOL;
+'
+```
+
+The following audit lists migrated activities that are not referenced by any
+current LMS lesson. After update `10015`, expected remaining rows should be
+limited to deliberately standalone LMS-native activities or migrated activities
+whose dependent lessons have not yet been updated:
+
+```bash
+drush php:eval '
+$referenced = [];
+$lesson_storage = \Drupal::entityTypeManager()->getStorage("lms_lesson");
+foreach ($lesson_storage->loadMultiple(\Drupal::entityQuery("lms_lesson")->accessCheck(FALSE)->execute()) as $lesson) {
+  foreach ($lesson->get("activities") as $item) {
+    if (!$item->isEmpty()) {
+      $referenced[(int) $item->target_id] = TRUE;
+    }
+  }
+}
+$activity_storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
+$ids = \Drupal::entityQuery("lms_activity")->accessCheck(FALSE)->execute();
+foreach ($activity_storage->loadMultiple($ids) as $activity) {
+  if (!isset($referenced[(int) $activity->id()])) {
+    echo $activity->id(), " ", $activity->bundle(), " ", $activity->label(), PHP_EOL;
+  }
+}
 '
 ```
 
@@ -342,38 +384,78 @@ source database from a source-discovery problem:
 
 ```bash
 drush php:eval 'echo "module_assessment: ", \Drupal::entityQuery("node")->accessCheck(FALSE)->condition("type", "module_assessment")->count()->execute(), PHP_EOL;'
-drush php:eval 'echo "single choice wrappers: ", \Drupal::entityQuery("paragraph")->accessCheck(FALSE)->condition("type", "question_single_choice")->count()->execute(), PHP_EOL; echo "multiple choice wrappers: ", \Drupal::entityQuery("paragraph")->accessCheck(FALSE)->condition("type", "question_multi_choice")->count()->execute(), PHP_EOL;'
+drush php:eval 'foreach (["question_single_choice", "question_multi_choice", "question_short_answer", "question_long_answer"] as $type) { echo $type, ": ", \Drupal::entityQuery("paragraph")->accessCheck(FALSE)->condition("type", $type)->count()->execute(), PHP_EOL; }'
 ```
 
 The question source follows the current `field_module_assessment_items`
-references from assessment nodes rather than relying on paragraph parent
-metadata. Consequently, orphaned question paragraphs are intentionally not
-migrated.
+references from assessment nodes and the ordered `field_lesson_section_content`
+references from lesson sections rather than relying on paragraph parent
+metadata alone. Consequently, orphaned question paragraphs are intentionally
+not migrated.
 
 ```bash
 drush en lms_answer_plugins -y
 drush updb -y
 drush cr
+drush config:get lms.lms_activity_type.free_text
 drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 drush migrate:status anu_to_lms_paragraph_assessment_questions
 drush migrate:status anu_to_lms_node_module_assessments
 drush migrate:import anu_to_lms_paragraph_assessment_questions -y
+drush migrate:import anu_to_lms_node_module_lessons --update -y
 drush migrate:import anu_to_lms_node_module_assessments -y
 ```
 
-The slice supports only `question_single_choice` and
-`question_multi_choice`. It preserves option order and correctness flags.
-Assessment text and heading blocks are resolved through the section-activity
-migration. Do not treat an assessment containing deferred question bundles as
-complete; inventory those bundles before UAT.
+The slice supports `question_single_choice`, `question_multi_choice`,
+`question_short_answer`, and `question_long_answer`. Choice questions preserve
+option order and correctness flags. Short/long-answer questions become
+manually evaluated `free_text` activities. Adjacent short/long-answer question
+blocks in the same lesson or assessment are grouped into one LMS `free_text`
+activity keyed by the first source paragraph ID; each Anu prompt is stored as
+one item in the LMS `questions` field. Grouped activities with more than one
+prompt are named `Questions`. Assessment text and heading blocks are
+resolved through the section-activity migration. Do not treat an assessment
+containing scale or Likert question bundles as complete; inventory those
+bundles before UAT.
+Migrated question activity names are intentionally short titles derived from
+the first words of the Anu question prompt. The full Anu prompt is stored in
+the LMS `question` field for select activities and the LMS `questions` field
+for free-text activities.
 
-Spot-check both activity bundles at `/admin/lms/activity` and assessment lessons
-at `/admin/lms/lesson`. Confirm radio buttons for single choice, checkboxes for
-multiple choice, correct option order, scoring behavior, and assessment item
-order. Roll back assessment lessons before question activities:
+If the Drupal UI reports `Undefined array key "free_text"` from
+`LMSReferenceTable`, the active site has `free_text` activities but is missing
+the matching `lms.lms_activity_type.free_text` bundle configuration. Deploy the
+revision containing update `10014`, then run `drush updb -y` and `drush cr`.
+The `drush config:get lms.lms_activity_type.free_text` command above must show
+`pluginId: free_text` before reopening lesson edit forms.
+
+If a free-text activity loads in student/course playback with only Back/Submit
+buttons and no answer field, its `questions` field is empty in the active
+activity revision. This can happen when the question migration was first run
+before the `free_text` field configuration existed. Re-run the question and
+lesson migrations in update mode, then reset the affected test course progress
+so LMS recreates lesson statuses from the current activity list/revisions:
+
+```bash
+drush migrate:import anu_to_lms_paragraph_assessment_questions --update -y
+drush migrate:import anu_to_lms_node_module_lessons --update -y
+drush migrate:import anu_to_lms_node_module_assessments --update -y
+drush lms:reset-course COURSE_ID USER_ID
+drush cr
+```
+
+Use `drush lms:reset-course COURSE_ID` only on staging when all course
+progress/answers for that course can be discarded.
+
+Spot-check all imported question activity bundles at `/admin/lms/activity` and
+assessment lessons at `/admin/lms/lesson`. Confirm radio buttons for single
+choice, checkboxes for multiple choice, text entry for free-text questions,
+correct option order, scoring/manual-evaluation behavior, and assessment item
+order. Roll back dependent lessons before question activities:
 
 ```bash
 drush migrate:rollback anu_to_lms_node_module_assessments -y
+drush migrate:rollback anu_to_lms_node_module_lessons -y
 drush migrate:rollback anu_to_lms_paragraph_assessment_questions -y
 ```
 

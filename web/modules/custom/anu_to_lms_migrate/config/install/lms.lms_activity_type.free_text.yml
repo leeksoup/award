@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  module: [lms_answer_plugins]
+id: free_text
+name: 'Free text'
+description: 'A question with a manually evaluated text response.'
+pluginId: free_text
+pluginConfiguration: {  }
+defaultMaxScore: 1

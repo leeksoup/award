@@ -304,3 +304,129 @@ function anu_to_lms_migrate_update_10012(): void {
 
   \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
 }
+
+/**
+ * Installs free-text question config and refreshes question discovery.
+ */
+function anu_to_lms_migrate_update_10013(): void {
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
+ * Ensures free-text question activity bundles exist on staged databases.
+ */
+function anu_to_lms_migrate_update_10014(): void {
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+  \Drupal::service('entity_type.bundle.info')->clearCachedBundles();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
+ * Removes migrated stale activities that no current lesson references.
+ */
+function anu_to_lms_migrate_update_10015(): void {
+  $deleted = _anu_to_lms_migrate_delete_stale_activity_map_rows([
+    'anu_to_lms_paragraph_lesson_sections' => [
+      'lesson_text',
+      'lesson_embedded_video',
+      'lesson_audio',
+    ],
+  ]);
+
+  \Drupal::logger('anu_to_lms_migrate')->notice(
+    'Deleted @count stale migrated LMS activities.',
+    ['@count' => $deleted],
+  );
+
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
+ * Refreshes migration discovery for grouped free-text question activities.
+ */
+function anu_to_lms_migrate_update_10016(): void {
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
+ * Deletes unreferenced mapped activities whose source bundles are now ignored.
+ */
+function _anu_to_lms_migrate_delete_stale_activity_map_rows(
+  array $migration_bundles,
+): int {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+  $referenced_ids = _anu_to_lms_migrate_referenced_activity_ids();
+  $activity_storage = \Drupal::entityTypeManager()->getStorage('lms_activity');
+  $paragraph_storage = \Drupal::entityTypeManager()->getStorage('paragraph');
+  $deleted = 0;
+
+  foreach ($migration_bundles as $migration_id => $supported_bundles) {
+    $map_table = 'migrate_map_' . $migration_id;
+    if (!$schema->tableExists($map_table)) {
+      continue;
+    }
+
+    $rows = $database->select($map_table, 'm')
+      ->fields('m', ['sourceid1', 'destid1'])
+      ->isNotNull('m.destid1')
+      ->execute()
+      ->fetchAllAssoc('destid1');
+
+    foreach ($rows as $destination_id => $row) {
+      $activity_id = (int) $destination_id;
+      if (isset($referenced_ids[$activity_id])) {
+        continue;
+      }
+
+      $source = $paragraph_storage->load((int) $row->sourceid1);
+      if (
+        $source !== NULL
+        && in_array($source->bundle(), $supported_bundles, TRUE)
+      ) {
+        continue;
+      }
+
+      $activity = $activity_storage->load($activity_id);
+      $activity?->delete();
+      $database->delete($map_table)
+        ->condition('destid1', $activity_id)
+        ->execute();
+      $deleted++;
+    }
+  }
+
+  return $deleted;
+}
+
+/**
+ * Returns activity IDs referenced by current LMS lessons.
+ */
+function _anu_to_lms_migrate_referenced_activity_ids(): array {
+  $ids = [];
+  $lesson_storage = \Drupal::entityTypeManager()->getStorage('lms_lesson');
+  $lesson_ids = $lesson_storage->getQuery()
+    ->accessCheck(FALSE)
+    ->execute();
+
+  foreach ($lesson_storage->loadMultiple($lesson_ids) as $lesson) {
+    if (!$lesson->hasField('activities')) {
+      continue;
+    }
+    foreach ($lesson->get('activities') as $item) {
+      if (!$item->isEmpty()) {
+        $ids[(int) $item->target_id] = TRUE;
+      }
+    }
+  }
+
+  return $ids;
+}

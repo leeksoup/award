@@ -60,10 +60,25 @@ final class AnuAssessmentLesson extends SourcePluginBase {
     foreach ($storage->loadMultiple($ids) as $assessment) {
       $activities = [];
       $delta = 0;
+      $previous_free_text_question = FALSE;
       foreach ($assessment->get('field_module_assessment_items')->referencedEntities() as $item) {
         if ($item->bundle() === 'lesson_heading') {
+          $previous_free_text_question = FALSE;
           continue;
         }
+        if (AnuLessonBlockHelper::isFreeTextQuestionBundle($item->bundle())) {
+          if ($previous_free_text_question) {
+            continue;
+          }
+          $previous_free_text_question = TRUE;
+          $activities[] = [
+            'delta' => $delta++,
+            'paragraph_id' => (int) $item->id(),
+          ];
+          continue;
+        }
+
+        $previous_free_text_question = FALSE;
         if (AnuLessonBlockHelper::isAssessmentActivityBundle($item->bundle())) {
           $activities[] = [
             'delta' => $delta++,

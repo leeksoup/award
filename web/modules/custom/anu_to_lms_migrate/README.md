@@ -36,13 +36,18 @@ preserving page/block order. Other lesson block types are intentionally not
 included yet.
 
 The next runnable assessment slice converts single- and multiple-choice
-questions to LMS `select` activities and each supported `module_assessment` to
-an LMS lesson. Short/long answer, scale, and Likert questions remain deferred.
+questions to LMS `select` activities, short/long-answer questions to LMS
+`free_text` activities, and each supported `module_assessment` to an LMS
+lesson. Adjacent short/long-answer question blocks in a lesson or assessment
+are grouped into one LMS `free_text` activity by storing each prompt as an item
+in the activity's `questions` field. Grouped activities with more than one
+prompt are named `Questions`. Scale and Likert questions remain deferred.
 Existing installations must enable `lms_answer_plugins` before running database
 updates for this slice.
 Question discovery follows the current `field_module_assessment_items`
-references on `module_assessment` nodes, so it works with revisioned paragraph
-references and excludes orphaned question wrappers.
+references on `module_assessment` nodes and the ordered
+`field_lesson_section_content` references on lesson sections, so it works with
+revisioned paragraph references and excludes orphaned question wrappers.
 
 Target LMS configuration uses reusable names (`checklist` and
 `field_checklist_body`) so authors can create new LMS-native checklist
@@ -58,10 +63,11 @@ activity type and field configuration are created, then run the slice:
 drush en anu_to_lms_migrate -y
 drush updb -y
 drush cr
+drush config:get lms.lms_activity_type.free_text
 drush migrate:import anu_to_lms_paragraph_lesson_checklists -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections -y
-drush migrate:import anu_to_lms_node_module_lessons -y
 drush migrate:import anu_to_lms_paragraph_assessment_questions -y
+drush migrate:import anu_to_lms_node_module_lessons -y
 drush migrate:import anu_to_lms_node_module_assessments -y
 drush migrate:import anu_to_lms_node_courses -y
 ```
@@ -73,8 +79,29 @@ migrations with `--update` after `drush updb -y` and `drush cr`:
 ```bash
 drush migrate:import anu_to_lms_paragraph_lesson_checklists --update -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections --update -y
+drush migrate:import anu_to_lms_paragraph_assessment_questions --update -y
 drush migrate:import anu_to_lms_node_module_lessons --update -y
 ```
+
+Database update `10015` removes stale, unreferenced migrated activities from
+older lesson-section test runs when their source paragraph bundle is no longer
+supported by the current migration. Checklist fallback names are shortened from
+the first four words of the first checklist item, except the first checklist in
+each lesson is named `Ready Check` and receives `Silence distractions` and
+`Have a pen ready` at the end of its body bullets. Content fallback names are
+also shortened from the first four source words. Fallback video names are
+`Video` when a lesson has one video, or numbered per source lesson when a
+lesson has multiple videos.
+
+If free-text question activities were imported before the `free_text` bundle
+fields were installed, update the question migration after `drush updb -y`.
+Reset the affected staging course progress with `drush lms:reset-course` so
+student playback uses the current lesson/activity revisions.
+Question activity titles are generated as short labels from the first words of
+the Anu question prompt. The full prompt is migrated into the plugin-specific
+LMS question field. Grouped free-text activities are keyed by the first source
+question paragraph in the adjacent run and use `Questions` as the activity
+name when they contain more than one prompt.
 
 ## Runnable course slice
 

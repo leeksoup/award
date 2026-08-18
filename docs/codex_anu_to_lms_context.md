@@ -19,8 +19,8 @@ real-database procedure remains authoritative for execution and rollback:
   target bodies were audited successfully after fixing the literal `Array`
   value problem.
 - 39 `module_lesson` nodes were migrated to LMS lessons.
-- The source database contains no assessments to migrate. Assessment support
-  exists for later content but zero rows is currently expected.
+- The source database contains no standalone assessment nodes to migrate, but
+  lesson-embedded question paragraphs may produce question activity rows.
 - There are 3 courses containing 39 distinct ordered lesson references:
   - course 870: 11 lessons
   - course 896: 15 lessons
@@ -35,8 +35,8 @@ Do not put redacted course or lesson titles into committed documentation.
 ```text
 anu_to_lms_paragraph_lesson_checklists
 anu_to_lms_paragraph_lesson_sections
+anu_to_lms_paragraph_assessment_questions
 anu_to_lms_node_module_lessons
-anu_to_lms_paragraph_assessment_questions   (currently zero source rows)
 anu_to_lms_node_module_assessments          (currently zero source rows)
 anu_to_lms_node_courses
 ```
@@ -52,6 +52,36 @@ Anu resource documents are appended inside the immediately preceding checklist
 activity body using `RESOURCE_NAME: RESOURCE_DESCRIPTION`, with the resource
 name linked to the document file. Unsupported providers and unresolved
 required audio or resource files must fail with source context.
+Checklist fallback names are shortened from the first four words of the first
+checklist item when there is no preceding heading, except the first checklist
+in a lesson is named `Ready Check`. The first checklist also receives
+`Silence distractions` and `Have a pen ready` at the end of its body bullets.
+Text/content fallback names are shortened from the first four source words
+when there is no preceding heading. Video fallback names are `Video` when a
+lesson has one video, or numbered per source lesson when a lesson has multiple
+videos.
+Update `10015` deletes unreferenced migrated activities from older
+lesson-section test runs only when their source paragraph bundle is no longer
+supported by the current migration.
+Question activity migration supports single/multiple-choice wrappers as LMS
+`select` activities and short/long-answer wrappers as manually evaluated LMS
+`free_text` activities. Scale and Likert questions remain deferred.
+Adjacent short/long-answer question blocks in a lesson or assessment are
+grouped into one LMS `free_text` activity keyed by the first source paragraph
+ID, with each Anu prompt stored as an item in the LMS `questions` field. When
+more than one prompt is grouped, the LMS activity name is `Questions`.
+Question activity titles are shortened from the source prompt; the complete
+Anu question prompt belongs in the LMS question/questions field, not in the
+activity title.
+If Drupal UI lesson edit forms warn about an undefined `free_text` array key in
+the LMS reference-table widget, run update `10014`; it covers staged databases
+that may have already executed an earlier cache-only `10013` before the
+`free_text` bundle config was added.
+If student/course playback reaches a `free_text` activity but renders only
+Back/Submit buttons, re-run `anu_to_lms_paragraph_assessment_questions` with
+`--update`, update `anu_to_lms_node_module_lessons`, and reset the test course
+status. The missing answer widget means the active activity revision has an
+empty LMS `questions` field.
 
 ## Course migration decisions
 

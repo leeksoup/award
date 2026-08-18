@@ -77,11 +77,36 @@ final class AnuLessonChecklist extends SourcePluginBase {
         }
       }
 
-      $plain_title = trim(strip_tags((string) ($items[0]['text'] ?? '')));
-      $title = $plain_title === ''
-        ? 'Checklist ' . $checklist->id()
-        : 'Checklist: ' . mb_strimwidth($plain_title, 0, 220, '…');
+      $checklist_count = AnuLessonBlockHelper::lessonBundleCount(
+        $checklist,
+        'lesson_checklist',
+      );
+      $checklist_ordinal = AnuLessonBlockHelper::lessonBundleOrdinal(
+        $checklist,
+        'lesson_checklist',
+      );
+      $is_first_checklist = $checklist_count > 0 && $checklist_ordinal === 1;
+      if ($is_first_checklist) {
+        $next_delta = count($items);
+        $items[] = [
+          'delta' => $next_delta,
+          'text' => 'Silence distractions',
+          'description' => '',
+        ];
+        $items[] = [
+          'delta' => $next_delta + 1,
+          'text' => 'Have a pen ready',
+          'description' => '',
+        ];
+      }
+
       $heading = AnuLessonBlockHelper::headingForActivity($checklist);
+      $title = $is_first_checklist
+        ? 'Ready Check'
+        : AnuLessonBlockHelper::compactTitle(
+          (string) ($items[0]['text'] ?? ''),
+          'Checklist ' . $checklist->id(),
+        );
       $resources = [];
       foreach (
         AnuLessonBlockHelper::followingResourcesForChecklist($checklist)
