@@ -412,7 +412,8 @@ option order and correctness flags. Short/long-answer questions become
 manually evaluated `free_text` activities. Adjacent short/long-answer question
 blocks in the same lesson or assessment are grouped into one LMS `free_text`
 activity keyed by the first source paragraph ID; each Anu prompt is stored as
-one item in the LMS `questions` field. Assessment text and heading blocks are
+one item in the LMS `questions` field. Grouped activities with more than one
+prompt are named `Questions`. Assessment text and heading blocks are
 resolved through the section-activity migration. Do not treat an assessment
 containing scale or Likert question bundles as complete; inventory those
 bundles before UAT.

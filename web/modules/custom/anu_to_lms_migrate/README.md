@@ -40,8 +40,8 @@ questions to LMS `select` activities, short/long-answer questions to LMS
 `free_text` activities, and each supported `module_assessment` to an LMS
 lesson. Adjacent short/long-answer question blocks in a lesson or assessment
 are grouped into one LMS `free_text` activity by storing each prompt as an item
-in the activity's `questions` field. Scale and Likert questions remain
-deferred.
+in the activity's `questions` field. Grouped activities with more than one
+prompt are named `Questions`. Scale and Likert questions remain deferred.
 Existing installations must enable `lms_answer_plugins` before running database
 updates for this slice.
 Question discovery follows the current `field_module_assessment_items`
@@ -100,7 +100,8 @@ student playback uses the current lesson/activity revisions.
 Question activity titles are generated as short labels from the first words of
 the Anu question prompt. The full prompt is migrated into the plugin-specific
 LMS question field. Grouped free-text activities are keyed by the first source
-question paragraph in the adjacent run.
+question paragraph in the adjacent run and use `Questions` as the activity
+name when they contain more than one prompt.
 
 ## Runnable course slice
 

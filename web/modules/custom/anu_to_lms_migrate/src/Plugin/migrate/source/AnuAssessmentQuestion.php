@@ -177,10 +177,12 @@ final class AnuAssessmentQuestion extends SourcePluginBase {
     return [
       'paragraph_id' => (int) $first->id(),
       'activity_type' => 'free_text',
-      'name' => $this->activityName(
-        (string) ($questions[0]['value'] ?? ''),
-        (int) $first->id(),
-      ),
+      'name' => count($questions) > 1
+        ? 'Questions'
+        : $this->activityName(
+          (string) ($questions[0]['value'] ?? ''),
+          (int) $first->id(),
+        ),
       'question' => NULL,
       'questions' => $questions,
       'answers' => NULL,

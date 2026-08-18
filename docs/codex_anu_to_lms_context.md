@@ -68,7 +68,8 @@ Question activity migration supports single/multiple-choice wrappers as LMS
 `free_text` activities. Scale and Likert questions remain deferred.
 Adjacent short/long-answer question blocks in a lesson or assessment are
 grouped into one LMS `free_text` activity keyed by the first source paragraph
-ID, with each Anu prompt stored as an item in the LMS `questions` field.
+ID, with each Anu prompt stored as an item in the LMS `questions` field. When
+more than one prompt is grouped, the LMS activity name is `Questions`.
 Question activity titles are shortened from the source prompt; the complete
 Anu question prompt belongs in the LMS question/questions field, not in the
 activity title.
