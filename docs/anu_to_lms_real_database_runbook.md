@@ -87,6 +87,9 @@ current LMS lesson references the activity. It intentionally does not delete
 author-created LMS activities or currently supported migrated activities.
 Update `10016` clears cached migration definitions so adjacent short/long
 answer questions are discovered as grouped LMS `free_text` activities.
+Update `10017` clears cached migration definitions so Anu text blocks migrate
+to LMS Content activities using `filtered_html`; this preserves stored `<p>`
+paragraph tags that Anu `minimal_html` strips at render time.
 
 Verify that there are no pending database updates:
 
@@ -206,7 +209,8 @@ drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 
 If this migration has already run on the staging database, update the existing
 activities in place so preceding Anu headings become activity names without
-changing existing destination IDs:
+changing existing destination IDs and text Content bodies switch to
+`filtered_html`:
 
 ```bash
 drush migrate:import anu_to_lms_paragraph_lesson_sections --update -y
@@ -216,6 +220,27 @@ The import stops on unsupported video providers or missing audio files. Resolve
 every reported source paragraph before continuing.
 
 Audit the created media activities before importing/updating lessons:
+
+The following content-format audit must return an empty array after the
+section migration update:
+
+```bash
+drush php:eval '
+$storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
+$ids = \Drupal::entityQuery("lms_activity")->accessCheck(FALSE)->condition("type", "content")->execute();
+$issues = [];
+foreach ($storage->loadMultiple($ids) as $activity) {
+  if ($activity->hasField("field_content_body") && !$activity->get("field_content_body")->isEmpty()) {
+    $format = $activity->get("field_content_body")->format;
+    if ($format !== "filtered_html") {
+      $issues[] = [$activity->id(), $format];
+    }
+  }
+}
+var_export($issues);
+echo PHP_EOL;
+'
+```
 
 ```bash
 drush php:eval '

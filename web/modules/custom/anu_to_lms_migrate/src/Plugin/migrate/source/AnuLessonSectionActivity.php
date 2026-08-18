@@ -97,7 +97,7 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
           );
           $row['body'] = [[
             'value' => (string) $item->value,
-            'format' => (string) ($item->format ?: 'minimal_html'),
+            'format' => 'filtered_html',
           ]];
           break;
 

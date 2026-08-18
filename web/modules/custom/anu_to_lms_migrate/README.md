@@ -27,6 +27,8 @@ plugin. Text, approved YouTube/Vimeo, and audio blocks become reusable
 `content`, `video`, and `audio` display activities. Resource document blocks
 are appended inside the immediately preceding checklist activity body as
 linked resource names followed by their descriptions.
+Text Content activity bodies are stored as `filtered_html` so paragraph tags
+from Anu render as paragraph breaks in Drupal LMS.
 Heading blocks are used as names/titles for the immediately following
 supported activity and are not migrated as standalone activities. Divider and
 currently unsupported image blocks are ignored when pairing a heading with the
