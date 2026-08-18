@@ -83,8 +83,12 @@ drush migrate:import anu_to_lms_node_module_lessons --update -y
 Database update `10015` removes stale, unreferenced migrated activities from
 older lesson-section test runs when their source paragraph bundle is no longer
 supported by the current migration. Checklist fallback names are shortened from
-the first four words of the first checklist item, and fallback video names are
-numbered per source lesson.
+the first four words of the first checklist item, except the first checklist in
+each lesson is named `Ready Check` and receives `Silence distractions` and
+`Have a pen ready` as its first two body bullets. Content fallback names are
+also shortened from the first four source words. Fallback video names are
+`Video` when a lesson has one video, or numbered per source lesson when a
+lesson has multiple videos.
 
 If free-text question activities were imported before the `free_text` bundle
 fields were installed, update the question migration after `drush updb -y`.

@@ -126,10 +126,10 @@ Use Quiz module later only if needed for features like:
 
 | Source paragraph bundle | Source meaning | Target LMS plugin/type | Transform rule | Priority |
 |---|---|---|---|---|
-| `lesson_text` | rich text | content block | Copy formatted text safely | P0 |
+| `lesson_text` | rich text | content block | Copy formatted text safely; use preceding heading as the activity name or compact the first source words when no heading exists | P0 |
 | `lesson_heading` | heading | following activity name/title | Do not migrate as a standalone activity; use the nearest immediately preceding heading as the following migrated activity name/title, ignoring divider and currently unsupported image blocks between them | P1 |
 | `lesson_image`, `lesson_image_wide`, `lesson_image_thumbnail` | image blocks | image/media block | Copy media + caption/alt | P1 |
-| `lesson_embedded_video` | YouTube/Vimeo URL | dedicated `video` `no_answer` activity | Normalize and validate `field_lesson_embedded_video_url.uri`; render through a provider-safe embed formatter | P0 |
+| `lesson_embedded_video` | YouTube/Vimeo URL | dedicated `video` `no_answer` activity | Normalize and validate `field_lesson_embedded_video_url.uri`; render through a provider-safe embed formatter; use `Video` for a lesson's only video or `Video N` per lesson when multiple videos exist | P0 |
 | `lesson_audio` | named audio file | dedicated `audio` `no_answer` activity | Preserve `field_audio_name`; resolve `field_audio_file` through the file migration; render with an accessible audio player | P0 |
 | `lesson_divider` | visual divider | no destination | Ignore for migration and for heading adjacency | P3 |
 | `lesson_footnotes` | footnotes | text block | Flatten if no native footnote type | P3 |
@@ -137,7 +137,7 @@ Use Quiz module later only if needed for features like:
 | `lesson_list`, `lesson_img_list`, `lesson_img_list_item` | list content | list/content block | Preserve ordering and item content | P2 |
 | `lesson_resource` | downloadable resource | preceding checklist body | Insert document links into the immediately preceding checklist activity; fail if the required document media/file is missing | P1 |
 | `lesson_table` | tabular content | table/HTML block | Preserve valid markup | P2 |
-| `lesson_checklist` | checklist container | **`no_answer` activity** | Convert to instructional/progression activity | P0 |
+| `lesson_checklist` | checklist container | **`no_answer` activity** | Convert to instructional/progression activity; name the first checklist `Ready Check` when no heading exists and prepend the standard readiness bullets | P0 |
 | `checklist_item` | checklist line item | content inside `no_answer` activity | Flatten items into activity body/instructions | P0 |
 
 ## F. Assessment (`node.module_assessment`) mapping

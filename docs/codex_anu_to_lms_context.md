@@ -53,8 +53,13 @@ activity body using `RESOURCE_NAME: RESOURCE_DESCRIPTION`, with the resource
 name linked to the document file. Unsupported providers and unresolved
 required audio or resource files must fail with source context.
 Checklist fallback names are shortened from the first four words of the first
-checklist item when there is no preceding heading. Video fallback names are
-numbered per source lesson rather than using paragraph IDs.
+checklist item when there is no preceding heading, except the first checklist
+in a lesson is named `Ready Check`. The first checklist also receives
+`Silence distractions` and `Have a pen ready` as its first two body bullets.
+Text/content fallback names are shortened from the first four source words
+when there is no preceding heading. Video fallback names are `Video` when a
+lesson has one video, or numbered per source lesson when a lesson has multiple
+videos.
 Update `10015` deletes unreferenced migrated activities from older
 lesson-section test runs only when their source paragraph bundle is no longer
 supported by the current migration.

@@ -116,6 +116,36 @@ final class AnuLessonBlockHelper {
   }
 
   /**
+   * Returns the count of source blocks for a bundle within this block's lesson.
+   */
+  public static function lessonBundleCount(
+    ContentEntityInterface $activity,
+    string $bundle,
+  ): int {
+    $lesson = self::parentLesson($activity);
+    if (
+      $lesson === NULL
+      || !$lesson->hasField('field_module_lesson_content')
+    ) {
+      return 0;
+    }
+
+    $count = 0;
+    foreach ($lesson->get('field_module_lesson_content')->referencedEntities() as $section) {
+      if (!$section->hasField('field_lesson_section_content')) {
+        continue;
+      }
+      foreach ($section->get('field_lesson_section_content')->referencedEntities() as $item) {
+        if ($item->bundle() === $bundle) {
+          $count++;
+        }
+      }
+    }
+
+    return $count;
+  }
+
+  /**
    * Returns the nearest immediately preceding Anu heading for an activity.
    */
   public static function headingForActivity(ContentEntityInterface $activity): ?string {

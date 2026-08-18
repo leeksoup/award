@@ -256,10 +256,15 @@ Run the lesson update after deploying the heading/checklist-resource slice so
 existing LMS lessons drop old standalone heading or resource references and
 preserve Anu source order. Require zero failed and zero ignored rows.
 Checklist fallback names are shortened from the first four words of the first
-checklist item when no preceding heading is available. Video fallback names are
-numbered within each source lesson (`Video 1`, `Video 2`, and so on), not by
-global paragraph ID. Re-run the checklist and section migrations with
-`--update` after deploying this naming behavior.
+checklist item when no preceding heading is available, except the first
+checklist in each lesson is named `Ready Check`. The first checklist also gets
+`Silence distractions` and `Have a pen ready` as its first two body bullets.
+Text/content fallback names are shortened from the first four source words
+when no preceding heading is available. Video fallback names are `Video` when
+there is only one video in a source lesson, or numbered within the source
+lesson (`Video 1`, `Video 2`, and so on) when there are multiple videos. Re-run
+the checklist and section migrations with `--update` after deploying this
+naming behavior.
 
 ## 10. Audit lesson activity references
 
