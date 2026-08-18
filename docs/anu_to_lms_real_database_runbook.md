@@ -97,6 +97,31 @@ Verify that there are no pending database updates:
 drush updatedb:status
 ```
 
+### Optional: enable LMS student management
+
+The LMS `Students` tab and `Add student` action are provided by the optional
+`lms_classes` module. Enable it before expecting course-level student
+management UI:
+
+```bash
+drush en lms_classes -y
+drush updb -y
+drush cr
+```
+
+Update `10018` grants migrated course teacher roles the LMS Classes student
+permissions and creates one default class for each existing migrated course
+that has no class yet. Without a class, the course can show Group's generic
+Members page but cannot use the LMS Students workflow.
+
+If `lms_classes` was enabled after update `10018` already ran, use the
+rerunnable repair command instead:
+
+```bash
+drush anu-to-lms:repair-students
+drush cr
+```
+
 ### Optional: enable Forum Prompt activities
 
 The reusable Forum Prompt feature lives in `lms_forum_prompt`, not in the Anu

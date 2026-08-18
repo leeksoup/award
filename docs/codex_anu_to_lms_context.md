@@ -208,6 +208,20 @@ safe `/course/{group}/start` return URL. The optional `Forum Prompt return
 link` block displays that return link on forum pages when the `return` query
 parameter starts with `/course/`.
 
+## LMS Classes student management
+
+The LMS `Students` tab is not part of the base Group members page. It is
+provided by the optional `lms_classes` module as the
+`lms_course_students` View at `/group/{group}/students`, with the Add student
+action at `/group/{group}/students/add`.
+
+Update `10018` in `anu_to_lms_migrate` repairs existing migrated courses after
+`lms_classes` is enabled: it installs missing LMS Classes default config,
+grants course teacher roles `view students` and `add students`, and creates a
+default `lms_class` child group for migrated courses that do not already have
+one. This is needed because the migrated courses bypassed the normal LMS course
+creation workflow that can create a default class for new courses.
+
 ## Known documentation debt
 
 Some older milestone/next-action prose in
