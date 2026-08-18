@@ -486,6 +486,18 @@ Every owner must report `user_teacher:yes`, include
 `lms_course-teacher` in `group_roles`, and report
 `view:yes take:yes update:yes`.
 
+To grant a specific Drupal user teacher access to all migrated courses, run:
+
+```bash
+drush updb -y
+drush cr
+drush anu-to-lms:make-teacher USER_ID
+```
+
+The command grants the global `lms_teacher` user role, adds the user as a
+member of every destination course in `migrate_map_anu_to_lms_node_courses`,
+and prints per-course `view`/`take`/`update` access results.
+
 Roll back courses before rolling back lessons:
 
 ```bash

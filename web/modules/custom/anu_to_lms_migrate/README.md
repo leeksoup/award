@@ -111,6 +111,17 @@ Update `10010` installs the synchronized `lms_teacher` user and course Group
 roles, assigns the user role to migrated course owners, and thereby grants
 owners the course-level view/edit/take permissions expected by Drupal LMS.
 
+To make a specific Drupal user a teacher on all migrated courses, run:
+
+```bash
+drush updb -y
+drush cr
+drush anu-to-lms:make-teacher USER_ID
+```
+
+The command grants the global `lms_teacher` role and adds the user as a member
+of every course in `migrate_map_anu_to_lms_node_courses`.
+
 If checklist activities were imported by a version earlier than the formatted
 field-item fix, update them in place after deploying current code. This
 replaces body values stored as the literal string `Array` without changing the

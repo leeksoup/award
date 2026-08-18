@@ -82,6 +82,9 @@ The following repairs are committed:
   `lms_course-teacher`, assigns `lms_teacher` to course owners, and invalidates
   access caches;
 - future course inserts also assign the owner the `lms_teacher` user role.
+- `drush anu-to-lms:make-teacher USER_ID` grants an arbitrary user the global
+  `lms_teacher` role and adds them as a member of every migrated course from
+  `migrate_map_anu_to_lms_node_courses`.
 
 The user confirmed owner memberships existed but had no roles before update
 `10010`. Later staging output showed update `10010` installed the synchronized
