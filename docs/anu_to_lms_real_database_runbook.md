@@ -258,7 +258,7 @@ preserve Anu source order. Require zero failed and zero ignored rows.
 Checklist fallback names are shortened from the first four words of the first
 checklist item when no preceding heading is available, except the first
 checklist in each lesson is named `Ready Check`. The first checklist also gets
-`Silence distractions` and `Have a pen ready` as its first two body bullets.
+`Silence distractions` and `Have a pen ready` at the end of its body bullets.
 Text/content fallback names are shortened from the first four source words
 when no preceding heading is available. Video fallback names are `Video` when
 there is only one video in a source lesson, or numbered within the source

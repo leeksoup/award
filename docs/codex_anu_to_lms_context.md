@@ -55,7 +55,7 @@ required audio or resource files must fail with source context.
 Checklist fallback names are shortened from the first four words of the first
 checklist item when there is no preceding heading, except the first checklist
 in a lesson is named `Ready Check`. The first checklist also receives
-`Silence distractions` and `Have a pen ready` as its first two body bullets.
+`Silence distractions` and `Have a pen ready` at the end of its body bullets.
 Text/content fallback names are shortened from the first four source words
 when there is no preceding heading. Video fallback names are `Video` when a
 lesson has one video, or numbered per source lesson when a lesson has multiple

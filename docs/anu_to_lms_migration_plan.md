@@ -137,7 +137,7 @@ Use Quiz module later only if needed for features like:
 | `lesson_list`, `lesson_img_list`, `lesson_img_list_item` | list content | list/content block | Preserve ordering and item content | P2 |
 | `lesson_resource` | downloadable resource | preceding checklist body | Insert document links into the immediately preceding checklist activity; fail if the required document media/file is missing | P1 |
 | `lesson_table` | tabular content | table/HTML block | Preserve valid markup | P2 |
-| `lesson_checklist` | checklist container | **`no_answer` activity** | Convert to instructional/progression activity; name the first checklist `Ready Check` when no heading exists and prepend the standard readiness bullets | P0 |
+| `lesson_checklist` | checklist container | **`no_answer` activity** | Convert to instructional/progression activity; name the first checklist `Ready Check` when no heading exists and append the standard readiness bullets | P0 |
 | `checklist_item` | checklist line item | content inside `no_answer` activity | Flatten items into activity body/instructions | P0 |
 
 ## F. Assessment (`node.module_assessment`) mapping
