@@ -105,6 +105,16 @@ final class ForumPromptManager {
   }
 
   /**
+   * Ensures Forum Prompt activities in a lesson have topics when possible.
+   */
+  public function ensureTopicsForLesson(LessonInterface $lesson): void {
+    $courses = $this->resolveCoursesForLesson($lesson);
+    foreach ($courses as $course) {
+      $this->ensureTopicsForCourse($course);
+    }
+  }
+
+  /**
    * Creates a forum topic for an activity if it does not already have one.
    */
   public function ensureTopicForActivity(ActivityInterface $activity, ?Course $course = NULL): ?NodeInterface {
@@ -208,6 +218,29 @@ final class ForumPromptManager {
 
     $course = $course_storage->load(\reset($course_ids));
     return $course instanceof Course ? $course : NULL;
+  }
+
+  /**
+   * Finds courses that reference a lesson.
+   *
+   * @return \Drupal\lms\Entity\Bundle\Course[]
+   *   Courses keyed by course ID.
+   */
+  private function resolveCoursesForLesson(LessonInterface $lesson): array {
+    $course_storage = $this->entityTypeManager->getStorage('group');
+    $course_ids = $course_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'lms_course')
+      ->condition('lessons.target_id', $lesson->id())
+      ->execute();
+    if ($course_ids === []) {
+      return [];
+    }
+
+    return \array_filter(
+      $course_storage->loadMultiple($course_ids),
+      static fn ($course): bool => $course instanceof Course,
+    );
   }
 
 }

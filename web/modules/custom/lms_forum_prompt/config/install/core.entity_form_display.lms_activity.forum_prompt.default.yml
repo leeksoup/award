@@ -19,14 +19,5 @@ content:
       rows: 12
       placeholder: ''
     third_party_settings: { }
-  field_forum_topic:
-    type: entity_reference_autocomplete
-    weight: 1
-    region: content
-    settings:
-      match_operator: CONTAINS
-      match_limit: 10
-      size: 60
-      placeholder: ''
-    third_party_settings: { }
-hidden: { }
+hidden:
+  field_forum_topic: true

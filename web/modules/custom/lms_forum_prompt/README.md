@@ -12,6 +12,7 @@ learners to a linked Drupal Forum topic.
   module creates one forum topic if the activity does not already reference one.
 - Topic title comes from the activity name, topic body comes from the prompt,
   and topic owner comes from the activity author.
+- The topic reference field is internal and hidden from the authoring form.
 - Learners use the activity's `Go to discussion` link. Opening that link marks
   the activity complete, advances the LMS course status, and redirects to the
   forum topic.

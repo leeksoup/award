@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the LMS Forum Prompt module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Hides the internal topic reference from the Forum Prompt authoring form.
+ */
+function lms_forum_prompt_update_10001(): void {
+  $display = \Drupal::entityTypeManager()
+    ->getStorage('entity_form_display')
+    ->load('lms_activity.forum_prompt.default');
+
+  if ($display === NULL) {
+    return;
+  }
+
+  $display
+    ->removeComponent('field_forum_topic')
+    ->save();
+}

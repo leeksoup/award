@@ -17,6 +17,7 @@ use Drupal\group\Entity\GroupInterface;
 use Drupal\lms\Entity\ActivityInterface;
 use Drupal\lms\Entity\AnswerInterface;
 use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\LessonInterface;
 
 /**
  * Implements hook_entity_insert().
@@ -47,6 +48,9 @@ function _lms_forum_prompt_entity_saved(EntityInterface $entity): void {
   try {
     if ($entity instanceof ActivityInterface && $entity->bundle() === 'forum_prompt') {
       $manager->ensureTopicForActivity($entity);
+    }
+    elseif ($entity instanceof LessonInterface) {
+      $manager->ensureTopicsForLesson($entity);
     }
     elseif ($entity instanceof Course) {
       $manager->ensureTopicsForCourse($entity);
@@ -110,6 +114,13 @@ function lms_forum_prompt_form_alter(array &$form, FormStateInterface $form_stat
   }
 
   $entity = $form_object->getEntity();
+  if ($entity instanceof ActivityInterface && $entity->bundle() === 'forum_prompt') {
+    if (isset($form['field_forum_topic'])) {
+      $form['field_forum_topic']['#access'] = FALSE;
+    }
+    return;
+  }
+
   if (
     $entity instanceof AnswerInterface
     && $entity->getActivity()->bundle() === 'forum_prompt'
