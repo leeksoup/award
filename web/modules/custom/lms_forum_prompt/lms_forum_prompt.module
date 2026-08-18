@@ -1,0 +1,161 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the LMS Forum Prompt module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityFormInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
+use Drupal\group\Entity\GroupInterface;
+use Drupal\lms\Entity\ActivityInterface;
+use Drupal\lms\Entity\AnswerInterface;
+use Drupal\lms\Entity\Bundle\Course;
+
+/**
+ * Implements hook_entity_insert().
+ */
+function lms_forum_prompt_entity_insert(EntityInterface $entity): void {
+  _lms_forum_prompt_entity_saved($entity);
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function lms_forum_prompt_entity_update(EntityInterface $entity): void {
+  _lms_forum_prompt_entity_saved($entity);
+}
+
+/**
+ * Creates missing forum topics when enough course context is available.
+ */
+function _lms_forum_prompt_entity_saved(EntityInterface $entity): void {
+  static $processing = FALSE;
+
+  if ($processing) {
+    return;
+  }
+
+  $manager = \Drupal::service('lms_forum_prompt.manager');
+  $processing = TRUE;
+  try {
+    if ($entity instanceof ActivityInterface && $entity->bundle() === 'forum_prompt') {
+      $manager->ensureTopicForActivity($entity);
+    }
+    elseif ($entity instanceof Course) {
+      $manager->ensureTopicsForCourse($entity);
+    }
+  }
+  finally {
+    $processing = FALSE;
+  }
+}
+
+/**
+ * Implements hook_entity_view().
+ */
+function lms_forum_prompt_entity_view(array &$build, EntityInterface $entity, $display, $view_mode): void {
+  if (!$entity instanceof ActivityInterface || $entity->bundle() !== 'forum_prompt') {
+    return;
+  }
+
+  $route_match = \Drupal::routeMatch();
+  \assert($route_match instanceof RouteMatchInterface);
+
+  $group = $route_match->getParameter('group');
+  $lesson_delta = $route_match->getParameter('lesson_delta');
+  $activity_delta = $route_match->getParameter('activity_delta');
+
+  if ($group instanceof Course && $lesson_delta !== NULL && $activity_delta !== NULL) {
+    $url = Url::fromRoute('lms_forum_prompt.open', [
+      'group' => $group->id(),
+      'lesson_delta' => (int) $lesson_delta,
+      'activity_delta' => (int) $activity_delta,
+    ]);
+  }
+  elseif ($entity->hasField('field_forum_topic') && !$entity->get('field_forum_topic')->isEmpty()) {
+    $url = $entity->get('field_forum_topic')->entity?->toUrl();
+    if ($url === NULL) {
+      return;
+    }
+  }
+  else {
+    return;
+  }
+
+  $build['forum_prompt_discussion_link'] = [
+    '#type' => 'container',
+    '#attributes' => ['class' => ['lms-forum-prompt-link']],
+    'link' => Link::fromTextAndUrl(t('Go to discussion'), $url)->toRenderable(),
+    '#weight' => 20,
+    '#cache' => [
+      'contexts' => ['route'],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function lms_forum_prompt_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $form_object = $form_state->getFormObject();
+  if (!$form_object instanceof EntityFormInterface) {
+    return;
+  }
+
+  $entity = $form_object->getEntity();
+  if (
+    $entity instanceof AnswerInterface
+    && $entity->getActivity()->bundle() === 'forum_prompt'
+    && \Drupal::routeMatch()->getRouteName() === 'lms.group.answer_form'
+  ) {
+    if (isset($form['actions']['submit'])) {
+      $form['actions']['submit']['#access'] = FALSE;
+    }
+    return;
+  }
+
+  if (!$entity instanceof GroupInterface || $entity->bundle() !== 'lms_course') {
+    return;
+  }
+
+  $form['#validate'][] = 'lms_forum_prompt_course_form_validate';
+}
+
+/**
+ * Validates that courses with forum prompts choose a default forum.
+ */
+function lms_forum_prompt_course_form_validate(array &$form, FormStateInterface $form_state): void {
+  $form_object = $form_state->getFormObject();
+  if (!$form_object instanceof EntityFormInterface) {
+    return;
+  }
+
+  $entity = $form_object->getEntity();
+  if (!$entity instanceof Course) {
+    return;
+  }
+
+  if (!\Drupal::service('lms_forum_prompt.manager')->courseContainsForumPrompt($entity)) {
+    return;
+  }
+
+  if ($entity->hasField('field_default_forum') && !$entity->get('field_default_forum')->isEmpty()) {
+    return;
+  }
+
+  $link = Link::fromTextAndUrl(t('forum administration page'), Url::fromRoute('forum.overview'))->toString();
+  $form_state->setErrorByName(
+    'field_default_forum',
+    t('Choose a default forum before saving a course that contains Forum Prompt activities. '
+      . 'Add forums on the @link if needed.', [
+      '@link' => $link,
+    ]),
+  );
+}

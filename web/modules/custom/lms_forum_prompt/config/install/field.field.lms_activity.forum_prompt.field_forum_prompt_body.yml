@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config: [field.storage.lms_activity.field_forum_prompt_body, lms.lms_activity_type.forum_prompt]
+  module: [text]
+id: lms_activity.forum_prompt.field_forum_prompt_body
+field_name: field_forum_prompt_body
+entity_type: lms_activity
+bundle: forum_prompt
+label: 'Prompt'
+description: ''
+required: true
+translatable: true
+default_value: { }
+default_value_callback: ''
+settings:
+  allowed_formats: { }
+field_type: text_long

@@ -1,0 +1,25 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.field_forum_topic
+    - lms.lms_activity_type.forum_prompt
+    - node.type.forum
+id: lms_activity.forum_prompt.field_forum_topic
+field_name: field_forum_topic
+entity_type: lms_activity
+bundle: forum_prompt
+label: 'Forum topic'
+description: 'Automatically created forum topic for this prompt.'
+required: false
+translatable: true
+default_value: { }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      forum: forum
+    sort:
+      field: _none
+field_type: entity_reference

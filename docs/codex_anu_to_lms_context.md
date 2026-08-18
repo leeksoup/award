@@ -187,6 +187,27 @@ checklist and lesson migrations in place, and re-check browser lesson playback.
 Only after lesson order, headings, and checklist resource links pass should
 implementation continue to the next content-parity or achievements slice.
 
+## Forum Prompt activity feature
+
+The `lms_forum_prompt` module adds a reusable LMS `forum_prompt` activity type
+for lesson prompts that send learners to a Drupal Forum topic. It is separate
+from `anu_to_lms_migrate` because it is LMS runtime/authoring behavior, not
+Anu-specific migration logic.
+
+Forum Prompt activities use the LMS `no_answer` plugin with a default max
+score of 10. Each `lms_course` has a `field_default_forum` term reference to
+the Forum vocabulary. When a Forum Prompt activity can be resolved to a course,
+the module creates one `node.forum` topic from the activity title and prompt
+body, owned by the activity author, and stores it on
+`field_forum_topic`. Later edits do not overwrite the linked topic.
+
+Student activity pages show a `Go to discussion` link. The link records an LMS
+answer with full score, advances the current lesson/course status using the
+same flow as LMS no-answer submission, and redirects to the forum topic with a
+safe `/course/{group}/start` return URL. The optional `Forum Prompt return
+link` block displays that return link on forum pages when the `return` query
+parameter starts with `/course/`.
+
 ## Known documentation debt
 
 Some older milestone/next-action prose in

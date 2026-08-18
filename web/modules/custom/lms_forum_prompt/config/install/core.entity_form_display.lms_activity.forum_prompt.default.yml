@@ -1,0 +1,32 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.lms_activity.forum_prompt.field_forum_prompt_body
+    - field.field.lms_activity.forum_prompt.field_forum_topic
+    - lms.lms_activity_type.forum_prompt
+  module: [text]
+id: lms_activity.forum_prompt.default
+targetEntityType: lms_activity
+bundle: forum_prompt
+mode: default
+content:
+  field_forum_prompt_body:
+    type: text_textarea
+    weight: 0
+    region: content
+    settings:
+      rows: 12
+      placeholder: ''
+    third_party_settings: { }
+  field_forum_topic:
+    type: entity_reference_autocomplete
+    weight: 1
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
+    third_party_settings: { }
+hidden: { }

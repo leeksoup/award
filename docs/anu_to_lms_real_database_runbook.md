@@ -97,6 +97,23 @@ Verify that there are no pending database updates:
 drush updatedb:status
 ```
 
+### Optional: enable Forum Prompt activities
+
+The reusable Forum Prompt feature lives in `lms_forum_prompt`, not in the Anu
+migration module:
+
+```bash
+drush en lms_forum_prompt -y
+drush cr
+drush config:get lms.lms_activity_type.forum_prompt
+drush config:get field.field.group.lms_course.field_default_forum
+```
+
+After enabling it, edit any course that will contain Forum Prompt activities
+and choose a Default forum. If no forum terms exist yet, create one at
+`/admin/structure/forum`. Place the `Forum Prompt return link` block on forum
+topic pages if students should see the return link after following a prompt.
+
 ## 4. Verify target configuration
 
 ```bash

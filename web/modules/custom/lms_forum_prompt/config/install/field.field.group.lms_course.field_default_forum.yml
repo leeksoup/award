@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.group.field_default_forum
+    - group.type.lms_course
+    - taxonomy.vocabulary.forums
+id: group.lms_course.field_default_forum
+field_name: field_default_forum
+entity_type: group
+bundle: lms_course
+label: 'Default forum'
+description: 'Forum used when Forum Prompt activities create discussion topics.'
+required: false
+translatable: true
+default_value: { }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      forums: forums
+    sort:
+      field: name
+      direction: ASC
+    auto_create: false
+field_type: entity_reference
