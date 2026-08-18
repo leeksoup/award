@@ -143,9 +143,17 @@ final class ForumPromptManager {
       $body = $activity->get('field_forum_prompt_body')->first()->getValue();
     }
 
+    $title = $this->topicTitle($activity);
+    $existing_topic = $this->loadTopicByTitle($title);
+    if ($existing_topic instanceof NodeInterface) {
+      $activity->set('field_forum_topic', $existing_topic);
+      $activity->save();
+      return $existing_topic;
+    }
+
     $topic = $this->entityTypeManager->getStorage('node')->create([
       'type' => 'forum',
-      'title' => $activity->label(),
+      'title' => $title,
       'uid' => $activity->getOwnerId(),
       'status' => 1,
       'taxonomy_forums' => [
@@ -160,6 +168,39 @@ final class ForumPromptManager {
     $activity->save();
 
     return $topic;
+  }
+
+  /**
+   * Returns the requested forum topic title for an activity.
+   */
+  private function topicTitle(ActivityInterface $activity): string {
+    if (
+      $activity->hasField('field_forum_topic_title')
+      && !$activity->get('field_forum_topic_title')->isEmpty()
+    ) {
+      return (string) $activity->get('field_forum_topic_title')->value;
+    }
+
+    return $activity->label();
+  }
+
+  /**
+   * Loads an existing forum topic with an exact title match.
+   */
+  private function loadTopicByTitle(string $title): ?NodeInterface {
+    $storage = $this->entityTypeManager->getStorage('node');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'forum')
+      ->condition('title', $title)
+      ->range(0, 1)
+      ->execute();
+    if ($ids === []) {
+      return NULL;
+    }
+
+    $topic = $storage->load(\reset($ids));
+    return $topic instanceof NodeInterface ? $topic : NULL;
   }
 
   /**

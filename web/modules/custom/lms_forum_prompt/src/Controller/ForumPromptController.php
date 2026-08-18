@@ -5,18 +5,20 @@ declare(strict_types=1);
 namespace Drupal\lms_forum_prompt\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Url;
 use Drupal\lms\Controller\CourseControllerTrait;
 use Drupal\lms\Entity\Bundle\Course;
 use Drupal\lms\Exception\TrainingException;
 use Drupal\lms\TrainingManager;
 use Drupal\lms_forum_prompt\Service\ForumPromptManager;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Opens a forum topic and records Forum Prompt activity completion.
  */
-final class ForumPromptController extends ControllerBase {
+final class ForumPromptController extends ControllerBase implements ContainerInjectionInterface {
 
   use CourseControllerTrait;
 
@@ -24,6 +26,16 @@ final class ForumPromptController extends ControllerBase {
     protected readonly ForumPromptManager $forumPromptManager,
     protected readonly TrainingManager $trainingManager,
   ) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): self {
+    return new self(
+      $container->get(ForumPromptManager::class),
+      $container->get(TrainingManager::class),
+    );
+  }
 
   /**
    * Completes the activity and redirects to the linked forum topic.

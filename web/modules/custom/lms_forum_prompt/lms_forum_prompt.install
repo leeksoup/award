@@ -23,3 +23,35 @@ function lms_forum_prompt_update_10001(): void {
     ->removeComponent('field_forum_topic')
     ->save();
 }
+
+/**
+ * Adds an exposed topic-title field while keeping the topic reference internal.
+ */
+function lms_forum_prompt_update_10002(): void {
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'lms_forum_prompt',
+  );
+
+  $display = \Drupal::entityTypeManager()
+    ->getStorage('entity_form_display')
+    ->load('lms_activity.forum_prompt.default');
+
+  if ($display === NULL) {
+    return;
+  }
+
+  $display
+    ->setComponent('field_forum_topic_title', [
+      'type' => 'string_textfield',
+      'weight' => 1,
+      'region' => 'content',
+      'settings' => [
+        'size' => 60,
+        'placeholder' => '',
+      ],
+      'third_party_settings' => [],
+    ])
+    ->removeComponent('field_forum_topic')
+    ->save();
+}

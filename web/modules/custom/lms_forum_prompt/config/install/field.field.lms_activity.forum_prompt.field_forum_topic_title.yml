@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.field_forum_topic_title
+    - lms.lms_activity_type.forum_prompt
+id: lms_activity.forum_prompt.field_forum_topic_title
+field_name: field_forum_topic_title
+entity_type: lms_activity
+bundle: forum_prompt
+label: 'Forum topic'
+description: 'Existing topic title to use, or new topic title to create when the activity is connected to a course.'
+required: false
+translatable: true
+default_value: { }
+default_value_callback: ''
+settings: { }
+field_type: string
