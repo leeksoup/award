@@ -146,7 +146,13 @@ function lms_forum_prompt_course_form_validate(array &$form, FormStateInterface 
     return;
   }
 
-  if ($entity->hasField('field_default_forum') && !$entity->get('field_default_forum')->isEmpty()) {
+  if (
+    $entity->hasField('field_default_forum')
+    && (
+      !$entity->get('field_default_forum')->isEmpty()
+      || _lms_forum_prompt_default_forum_submitted($form_state)
+    )
+  ) {
     return;
   }
 
@@ -158,4 +164,23 @@ function lms_forum_prompt_course_form_validate(array &$form, FormStateInterface 
       '@link' => $link,
     ]),
   );
+}
+
+/**
+ * Checks whether the submitted course form contains a default forum value.
+ */
+function _lms_forum_prompt_default_forum_submitted(FormStateInterface $form_state): bool {
+  $value = $form_state->getValue('field_default_forum');
+  if (!\is_array($value)) {
+    return $value !== NULL && $value !== '';
+  }
+
+  $iterator = new \RecursiveIteratorIterator(new \RecursiveArrayIterator($value));
+  foreach ($iterator as $key => $item) {
+    if ($key === 'target_id' && $item !== NULL && $item !== '') {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
 }
