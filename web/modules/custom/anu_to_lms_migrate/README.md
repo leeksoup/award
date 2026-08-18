@@ -84,6 +84,9 @@ If free-text question activities were imported before the `free_text` bundle
 fields were installed, update the question migration after `drush updb -y`.
 Reset the affected staging course progress with `drush lms:reset-course` so
 student playback uses the current lesson/activity revisions.
+Question activity titles are generated as short labels from the first words of
+the Anu question prompt. The full prompt is migrated into the plugin-specific
+LMS question field.
 
 ## Runnable course slice
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\anu_to_lms_migrate\Plugin\migrate\source;
 
-use Drupal\anu_to_lms_migrate\AnuLessonBlockHelper;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
@@ -115,7 +114,7 @@ final class AnuAssessmentQuestion extends SourcePluginBase {
       }
 
       $name = trim((string) $question->label());
-      $heading = AnuLessonBlockHelper::headingForActivity($wrapper);
+      $activity_name = $this->activityName($name, (int) $wrapper->id());
       $prompt = [[
         'value' => $name,
         'format' => 'minimal_html',
@@ -127,7 +126,7 @@ final class AnuAssessmentQuestion extends SourcePluginBase {
           'activity_type' => $wrapper->bundle() === 'question_multi_choice'
             ? 'multiple_choice'
             : 'single_choice',
-          'name' => mb_strimwidth($heading ?? $name, 0, 255, '...'),
+          'name' => $activity_name,
           'question' => $prompt,
           'questions' => NULL,
           'answers' => $this->answers($wrapper, $question),
@@ -138,12 +137,31 @@ final class AnuAssessmentQuestion extends SourcePluginBase {
       yield [
         'paragraph_id' => (int) $wrapper->id(),
         'activity_type' => 'free_text',
-        'name' => mb_strimwidth($heading ?? $name, 0, 255, '...'),
+        'name' => $activity_name,
         'question' => NULL,
         'questions' => $prompt,
         'answers' => NULL,
       ];
     }
+  }
+
+  /**
+   * Builds a compact activity title from the full Anu question prompt.
+   */
+  private function activityName(string $prompt, int $paragraph_id): string {
+    $plain = trim(preg_replace('/\s+/', ' ', strip_tags($prompt)) ?? '');
+    if ($plain === '') {
+      return 'Question ' . $paragraph_id;
+    }
+
+    $words = preg_split('/\s+/', $plain) ?: [];
+    $words = array_slice($words, 0, 4);
+    $title = trim(implode(' ', $words), " \t\n\r\0\x0B.,;:!?()[]{}");
+    if ($title === '') {
+      return 'Question ' . $paragraph_id;
+    }
+
+    return mb_strimwidth($title, 0, 80, '...');
   }
 
   /**

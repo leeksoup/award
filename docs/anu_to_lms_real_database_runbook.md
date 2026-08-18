@@ -371,6 +371,10 @@ manually evaluated `free_text` activities. Assessment text and heading blocks
 are resolved through the section-activity migration. Do not treat an assessment
 containing scale or Likert question bundles as complete; inventory those
 bundles before UAT.
+Migrated question activity names are intentionally short titles derived from
+the first words of the Anu question prompt. The full Anu prompt is stored in
+the LMS `question` field for select activities and the LMS `questions` field
+for free-text activities.
 
 If the Drupal UI reports `Undefined array key "free_text"` from
 `LMSReferenceTable`, the active site has `free_text` activities but is missing

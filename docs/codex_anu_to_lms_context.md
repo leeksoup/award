@@ -55,6 +55,9 @@ required audio or resource files must fail with source context.
 Question activity migration supports single/multiple-choice wrappers as LMS
 `select` activities and short/long-answer wrappers as manually evaluated LMS
 `free_text` activities. Scale and Likert questions remain deferred.
+Question activity titles are shortened from the source prompt; the complete
+Anu question prompt belongs in the LMS question/questions field, not in the
+activity title.
 If Drupal UI lesson edit forms warn about an undefined `free_text` array key in
 the LMS reference-table widget, run update `10014`; it covers staged databases
 that may have already executed an earlier cache-only `10013` before the
