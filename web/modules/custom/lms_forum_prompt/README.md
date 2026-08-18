@@ -21,6 +21,8 @@ learners to a linked Drupal Forum topic.
   forum topic.
 - The forum topic URL receives a safe `return` query parameter pointing back to
   `/course/{group}/start`.
+- Linked forum topic pages render a return-to-course link directly. The
+  optional block can also be placed where block-based layout control is needed.
 
 Place the `Forum Prompt return link` block on forum topic pages to show:
 

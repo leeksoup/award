@@ -7,8 +7,11 @@ namespace Drupal\lms_forum_prompt\Plugin\Block;
 use Drupal\Core\Block\Attribute\Block;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
+use Drupal\lms_forum_prompt\Service\ForumPromptManager;
+use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -26,6 +29,8 @@ final class ForumPromptReturnBlock extends BlockBase implements ContainerFactory
     $plugin_id,
     $plugin_definition,
     protected readonly RequestStack $requestStack,
+    protected readonly RouteMatchInterface $routeMatch,
+    protected readonly ForumPromptManager $forumPromptManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -44,6 +49,8 @@ final class ForumPromptReturnBlock extends BlockBase implements ContainerFactory
       $plugin_id,
       $plugin_definition,
       $container->get('request_stack'),
+      $container->get('current_route_match'),
+      $container->get(ForumPromptManager::class),
     );
   }
 
@@ -53,17 +60,27 @@ final class ForumPromptReturnBlock extends BlockBase implements ContainerFactory
   public function build(): array {
     $request = $this->requestStack->getCurrentRequest();
     $return = $request?->query->get('return');
-    if (!\is_string($return) || !\str_starts_with($return, '/course/')) {
-      return [];
+    if (\is_string($return) && \str_starts_with($return, '/course/')) {
+      $url = Url::fromUserInput($return);
+    }
+    else {
+      $node = $this->routeMatch->getParameter('node');
+      if (!$node instanceof NodeInterface) {
+        return [];
+      }
+      $url = $this->forumPromptManager->getReturnUrlForTopic($node);
+      if ($url === NULL) {
+        return [];
+      }
     }
 
     return [
       '#type' => 'link',
       '#title' => $this->t('When finished, click here to return to the lesson'),
-      '#url' => Url::fromUserInput($return),
+      '#url' => $url,
       '#attributes' => ['class' => ['lms-forum-prompt-return-link']],
       '#cache' => [
-        'contexts' => ['url.query_args:return'],
+        'max-age' => 0,
       ],
     ];
   }

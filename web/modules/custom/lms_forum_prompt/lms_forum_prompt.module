@@ -18,6 +18,7 @@ use Drupal\lms\Entity\ActivityInterface;
 use Drupal\lms\Entity\AnswerInterface;
 use Drupal\lms\Entity\Bundle\Course;
 use Drupal\lms\Entity\LessonInterface;
+use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_entity_insert().
@@ -65,6 +66,11 @@ function _lms_forum_prompt_entity_saved(EntityInterface $entity): void {
  * Implements hook_entity_view().
  */
 function lms_forum_prompt_entity_view(array &$build, EntityInterface $entity, $display, $view_mode): void {
+  if ($entity instanceof NodeInterface && $entity->bundle() === 'forum') {
+    _lms_forum_prompt_add_forum_return_link($build, $entity);
+    return;
+  }
+
   if (!$entity instanceof ActivityInterface || $entity->bundle() !== 'forum_prompt') {
     return;
   }
@@ -100,6 +106,33 @@ function lms_forum_prompt_entity_view(array &$build, EntityInterface $entity, $d
     '#weight' => 20,
     '#cache' => [
       'contexts' => ['route'],
+    ],
+  ];
+}
+
+/**
+ * Adds a return-to-course link to linked forum topic pages.
+ */
+function _lms_forum_prompt_add_forum_return_link(array &$build, NodeInterface $topic): void {
+  $request = \Drupal::request();
+  $return = $request->query->get('return');
+  if (\is_string($return) && \str_starts_with($return, '/course/')) {
+    $url = Url::fromUserInput($return);
+  }
+  else {
+    $url = \Drupal::service('lms_forum_prompt.manager')->getReturnUrlForTopic($topic);
+    if ($url === NULL) {
+      return;
+    }
+  }
+
+  $build['lms_forum_prompt_return_link'] = [
+    '#type' => 'container',
+    '#attributes' => ['class' => ['lms-forum-prompt-return']],
+    'link' => Link::fromTextAndUrl(t('When finished, click here to return to the lesson'), $url)->toRenderable(),
+    '#weight' => 100,
+    '#cache' => [
+      'max-age' => 0,
     ],
   ];
 }

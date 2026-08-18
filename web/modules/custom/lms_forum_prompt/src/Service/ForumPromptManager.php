@@ -6,6 +6,7 @@ namespace Drupal\lms_forum_prompt\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
 use Drupal\lms\Entity\ActivityInterface;
 use Drupal\lms\Entity\Bundle\Course;
 use Drupal\lms\Entity\LessonInterface;
@@ -115,6 +116,26 @@ final class ForumPromptManager {
   }
 
   /**
+   * Gets the course return URL for a forum topic linked to a Forum Prompt.
+   */
+  public function getReturnUrlForTopic(NodeInterface $topic): ?Url {
+    if ($topic->bundle() !== 'forum') {
+      return NULL;
+    }
+
+    foreach ($this->activitiesForTopic($topic) as $activity) {
+      $course = $this->resolveCourseForActivity($activity);
+      if ($course instanceof Course) {
+        return Url::fromRoute('lms.course.start', [
+          'group' => $course->id(),
+        ]);
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
    * Creates a forum topic for an activity if it does not already have one.
    */
   public function ensureTopicForActivity(ActivityInterface $activity, ?Course $course = NULL): ?NodeInterface {
@@ -201,6 +222,34 @@ final class ForumPromptManager {
 
     $topic = $storage->load(\reset($ids));
     return $topic instanceof NodeInterface ? $topic : NULL;
+  }
+
+  /**
+   * Finds Forum Prompt activities linked to a forum topic.
+   *
+   * @return \Drupal\lms\Entity\ActivityInterface[]
+   *   Forum Prompt activities.
+   */
+  private function activitiesForTopic(NodeInterface $topic): array {
+    $storage = $this->entityTypeManager->getStorage('lms_activity');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'forum_prompt')
+      ->condition('field_forum_topic.target_id', $topic->id())
+      ->execute();
+
+    if ($ids === []) {
+      $ids = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('type', 'forum_prompt')
+        ->condition('field_forum_topic_title', $topic->label())
+        ->execute();
+    }
+
+    return \array_filter(
+      $storage->loadMultiple($ids),
+      static fn ($activity): bool => $activity instanceof ActivityInterface,
+    );
   }
 
   /**
