@@ -222,6 +222,17 @@ default `lms_class` child group for migrated courses that do not already have
 one. This is needed because the migrated courses bypassed the normal LMS course
 creation workflow that can create a default class for new courses.
 
+## Group 3 upgrade audit
+
+Some staging databases may have needed a manual Group 2 to Group 3 repair
+before Group's own update hooks ran cleanly. The read-only
+`drush anu-to-lms:audit-group3 [USER_ID]` command reports likely leftovers:
+stale `group_content` config/View references, malformed `group.role.*` config,
+missing `group_relationship.group_roles` field storage or membership field
+instances, orphan rows in `group_relationship__group_roles`, and migrated LMS
+course owner/user membership access. Use it to identify exact drift before
+adding any repair command or update hook.
+
 ## Known documentation debt
 
 Some older milestone/next-action prose in

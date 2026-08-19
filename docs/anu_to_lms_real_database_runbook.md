@@ -97,6 +97,22 @@ Verify that there are no pending database updates:
 drush updatedb:status
 ```
 
+### Optional: audit Group 3 upgrade state
+
+If the site needed manual intervention during the Group 2 to Group 3 upgrade,
+run the read-only audit before repairing course access or memberships:
+
+```bash
+drush anu-to-lms:audit-group3
+drush anu-to-lms:audit-group3 USER_ID
+```
+
+The optional `USER_ID` form also reports that user's membership, explicit
+Group roles, and `view`/`take`/`update` access on each migrated course. The
+audit checks for stale Group 2 config references, malformed Group role config,
+missing `group_roles` field storage or instances, orphan role-reference rows,
+and migrated-course owner membership/access drift.
+
 ### Optional: enable LMS student management
 
 The LMS `Students` tab and `Add student` action are provided by the optional
