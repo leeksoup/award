@@ -122,6 +122,29 @@ drush cr
 drush anu-to-lms:audit-group3 USER_ID
 ```
 
+If the Group 2 to Group 3 update is stuck at `group_update_10305` with
+`Attempt to create a field without a field_name`, first confirm the installed
+field definition repository is in the failed middle state:
+
+```bash
+drush php:eval '$repo = \Drupal::service("entity.last_installed_schema.repository"); echo "group_content fields=", count($repo->getLastInstalledFieldStorageDefinitions("group_content")), PHP_EOL; echo "group_relationship fields=", count($repo->getLastInstalledFieldStorageDefinitions("group_relationship")), PHP_EOL;'
+```
+
+If that prints old `group_content` definitions and zero `group_relationship`
+definitions, repair the missing installed Group 3 definitions before rerunning
+updates:
+
+```bash
+drush anu-to-lms:repair-group3-schema-repository
+drush updb -y
+drush cr
+drush anu-to-lms:audit-group3 USER_ID
+```
+
+Do not run this repair when `group_relationship` installed definitions already
+exist; the command refuses that state to avoid overwriting a partially repaired
+schema repository.
+
 ### Optional: enable LMS student management
 
 The LMS `Students` tab and `Add student` action are provided by the optional

@@ -239,6 +239,19 @@ reported issue, `drush anu-to-lms:repair-group3-views` rewrites Views config
 from Group 2 `group_content` references to Group 3 `group_relationship`
 references using the same replacement pattern as Group's update hook.
 
+On staging, Group update `10305` also aborted with
+`Attempt to create a field without a field_name`. Diagnostics showed
+`group_update_10300_detected_legacy_version = 1`, no old
+`group_update_10300_detected_version` value, and Drupal's last-installed
+schema repository still had `group_content fields=14` with
+`group_relationship fields=0`. That means `10305` was running as if the Group
+2 to 3 legacy path had completed, but the installed field-storage definitions
+had not been copied to `group_relationship`. The guarded repair command
+`drush anu-to-lms:repair-group3-schema-repository` copies only those missing
+installed definitions and refuses to overwrite existing `group_relationship`
+definitions. Run it only in that exact old-present/new-empty state, then run
+`drush updb -y`, `drush cr`, and `drush anu-to-lms:audit-group3 USER_ID`.
+
 ## Known documentation debt
 
 Some older milestone/next-action prose in
