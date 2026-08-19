@@ -147,6 +147,15 @@ drush anu-to-lms:repair-students
 drush cr
 ```
 
+For LMS Course groups that were not created by the Anu migration, pass a
+specific course ID or repair every LMS course:
+
+```bash
+drush anu-to-lms:repair-students --course-id=13
+drush anu-to-lms:repair-students --all-courses
+drush cr
+```
+
 ### Optional: enable Forum Prompt activities
 
 The reusable Forum Prompt feature lives in `lms_forum_prompt`, not in the Anu

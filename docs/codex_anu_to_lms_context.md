@@ -220,7 +220,10 @@ Update `10018` in `anu_to_lms_migrate` repairs existing migrated courses after
 grants course teacher roles `view students` and `add students`, and creates a
 default `lms_class` child group for migrated courses that do not already have
 one. This is needed because the migrated courses bypassed the normal LMS course
-creation workflow that can create a default class for new courses.
+creation workflow that can create a default class for new courses. The
+rerunnable `drush anu-to-lms:repair-students` command can also target a
+non-migrated LMS Course with `--course-id=ID`, or all LMS Courses with
+`--all-courses`, when test/manual Course groups have no target classes.
 
 ## Group 3 upgrade audit
 
