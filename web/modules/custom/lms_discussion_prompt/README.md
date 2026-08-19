@@ -21,3 +21,6 @@ sends learners to a linked `discussion` node attached to the LMS Course group.
 - The module installs a course-level Discussions tab at
   `/group/{group}/course-discussions` that lists published `discussion` nodes
   attached through the course's `group_node:discussion` relationship.
+- The tab uses Group relationship access. Course-viewer roles need both
+  `view group_node:discussion relationship` and
+  `view group_node:discussion entity` for rows to appear.

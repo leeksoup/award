@@ -164,6 +164,18 @@ Update `10002` installs or repairs the Course Discussions tab at
 the `gc__node` relationship, and filters to
 `lms_course-group_node-discussion` relationships for published `discussion`
 nodes.
+Update `10003` grants discussion relationship and entity view permissions to
+non-anonymous LMS Course roles that can already view or take the course, and
+uses the relationship permission for the tab access check. Course-editing roles
+also receive `access group_node overview`, which controls Group's generic
+`/group/{group}/content` page.
+
+If the tab is still empty after updates, compare raw relationships with access
+checks:
+
+```bash
+drush php:eval '$gid = 13; $uid = \Drupal::currentUser()->id(); $group = \Drupal::entityTypeManager()->getStorage("group")->load($gid); echo "user:$uid relationship_perm:", $group->hasPermission("view group_node:discussion relationship", \Drupal::currentUser()) ? "yes" : "no", PHP_EOL; echo "entity_perm:", $group->hasPermission("view group_node:discussion entity", \Drupal::currentUser()) ? "yes" : "no", PHP_EOL; $ids = \Drupal::entityQuery("group_relationship")->accessCheck(FALSE)->condition("gid", $gid)->condition("type", "lms_course-group_node-discussion")->execute(); echo "raw_relationships:", count($ids), PHP_EOL; foreach (\Drupal::entityTypeManager()->getStorage("group_relationship")->loadMultiple($ids) as $relationship) { $node = $relationship->getEntity(); echo "relationship:", $relationship->id(), " node:", $relationship->getEntityId(), " published:", ($node && $node->isPublished() ? "yes" : "no"), " node_access:", ($node && $node->access("view") ? "yes" : "no"), PHP_EOL; }'
+```
 
 ## 4. Verify target configuration
 

@@ -387,7 +387,7 @@ display:
       access:
         type: group_permission
         options:
-          group_permission: 'view group_node:discussion entity'
+          group_permission: 'view group_node:discussion relationship'
       cache:
         type: tag
         options: {  }

@@ -21,12 +21,14 @@ function _lms_discussion_prompt_grant_group_permissions(): void {
   $role_storage = \Drupal::entityTypeManager()->getStorage('group_role');
   $roles = $role_storage->loadByProperties([
     'group_type' => 'lms_course',
-    'scope' => ['insider', 'individual'],
   ]);
 
   $view_permissions = [
     'view group_node:discussion relationship',
     'view group_node:discussion entity',
+  ];
+  $overview_permissions = [
+    'access group_node overview',
   ];
   $manage_permissions = [
     'create group_node:discussion relationship',
@@ -39,15 +41,27 @@ function _lms_discussion_prompt_grant_group_permissions(): void {
 
   foreach ($roles as $role) {
     $changed = FALSE;
-    foreach ($view_permissions as $permission) {
-      if (!$role->hasPermission($permission)) {
-        $role->grantPermission($permission);
-        $changed = TRUE;
+
+    $global_role = $role->getGlobalRoleId();
+    if ($global_role !== 'anonymous' && (
+      $role->isAdmin()
+      || $role->hasPermission('view group')
+      || $role->hasPermission('take course')
+    )) {
+      foreach ($view_permissions as $permission) {
+        if (!$role->hasPermission($permission)) {
+          $role->grantPermission($permission);
+          $changed = TRUE;
+        }
       }
     }
 
-    if ($role->hasPermission('edit group') || $role->hasPermission('administer members')) {
-      foreach ($manage_permissions as $permission) {
+    if (
+      $role->isAdmin()
+      || $role->hasPermission('edit group')
+      || $role->hasPermission('administer members')
+    ) {
+      foreach ([...$overview_permissions, ...$manage_permissions] as $permission) {
         if (!$role->hasPermission($permission)) {
           $role->grantPermission($permission);
           $changed = TRUE;
@@ -73,7 +87,21 @@ function lms_discussion_prompt_update_10001(): void {
  */
 function lms_discussion_prompt_update_10002(): void {
   _lms_discussion_prompt_grant_group_permissions();
+  _lms_discussion_prompt_repair_course_discussions_view();
+}
 
+/**
+ * Grants discussion relationship view access to all course-viewer roles.
+ */
+function lms_discussion_prompt_update_10003(): void {
+  _lms_discussion_prompt_grant_group_permissions();
+  _lms_discussion_prompt_repair_course_discussions_view();
+}
+
+/**
+ * Repairs the Course discussions View from install config.
+ */
+function _lms_discussion_prompt_repair_course_discussions_view(): void {
   $module_path = \Drupal::service('extension.list.module')
     ->getPath('lms_discussion_prompt');
   $source = new \Drupal\Core\Config\FileStorage($module_path . '/config/install');

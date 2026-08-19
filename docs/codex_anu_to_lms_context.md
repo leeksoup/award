@@ -233,11 +233,15 @@ The module also owns a `course_discussions` View for
 View config by replacing the mistaken LMS Classes contextual filter with the
 Group relationship `gid` contextual filter, requiring `gc__node`, and filtering
 to `lms_course-group_node-discussion` relationships for published
-`discussion` nodes. The tab access uses the generated Group permission
-`view group_node:discussion entity`; the expected installed permissions are
+`discussion` nodes. Update `10003` broadens discussion view grants to every
+non-anonymous LMS Course role that can already view or take the course, changes
+the tab access check to `view group_node:discussion relationship`, and grants
+course-editing roles `access group_node overview` for Group's generic
+`/group/{group}/content` page. Rows require the generated Group permissions
 `view group_node:discussion relationship` and
-`view group_node:discussion entity`, not the older/other-provider wording
-`Entity: View any content item entities`.
+`view group_node:discussion entity`; the UI label for the latter is
+`Entity: View any node entities` or similar depending on Group's provider, not
+necessarily `Entity: View any content item entities`.
 
 ## LMS Classes student management
 
