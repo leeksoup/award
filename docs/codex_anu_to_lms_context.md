@@ -208,6 +208,26 @@ safe `/course/{group}/start` return URL. The optional `Forum Prompt return
 link` block displays that return link on forum pages when the `return` query
 parameter starts with `/course/`.
 
+## Discussion Prompt activity feature
+
+The `lms_discussion_prompt` module adds a reusable LMS `discussion_prompt`
+activity type for prompts backed by group-attached `discussion` nodes with
+comments enabled. It reuses the Forum Prompt runtime pattern but avoids Drupal
+Forum taxonomy entirely: each discussion node is attached to the containing
+`lms_course` group through the Group 3 `group_node:discussion` relationship.
+
+Discussion Prompt activities use the LMS `no_answer` plugin. Author-facing
+fields store the prompt body and the desired discussion title; the internal
+node reference is hidden from the activity form. When the activity is saved or
+opened in course context, the module reuses a same-titled discussion already
+attached to that course, or creates one and links it back to the activity.
+
+Student activity pages show a `Go to discussion` link. The link records an LMS
+answer with full score, advances lesson/course status, and redirects to the
+discussion node with a safe `/course/{group}/start` return URL. Discussion node
+pages also show a return-to-lesson link after the prompt body and again near
+the bottom of the page.
+
 ## LMS Classes student management
 
 The LMS `Students` tab is not part of the base Group members page. It is

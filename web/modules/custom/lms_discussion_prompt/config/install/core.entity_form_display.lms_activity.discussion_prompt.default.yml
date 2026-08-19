@@ -1,0 +1,33 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.lms_activity.discussion_prompt.field_discussion_prompt_body
+    - field.field.lms_activity.discussion_prompt.field_discussion_title
+    - field.field.lms_activity.discussion_prompt.field_discussion_node
+    - lms.lms_activity_type.discussion_prompt
+  module: [text]
+id: lms_activity.discussion_prompt.default
+targetEntityType: lms_activity
+bundle: discussion_prompt
+mode: default
+content:
+  field_discussion_prompt_body:
+    type: text_textarea
+    weight: 0
+    region: content
+    settings:
+      rows: 12
+      placeholder: ''
+    third_party_settings: { }
+  field_discussion_title:
+    type: string_textfield
+    weight: 1
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: { }
+hidden:
+  field_discussion_node: true
+

@@ -139,6 +139,25 @@ and choose a Default forum. If no forum terms exist yet, create one at
 `/admin/structure/forum`. Place the `Forum Prompt return link` block on forum
 topic pages if students should see the return link after following a prompt.
 
+### Optional: enable Discussion Prompt activities
+
+The reusable Discussion Prompt feature lives in `lms_discussion_prompt`. It
+creates LMS `discussion_prompt` activities backed by group-attached
+`discussion` nodes with comments enabled:
+
+```bash
+drush en lms_discussion_prompt -y
+drush updb -y
+drush cr
+drush config:get lms.lms_activity_type.discussion_prompt
+drush config:get group.relationship_type.lms_course-group_node-discussion
+```
+
+The module grants LMS Course insider/individual roles permission to view
+discussion group-node relationships and entities. Roles that can edit the
+course or administer members also receive create/update/delete permissions for
+discussion group-node content.
+
 ## 4. Verify target configuration
 
 ```bash

@@ -1,0 +1,17 @@
+lms_discussion_prompt.open:
+  path: '/lms/discussion-prompt/{group}/{lesson_delta}/{activity_delta}/open'
+  defaults:
+    _controller: '\Drupal\lms_discussion_prompt\Controller\DiscussionPromptController::open'
+    _title: 'Open discussion'
+  requirements:
+    _entity_access: 'group.take'
+  options:
+    parameters:
+      group:
+        type: entity:group
+        bundle:
+          - lms_course
+      lesson_delta:
+        type: integer
+      activity_delta:
+        type: integer

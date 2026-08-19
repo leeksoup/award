@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.field_discussion_node
+    - lms.lms_activity_type.discussion_prompt
+    - node.type.discussion
+id: lms_activity.discussion_prompt.field_discussion_node
+field_name: field_discussion_node
+entity_type: lms_activity
+bundle: discussion_prompt
+label: Discussion
+description: 'Automatically created discussion for this prompt.'
+required: false
+translatable: true
+default_value: { }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      discussion: discussion
+    sort:
+      field: _none
+field_type: entity_reference
+

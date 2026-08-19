@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - lms_discussion_prompt
+id: comment_discussion
+label: 'Discussion comment'
+target_entity_type_id: node
+description: 'Comments on LMS discussion prompts.'
+
