@@ -228,6 +228,17 @@ discussion node with a safe `/course/{group}/start` return URL. Discussion node
 pages also show a return-to-lesson link after the prompt body and again near
 the bottom of the page.
 
+The module also owns a `course_discussions` View for
+`/group/{group}/course-discussions`. Update `10002` repairs existing active
+View config by replacing the mistaken LMS Classes contextual filter with the
+Group relationship `gid` contextual filter, requiring `gc__node`, and filtering
+to `lms_course-group_node-discussion` relationships for published
+`discussion` nodes. The tab access uses the generated Group permission
+`view group_node:discussion entity`; the expected installed permissions are
+`view group_node:discussion relationship` and
+`view group_node:discussion entity`, not the older/other-provider wording
+`Entity: View any content item entities`.
+
 ## LMS Classes student management
 
 The LMS `Students` tab is not part of the base Group members page. It is

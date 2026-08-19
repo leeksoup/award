@@ -67,3 +67,25 @@ function _lms_discussion_prompt_grant_group_permissions(): void {
 function lms_discussion_prompt_update_10001(): void {
   _lms_discussion_prompt_grant_group_permissions();
 }
+
+/**
+ * Repairs the Course discussions View configuration.
+ */
+function lms_discussion_prompt_update_10002(): void {
+  _lms_discussion_prompt_grant_group_permissions();
+
+  $module_path = \Drupal::service('extension.list.module')
+    ->getPath('lms_discussion_prompt');
+  $source = new \Drupal\Core\Config\FileStorage($module_path . '/config/install');
+  $view_config = $source->read('views.view.course_discussions');
+  if ($view_config === FALSE) {
+    return;
+  }
+
+  \Drupal::configFactory()
+    ->getEditable('views.view.course_discussions')
+    ->setData($view_config)
+    ->save(TRUE);
+
+  \Drupal::service('router.builder')->setRebuildNeeded();
+}

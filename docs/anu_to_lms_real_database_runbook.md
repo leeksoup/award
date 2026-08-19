@@ -151,12 +151,19 @@ drush updb -y
 drush cr
 drush config:get lms.lms_activity_type.discussion_prompt
 drush config:get group.relationship_type.lms_course-group_node-discussion
+drush config:get views.view.course_discussions
 ```
 
 The module grants LMS Course insider/individual roles permission to view
 discussion group-node relationships and entities. Roles that can edit the
 course or administer members also receive create/update/delete permissions for
 discussion group-node content.
+Update `10002` installs or repairs the Course Discussions tab at
+`/group/{group}/course-discussions`. The View uses
+`group_relationship_field_data.gid` as the course contextual filter, requires
+the `gc__node` relationship, and filters to
+`lms_course-group_node-discussion` relationships for published `discussion`
+nodes.
 
 ## 4. Verify target configuration
 

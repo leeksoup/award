@@ -18,4 +18,6 @@ sends learners to a linked `discussion` node attached to the LMS Course group.
   the course.
 - Linked discussion pages render a return-to-course link directly. The optional
   `Discussion Prompt return link` block can also display the return link.
-
+- The module installs a course-level Discussions tab at
+  `/group/{group}/course-discussions` that lists published `discussion` nodes
+  attached through the course's `group_node:discussion` relationship.
