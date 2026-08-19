@@ -246,11 +246,13 @@ On staging, Group update `10305` also aborted with
 schema repository still had `group_content fields=14` with
 `group_relationship fields=0`. That means `10305` was running as if the Group
 2 to 3 legacy path had completed, but the installed field-storage definitions
-had not been copied to `group_relationship`. The guarded repair command
-`drush anu-to-lms:repair-group3-schema-repository` copies only those missing
-installed definitions and refuses to overwrite existing `group_relationship`
-definitions. Run it only in that exact old-present/new-empty state, then run
-`drush updb -y`, `drush cr`, and `drush anu-to-lms:audit-group3 USER_ID`.
+had not been copied to `group_relationship`. The standalone
+`group3_schema_repair` module has no Anu or LMS dependency and provides
+`drush group3-schema-repair:repair-repository`, which copies only those
+missing installed definitions and refuses to overwrite existing
+`group_relationship` definitions. Run it only in that exact
+old-present/new-empty state, then run `drush updb -y`, `drush cr`, and
+`drush anu-to-lms:audit-group3 USER_ID` once `anu_to_lms_migrate` is available.
 
 ## Known documentation debt
 

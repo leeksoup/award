@@ -135,7 +135,9 @@ definitions, repair the missing installed Group 3 definitions before rerunning
 updates:
 
 ```bash
-drush anu-to-lms:repair-group3-schema-repository
+drush en group3_schema_repair -y
+drush cr
+drush group3-schema-repair:repair-repository
 drush updb -y
 drush cr
 drush anu-to-lms:audit-group3 USER_ID
@@ -143,7 +145,9 @@ drush anu-to-lms:audit-group3 USER_ID
 
 Do not run this repair when `group_relationship` installed definitions already
 exist; the command refuses that state to avoid overwriting a partially repaired
-schema repository.
+schema repository. The `group3_schema_repair` module intentionally has no Anu
+or LMS dependency, so it can be enabled on a restored pre-migration database
+before `anu_to_lms_migrate` is available.
 
 ### Optional: enable LMS student management
 

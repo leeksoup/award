@@ -268,7 +268,9 @@ present with zero `group_relationship` definitions. Repair that state before
 rerunning updates:
 
 ```bash
-drush anu-to-lms:repair-group3-schema-repository
+drush en group3_schema_repair -y
+drush cr
+drush group3-schema-repair:repair-repository
 drush updb -y
 drush cr
 drush anu-to-lms:audit-group3 USER_ID
@@ -277,4 +279,5 @@ drush anu-to-lms:audit-group3 USER_ID
 The repair command only copies installed field-storage definitions into the
 missing Group 3 entity type. It refuses to run if `group_relationship`
 definitions already exist, and it does not patch or overwrite contrib Group
-code.
+code. The command lives in the standalone `group3_schema_repair` module so it
+can be enabled before Anu or LMS migration dependencies are available.
