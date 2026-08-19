@@ -99,6 +99,32 @@ function lms_discussion_prompt_update_10003(): void {
 }
 
 /**
+ * Attaches already-linked discussion nodes to their containing courses.
+ */
+function lms_discussion_prompt_update_10004(): void {
+  $activity_storage = \Drupal::entityTypeManager()->getStorage('lms_activity');
+  $ids = $activity_storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'discussion_prompt')
+    ->execute();
+
+  if ($ids === []) {
+    return;
+  }
+
+  $manager = \Drupal::service('lms_discussion_prompt.manager');
+  foreach ($activity_storage->loadMultiple($ids) as $activity) {
+    if ($activity instanceof \Drupal\lms\Entity\ActivityInterface) {
+      $manager->ensureDiscussionForActivity($activity);
+    }
+  }
+
+  \Drupal::service('cache_tags.invalidator')->invalidateTags([
+    'group_relationship_list',
+  ]);
+}
+
+/**
  * Repairs the Course discussions View from install config.
  */
 function _lms_discussion_prompt_repair_course_discussions_view(): void {

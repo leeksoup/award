@@ -237,7 +237,10 @@ to `lms_course-group_node-discussion` relationships for published
 non-anonymous LMS Course role that can already view or take the course, changes
 the tab access check to `view group_node:discussion relationship`, and grants
 course-editing roles `access group_node overview` for Group's generic
-`/group/{group}/content` page. Rows require the generated Group permissions
+`/group/{group}/nodes` page. Update `10004` repairs activities whose
+`field_discussion_node` points at a discussion node that was never attached to
+the containing course as a `group_node:discussion` relationship. Rows require
+that relationship plus the generated Group permissions
 `view group_node:discussion relationship` and
 `view group_node:discussion entity`; the UI label for the latter is
 `Entity: View any node entities` or similar depending on Group's provider, not

@@ -24,3 +24,5 @@ sends learners to a linked `discussion` node attached to the LMS Course group.
 - The tab uses Group relationship access. Course-viewer roles need both
   `view group_node:discussion relationship` and
   `view group_node:discussion entity` for rows to appear.
+- Existing linked discussion nodes are attached to their containing course by
+  update `10004` if the Group relationship is missing.

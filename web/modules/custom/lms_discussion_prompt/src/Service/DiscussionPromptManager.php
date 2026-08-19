@@ -155,6 +155,10 @@ final class DiscussionPromptManager {
     ) {
       $discussion = $activity->get('field_discussion_node')->entity;
       if ($discussion instanceof NodeInterface) {
+        $course ??= $this->resolveCourseForActivity($activity);
+        if ($course instanceof Course) {
+          $this->ensureDiscussionAttached($discussion, $course);
+        }
         return $discussion;
       }
     }
@@ -175,6 +179,7 @@ final class DiscussionPromptManager {
     $title = $this->discussionTitle($activity);
     $existing_discussion = $this->loadDiscussionByTitle($title, $course);
     if ($existing_discussion instanceof NodeInterface) {
+      $this->ensureDiscussionAttached($existing_discussion, $course);
       $activity->set('field_discussion_node', $existing_discussion);
       $activity->save();
       return $existing_discussion;
@@ -198,6 +203,21 @@ final class DiscussionPromptManager {
     $activity->save();
 
     return $discussion;
+  }
+
+  /**
+   * Ensures a discussion node is attached to a course group.
+   */
+  private function ensureDiscussionAttached(NodeInterface $discussion, Course $course): void {
+    if (
+      $discussion->bundle() !== 'discussion'
+      || !$this->courseSupportsDiscussions($course)
+      || $course->getRelationshipsByEntity($discussion, self::RELATION_PLUGIN) !== []
+    ) {
+      return;
+    }
+
+    $course->addRelationship($discussion, self::RELATION_PLUGIN);
   }
 
   /**

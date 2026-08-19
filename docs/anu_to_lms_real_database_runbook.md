@@ -168,7 +168,12 @@ Update `10003` grants discussion relationship and entity view permissions to
 non-anonymous LMS Course roles that can already view or take the course, and
 uses the relationship permission for the tab access check. Course-editing roles
 also receive `access group_node overview`, which controls Group's generic
-`/group/{group}/content` page.
+`/group/{group}/nodes` page.
+Update `10004` repairs existing Discussion Prompt activities whose linked
+discussion node exists but is missing the required `group_node:discussion`
+relationship to the containing course. Without that relationship, both
+`/group/{group}/nodes` and `/group/{group}/course-discussions` can load but
+show no rows.
 
 If the tab is still empty after updates, compare raw relationships with access
 checks:
