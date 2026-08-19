@@ -231,7 +231,10 @@ stale `group_content` config/View references, malformed `group.role.*` config,
 missing `group_relationship.group_roles` field storage or membership field
 instances, orphan rows in `group_relationship__group_roles`, and migrated LMS
 course owner/user membership access. Use it to identify exact drift before
-adding any repair command or update hook.
+adding any repair command or update hook. If stale View references are the only
+reported issue, `drush anu-to-lms:repair-group3-views` rewrites Views config
+from Group 2 `group_content` references to Group 3 `group_relationship`
+references using the same replacement pattern as Group's update hook.
 
 ## Known documentation debt
 

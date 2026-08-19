@@ -113,6 +113,15 @@ audit checks for stale Group 2 config references, malformed Group role config,
 missing `group_roles` field storage or instances, orphan role-reference rows,
 and migrated-course owner membership/access drift.
 
+If the only reported issue is stale `group_content` references in Views, repair
+those Views with:
+
+```bash
+drush anu-to-lms:repair-group3-views
+drush cr
+drush anu-to-lms:audit-group3 USER_ID
+```
+
 ### Optional: enable LMS student management
 
 The LMS `Students` tab and `Add student` action are provided by the optional
