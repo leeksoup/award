@@ -269,6 +269,10 @@ attached to non-membership relationships.
 Group 2 config names from Group update `10300`: `group.content_type.*`,
 `field.storage.group_content.*`, `field.field.group_content.*`, and
 `core.entity_*_display.group_content.*`.
+It also repairs `dependencies.config` entries in other active configuration,
+such as Pathauto patterns that still depend on a renamed
+`group.content_type.*` object. The audit reports those dependencies before a
+config import is attempted.
 
 ## Known documentation debt
 
