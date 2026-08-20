@@ -1,0 +1,13 @@
+services:
+  anu_lms_decommission.commands:
+    class: Drupal\anu_lms_decommission\Drush\Commands\AnuLmsDecommissionCommands
+    arguments:
+      - '@entity_type.manager'
+      - '@config.factory'
+      - '@config.storage'
+      - '@extension.list.module'
+      - '@module_handler'
+      - '@module_installer'
+      - '@database'
+    tags:
+      - { name: drush.command }

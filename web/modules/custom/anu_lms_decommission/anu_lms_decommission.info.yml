@@ -1,0 +1,10 @@
+name: 'Anu LMS Decommission'
+type: module
+description: 'Audits and safely decommissions migrated Anu LMS source content.'
+package: Custom
+core_version_requirement: ^10 || ^11
+dependencies:
+  - drupal:field
+  - drupal:file
+  - drupal:node
+  - drupal:taxonomy

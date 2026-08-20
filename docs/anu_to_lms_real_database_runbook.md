@@ -306,6 +306,66 @@ drush cr
 
 Confirm the site is reachable before ending the maintenance window.
 
+## Anu LMS decommission
+
+Only begin this procedure after target LMS migration acceptance, browser UAT,
+and a current staging rehearsal. Do not run `drush pmu anu_lms` directly: Anu
+LMS 2.11.2 removes only part of its configuration and its uninstall hook also
+deletes source Course nodes.
+
+Keep `anu_to_lms_migrate` enabled during this procedure. It owns active LMS
+activity configuration and migration-map provenance; moving that configuration
+to a neutral runtime module is a separate follow-up.
+
+Enable the standalone decommission helper and inspect the complete inventory:
+
+```bash
+drush en anu_lms_decommission -y
+drush cr
+drush anu-lms-decommission:audit
+```
+
+The audit must show no migration-map rows with missing destinations. Review all
+reported external configuration dependencies and shared config candidates before
+continuing. Create a database/files backup and a JSON inventory outside the web
+root:
+
+```bash
+mkdir -p ../backups/anu-lms-decommission
+drush sql:dump --gzip --result-file=../backups/anu-lms-decommission/pre-purge.sql
+drush anu-lms-decommission:archive --directory=../backups/anu-lms-decommission
+```
+
+Copy the protected files directory using the site's normal backup process. The
+inventory records source file IDs, but `purge-content` deliberately retains all
+managed files because migrated LMS audio and unrelated content can share them.
+
+With maintenance mode enabled and the archive verified, run each destructive
+phase separately:
+
+```bash
+drush anu-lms-decommission:purge-content --confirm=PURGE-ANU-SOURCE
+drush anu-lms-decommission:remove-config --confirm=REMOVE-ANU-CONFIG
+drush anu-lms-decommission:uninstall --confirm=UNINSTALL-ANU-LMS
+drush cr
+drush cron
+drush anu-lms-decommission:verify
+```
+
+`remove-config` preserves generic image styles and the embedded node form mode
+by default. Remove those only after checking they have no unrelated consumers:
+
+```bash
+drush anu-lms-decommission:remove-config --confirm=REMOVE-ANU-CONFIG --include-shared
+```
+
+After verification, export and validate active configuration using the site's
+normal configuration-management workflow. Re-run target LMS course, lesson,
+file, teacher, and learner-access smoke tests before disabling maintenance
+mode. If any phase reports an unexpected dependency or shared resource, stop
+and restore the pre-purge database/files backup rather than deleting database
+tables manually.
+
 ## Rollback and recovery
 
 ### Migration rollback

@@ -158,3 +158,18 @@ Some older milestone/next-action prose in
 assessment, and course slices. Treat this handoff and the real-database runbook
 as the current operational status, and correct the plan when the access gate is
 validated.
+
+## Anu LMS decommission
+
+`anu_lms_decommission` is a standalone maintenance module for post-acceptance
+removal of Anu LMS. Its commands inventory source nodes, paragraphs, terms,
+ECK checklist results, Anu-owned config, external config dependencies,
+source-referenced files, and target migration-map health before any destructive
+action. `purge-content`, `remove-config`, and `uninstall` each require a
+different literal confirmation token. The source purge retains every managed
+file; file deletion must be a separately audited decision because target LMS
+audio can still refer to the original file entity.
+
+Keep `anu_to_lms_migrate` enabled after Anu removal for now. Its target LMS
+activity config and map tables remain useful operational provenance. Extracting
+that configuration to a neutral runtime module is deliberately deferred.
