@@ -66,6 +66,11 @@ videos.
 Update `10015` deletes unreferenced migrated activities from older
 lesson-section test runs only when their source paragraph bundle is no longer
 supported by the current migration.
+The lesson-section activity source traverses current `module_lesson` and
+`module_assessment` paragraph references. It intentionally ignores orphaned
+paragraphs and paragraphs retained only by deleted parent content, so stale
+parent metadata cannot block migration discovery with an unsupported media
+error.
 Question activity migration supports single/multiple-choice wrappers as LMS
 `select` activities and short/long-answer wrappers as manually evaluated LMS
 `free_text` activities. Scale and Likert questions remain deferred.
