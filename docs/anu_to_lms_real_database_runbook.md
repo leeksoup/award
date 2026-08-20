@@ -144,6 +144,7 @@ drush group3-schema-repair:repair-group-roles-storage
 drush en anu_to_lms_migrate -y
 drush cr
 drush anu-to-lms:repair-group3-views
+drush group3-schema-repair:repair-stale-config
 drush group3-schema-repair:repair-group-roles-instances
 drush group3-schema-repair:repair-group-roles-table
 drush cr
@@ -156,10 +157,11 @@ schema repository. The `group3_schema_repair` module intentionally has no Anu
 or LMS dependency, so it can be enabled on a restored pre-migration database
 before `anu_to_lms_migrate` is available.
 
-If the audit still reports stale non-View Group 2 config names, inspect the
-exact config names before deleting them. Do not delete broad `group_content`
-config blindly; confirm whether each object has a valid Group 3 replacement or
-belongs to a module that should be upgraded or disabled.
+If the audit still reports stale non-View Group 2 config names after
+`repair-stale-config`, inspect the exact config names before deleting them. Do
+not delete broad `group_content` config blindly; confirm whether each object
+has a valid Group 3 replacement or belongs to a module that should be upgraded
+or disabled.
 
 ### Optional: enable LMS student management
 

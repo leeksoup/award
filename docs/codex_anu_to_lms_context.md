@@ -259,8 +259,11 @@ still report active-config/data drift. Use
 `drush group3-schema-repair:repair-group-roles-instances` for missing
 membership `group_roles` field instances and
 `drush group3-schema-repair:repair-group-roles-table` for role-reference rows
-attached to non-membership relationships. Stale non-View Group 2 config names
-must be reviewed by exact config name before deletion.
+attached to non-membership relationships.
+`drush group3-schema-repair:repair-stale-config` handles the known remaining
+Group 2 config names from Group update `10300`: `group.content_type.*`,
+`field.storage.group_content.*`, `field.field.group_content.*`, and
+`core.entity_*_display.group_content.*`.
 
 ## Known documentation debt
 
