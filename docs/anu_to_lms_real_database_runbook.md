@@ -24,6 +24,11 @@ before production use.
 The source and destination are in the same active Drupal database. Always take
 a restorable backup before running database updates or migrations.
 
+Lesson-section activity discovery follows current lesson and assessment
+paragraph references rather than paragraph parent metadata. Deleting a lesson
+can retain its paragraphs in Drupal; those orphaned paragraphs are not
+migration source rows and cannot block the import because of unsupported media.
+
 ## Preconditions
 
 - Deploy the current repository revision.
@@ -314,7 +319,7 @@ Spot-check at least three activities at `/admin/lms/activity`. Confirm that:
 - paragraph markup is not wrapped in invalid `<strong><p>…</p></strong>`
   markup;
 - advancing the activity provides the intended v1 whole-activity completion
-  behavior.
+  behavior. LOL, you can't advance an activity until it's inside a lesson!
 
 ## 9. Import section activities and lessons
 
