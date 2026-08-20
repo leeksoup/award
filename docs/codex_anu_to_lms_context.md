@@ -254,8 +254,13 @@ missing installed definitions and refuses to overwrite existing
 old-present/new-empty state, then run `drush updb -y`, `drush cr`, and
 `drush group3-schema-repair:repair-group-roles-storage` if enabling LMS fails
 because `field.storage.group_relationship.group_roles` is missing. Once
-`anu_to_lms_migrate` is available, run
-`drush anu-to-lms:audit-group3 USER_ID`.
+`anu_to_lms_migrate` is available, `drush anu-to-lms:audit-group3 USER_ID` may
+still report active-config/data drift. Use
+`drush group3-schema-repair:repair-group-roles-instances` for missing
+membership `group_roles` field instances and
+`drush group3-schema-repair:repair-group-roles-table` for role-reference rows
+attached to non-membership relationships. Stale non-View Group 2 config names
+must be reviewed by exact config name before deletion.
 
 ## Known documentation debt
 
