@@ -140,6 +140,9 @@ drush cr
 drush group3-schema-repair:repair-repository
 drush updb -y
 drush cr
+drush group3-schema-repair:repair-group-roles-storage
+drush en anu_to_lms_migrate -y
+drush cr
 drush anu-to-lms:audit-group3 USER_ID
 ```
 

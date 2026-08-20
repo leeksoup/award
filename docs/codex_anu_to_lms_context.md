@@ -252,7 +252,10 @@ had not been copied to `group_relationship`. The standalone
 missing installed definitions and refuses to overwrite existing
 `group_relationship` definitions. Run it only in that exact
 old-present/new-empty state, then run `drush updb -y`, `drush cr`, and
-`drush anu-to-lms:audit-group3 USER_ID` once `anu_to_lms_migrate` is available.
+`drush group3-schema-repair:repair-group-roles-storage` if enabling LMS fails
+because `field.storage.group_relationship.group_roles` is missing. Once
+`anu_to_lms_migrate` is available, run
+`drush anu-to-lms:audit-group3 USER_ID`.
 
 ## Known documentation debt
 
