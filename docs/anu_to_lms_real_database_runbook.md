@@ -103,8 +103,8 @@ If the site needed manual intervention during the Group 2 to Group 3 upgrade,
 run the read-only audit before repairing course access or memberships:
 
 ```bash
-drush anu-to-lms:audit-group3
-drush anu-to-lms:audit-group3 USER_ID
+drush group3-schema-repair:audit
+drush group3-schema-repair:audit USER_ID
 ```
 
 The optional `USER_ID` form also reports that user's membership, explicit
@@ -117,9 +117,9 @@ If the only reported issue is stale `group_content` references in Views, repair
 those Views with:
 
 ```bash
-drush anu-to-lms:repair-group3-views
+drush group3-schema-repair:repair-views
 drush cr
-drush anu-to-lms:audit-group3 USER_ID
+drush group3-schema-repair:audit USER_ID
 ```
 
 If the Group 2 to Group 3 update is stuck at `group_update_10305` with
@@ -143,12 +143,12 @@ drush cr
 drush group3-schema-repair:repair-group-roles-storage
 drush en anu_to_lms_migrate -y
 drush cr
-drush anu-to-lms:repair-group3-views
+drush group3-schema-repair:repair-views
 drush group3-schema-repair:repair-stale-config
 drush group3-schema-repair:repair-group-roles-instances
 drush group3-schema-repair:repair-group-roles-table
 drush cr
-drush anu-to-lms:audit-group3 USER_ID
+drush group3-schema-repair:audit USER_ID
 ```
 
 Do not run this repair when `group_relationship` installed definitions already

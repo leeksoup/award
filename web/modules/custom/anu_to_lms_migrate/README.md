@@ -276,12 +276,12 @@ drush cr
 drush group3-schema-repair:repair-group-roles-storage
 drush en anu_to_lms_migrate -y
 drush cr
-drush anu-to-lms:repair-group3-views
+drush group3-schema-repair:repair-views
 drush group3-schema-repair:repair-stale-config
 drush group3-schema-repair:repair-group-roles-instances
 drush group3-schema-repair:repair-group-roles-table
 drush cr
-drush anu-to-lms:audit-group3 USER_ID
+drush group3-schema-repair:audit USER_ID
 ```
 
 The repair command only copies installed field-storage definitions into the

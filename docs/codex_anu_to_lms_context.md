@@ -229,13 +229,13 @@ non-migrated LMS Course with `--course-id=ID`, or all LMS Courses with
 
 Some staging databases may have needed a manual Group 2 to Group 3 repair
 before Group's own update hooks ran cleanly. The read-only
-`drush anu-to-lms:audit-group3 [USER_ID]` command reports likely leftovers:
+`drush group3-schema-repair:audit [USER_ID]` command reports likely leftovers:
 stale `group_content` config/View references, malformed `group.role.*` config,
 missing `group_relationship.group_roles` field storage or membership field
 instances, orphan rows in `group_relationship__group_roles`, and migrated LMS
 course owner/user membership access. Use it to identify exact drift before
 adding any repair command or update hook. If stale View references are the only
-reported issue, `drush anu-to-lms:repair-group3-views` rewrites Views config
+reported issue, `drush group3-schema-repair:repair-views` rewrites Views config
 from Group 2 `group_content` references to Group 3 `group_relationship`
 references using the same replacement pattern as Group's update hook.
 
@@ -254,7 +254,7 @@ missing installed definitions and refuses to overwrite existing
 old-present/new-empty state, then run `drush updb -y`, `drush cr`, and
 `drush group3-schema-repair:repair-group-roles-storage` if enabling LMS fails
 because `field.storage.group_relationship.group_roles` is missing. Once
-`anu_to_lms_migrate` is available, `drush anu-to-lms:audit-group3 USER_ID` may
+`anu_to_lms_migrate` is available, `drush group3-schema-repair:audit USER_ID` may
 still report active-config/data drift. Use
 `drush group3-schema-repair:repair-group-roles-instances` for missing
 membership `group_roles` field instances and
