@@ -24,6 +24,11 @@ before production use.
 The source and destination are in the same active Drupal database. Always take
 a restorable backup before running database updates or migrations.
 
+Lesson-section activity discovery follows current lesson and assessment
+paragraph references rather than paragraph parent metadata. Deleting a lesson
+can retain its paragraphs in Drupal; those orphaned paragraphs are not
+migration source rows and cannot block the import because of unsupported media.
+
 ## Preconditions
 
 - Deploy the current repository revision.
@@ -96,6 +101,123 @@ Verify that there are no pending database updates:
 ```bash
 drush updatedb:status
 ```
+
+### Optional: audit Group 3 upgrade state
+
+If the site needed manual intervention during the Group 2 to Group 3 upgrade,
+run the read-only audit before repairing course access or memberships:
+
+```bash
+drush group3-schema-repair:audit
+drush group3-schema-repair:audit USER_ID
+```
+
+The optional `USER_ID` form also reports that user's membership, explicit
+Group roles, and `view`/`take`/`update` access on each migrated course. The
+audit checks for stale Group 2 config references, malformed Group role config,
+missing `group_roles` field storage or instances, orphan role-reference rows,
+and migrated-course owner membership/access drift.
+
+If the only reported issue is stale `group_content` references in Views, repair
+those Views with:
+
+```bash
+drush group3-schema-repair:repair-views
+drush cr
+drush group3-schema-repair:audit USER_ID
+```
+
+If the Group 2 to Group 3 update is stuck at `group_update_10305` with
+`Attempt to create a field without a field_name`, first confirm the installed
+field definition repository is in the failed middle state:
+
+```bash
+drush php:eval '$repo = \Drupal::service("entity.last_installed_schema.repository"); echo "group_content fields=", count($repo->getLastInstalledFieldStorageDefinitions("group_content")), PHP_EOL; echo "group_relationship fields=", count($repo->getLastInstalledFieldStorageDefinitions("group_relationship")), PHP_EOL;'
+```
+
+If that prints old `group_content` definitions and zero `group_relationship`
+definitions, repair the missing installed Group 3 definitions before rerunning
+updates:
+
+```bash
+drush en group3_schema_repair -y
+drush cr
+drush group3-schema-repair:repair-repository
+drush updb -y
+drush cr
+drush group3-schema-repair:repair-group-roles-storage
+drush en anu_to_lms_migrate -y
+drush cr
+drush group3-schema-repair:repair-views
+drush group3-schema-repair:repair-stale-config
+drush group3-schema-repair:repair-group-roles-instances
+drush group3-schema-repair:repair-group-roles-table
+drush cr
+drush group3-schema-repair:audit USER_ID
+```
+
+Do not run this repair when `group_relationship` installed definitions already
+exist; the command refuses that state to avoid overwriting a partially repaired
+schema repository. The `group3_schema_repair` module intentionally has no Anu
+or LMS dependency, so it can be enabled on a restored pre-migration database
+before `anu_to_lms_migrate` is available.
+
+If the audit still reports stale non-View Group 2 config names after
+`repair-stale-config`, inspect the exact config names before deleting them. Do
+not delete broad `group_content` config blindly; confirm whether each object
+has a valid Group 3 replacement or belongs to a module that should be upgraded
+or disabled.
+
+### Optional: enable LMS student management
+
+The LMS `Students` tab and `Add student` action are provided by the optional
+`lms_classes` module. Enable it before expecting course-level student
+management UI:
+
+```bash
+drush en lms_classes -y
+drush updb -y
+drush cr
+```
+
+Update `10018` grants migrated course teacher roles the LMS Classes student
+permissions and creates one default class for each existing migrated course
+that has no class yet. Without a class, the course can show Group's generic
+Members page but cannot use the LMS Students workflow.
+
+If `lms_classes` was enabled after update `10018` already ran, use the
+rerunnable repair command instead:
+
+```bash
+drush anu-to-lms:repair-students
+drush cr
+```
+
+For LMS Course groups that were not created by the Anu migration, pass a
+specific course ID or repair every LMS course:
+
+```bash
+drush anu-to-lms:repair-students --course-id=13
+drush anu-to-lms:repair-students --all-courses
+drush cr
+```
+
+### Optional: enable Forum Prompt activities
+
+The reusable Forum Prompt feature lives in `lms_forum_prompt`, not in the Anu
+migration module:
+
+```bash
+drush en lms_forum_prompt -y
+drush cr
+drush config:get lms.lms_activity_type.forum_prompt
+drush config:get field.field.group.lms_course.field_default_forum
+```
+
+After enabling it, edit any course that will contain Forum Prompt activities
+and choose a Default forum. If no forum terms exist yet, create one at
+`/admin/structure/forum`. Place the `Forum Prompt return link` block on forum
+topic pages if students should see the return link after following a prompt.
 
 ## 4. Verify target configuration
 
@@ -197,7 +319,7 @@ Spot-check at least three activities at `/admin/lms/activity`. Confirm that:
 - paragraph markup is not wrapped in invalid `<strong><p>…</p></strong>`
   markup;
 - advancing the activity provides the intended v1 whole-activity completion
-  behavior.
+  behavior. LOL, you can't advance an activity until it's inside a lesson!
 
 ## 9. Import section activities and lessons
 

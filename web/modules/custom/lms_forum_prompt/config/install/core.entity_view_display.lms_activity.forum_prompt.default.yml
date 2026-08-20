@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.lms_activity.forum_prompt.field_forum_prompt_body
+    - field.field.lms_activity.forum_prompt.field_forum_topic
+    - lms.lms_activity_type.forum_prompt
+  module: [text]
+id: lms_activity.forum_prompt.default
+targetEntityType: lms_activity
+bundle: forum_prompt
+mode: default
+content:
+  field_forum_prompt_body:
+    type: text_default
+    label: hidden
+    settings: { }
+    third_party_settings: { }
+    weight: 0
+    region: content
+hidden:
+  field_forum_topic: true

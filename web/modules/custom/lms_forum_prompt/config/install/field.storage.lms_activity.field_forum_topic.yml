@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  module: [lms, node]
+id: lms_activity.field_forum_topic
+field_name: field_forum_topic
+entity_type: lms_activity
+type: entity_reference
+settings:
+  target_type: node
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: { }
+persist_with_no_fields: false
+custom_storage: false

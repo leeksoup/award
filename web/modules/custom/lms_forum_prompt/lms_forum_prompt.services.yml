@@ -1,0 +1,7 @@
+services:
+  _defaults:
+    autowire: true
+
+  lms_forum_prompt.manager:
+    class: Drupal\lms_forum_prompt\Service\ForumPromptManager
+  Drupal\lms_forum_prompt\Service\ForumPromptManager: '@lms_forum_prompt.manager'

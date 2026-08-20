@@ -66,6 +66,11 @@ videos.
 Update `10015` deletes unreferenced migrated activities from older
 lesson-section test runs only when their source paragraph bundle is no longer
 supported by the current migration.
+The lesson-section activity source traverses current `module_lesson` and
+`module_assessment` paragraph references. It intentionally ignores orphaned
+paragraphs and paragraphs retained only by deleted parent content, so stale
+parent metadata cannot block migration discovery with an unsupported media
+error.
 Question activity migration supports single/multiple-choice wrappers as LMS
 `select` activities and short/long-answer wrappers as manually evaluated LMS
 `free_text` activities. Scale and Likert questions remain deferred.
@@ -186,6 +191,88 @@ Next deploy the checklist-resource slice, run database updates, update the
 checklist and lesson migrations in place, and re-check browser lesson playback.
 Only after lesson order, headings, and checklist resource links pass should
 implementation continue to the next content-parity or achievements slice.
+
+## Forum Prompt activity feature
+
+The `lms_forum_prompt` module adds a reusable LMS `forum_prompt` activity type
+for lesson prompts that send learners to a Drupal Forum topic. It is separate
+from `anu_to_lms_migrate` because it is LMS runtime/authoring behavior, not
+Anu-specific migration logic.
+
+Forum Prompt activities use the LMS `no_answer` plugin with a default max
+score of 10. Each `lms_course` has a `field_default_forum` term reference to
+the Forum vocabulary. When a Forum Prompt activity can be resolved to a course,
+the module creates one `node.forum` topic from the activity title and prompt
+body, owned by the activity author, and stores it on
+`field_forum_topic`. Later edits do not overwrite the linked topic.
+
+Student activity pages show a `Go to discussion` link. The link records an LMS
+answer with full score, advances the current lesson/course status using the
+same flow as LMS no-answer submission, and redirects to the forum topic with a
+safe `/course/{group}/start` return URL. The optional `Forum Prompt return
+link` block displays that return link on forum pages when the `return` query
+parameter starts with `/course/`.
+
+## LMS Classes student management
+
+The LMS `Students` tab is not part of the base Group members page. It is
+provided by the optional `lms_classes` module as the
+`lms_course_students` View at `/group/{group}/students`, with the Add student
+action at `/group/{group}/students/add`.
+
+Update `10018` in `anu_to_lms_migrate` repairs existing migrated courses after
+`lms_classes` is enabled: it installs missing LMS Classes default config,
+grants course teacher roles `view students` and `add students`, and creates a
+default `lms_class` child group for migrated courses that do not already have
+one. This is needed because the migrated courses bypassed the normal LMS course
+creation workflow that can create a default class for new courses. The
+rerunnable `drush anu-to-lms:repair-students` command can also target a
+non-migrated LMS Course with `--course-id=ID`, or all LMS Courses with
+`--all-courses`, when test/manual Course groups have no target classes.
+
+## Group 3 upgrade audit
+
+Some staging databases may have needed a manual Group 2 to Group 3 repair
+before Group's own update hooks ran cleanly. The read-only
+`drush group3-schema-repair:audit [USER_ID]` command reports likely leftovers:
+stale `group_content` config/View references, malformed `group.role.*` config,
+missing `group_relationship.group_roles` field storage or membership field
+instances, orphan rows in `group_relationship__group_roles`, and migrated LMS
+course owner/user membership access. Use it to identify exact drift before
+adding any repair command or update hook. If stale View references are the only
+reported issue, `drush group3-schema-repair:repair-views` rewrites Views config
+from Group 2 `group_content` references to Group 3 `group_relationship`
+references using the same replacement pattern as Group's update hook.
+
+On staging, Group update `10305` also aborted with
+`Attempt to create a field without a field_name`. Diagnostics showed
+`group_update_10300_detected_legacy_version = 1`, no old
+`group_update_10300_detected_version` value, and Drupal's last-installed
+schema repository still had `group_content fields=14` with
+`group_relationship fields=0`. That means `10305` was running as if the Group
+2 to 3 legacy path had completed, but the installed field-storage definitions
+had not been copied to `group_relationship`. The standalone
+`group3_schema_repair` module has no Anu or LMS dependency and provides
+`drush group3-schema-repair:repair-repository`, which copies only those
+missing installed definitions and refuses to overwrite existing
+`group_relationship` definitions. Run it only in that exact
+old-present/new-empty state, then run `drush updb -y`, `drush cr`, and
+`drush group3-schema-repair:repair-group-roles-storage` if enabling LMS fails
+because `field.storage.group_relationship.group_roles` is missing. Once
+`anu_to_lms_migrate` is available, `drush group3-schema-repair:audit USER_ID` may
+still report active-config/data drift. Use
+`drush group3-schema-repair:repair-group-roles-instances` for missing
+membership `group_roles` field instances and
+`drush group3-schema-repair:repair-group-roles-table` for role-reference rows
+attached to non-membership relationships.
+`drush group3-schema-repair:repair-stale-config` handles the known remaining
+Group 2 config names from Group update `10300`: `group.content_type.*`,
+`field.storage.group_content.*`, `field.field.group_content.*`, and
+`core.entity_*_display.group_content.*`.
+It also repairs `dependencies.config` entries in other active configuration,
+such as Pathauto patterns that still depend on a renamed
+`group.content_type.*` object. The audit reports those dependencies before a
+config import is attempted.
 
 ## Known documentation debt
 

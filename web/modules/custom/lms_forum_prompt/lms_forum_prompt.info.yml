@@ -1,0 +1,14 @@
+name: 'LMS Forum Prompt'
+type: module
+description: 'Adds an LMS activity that sends learners to a course forum discussion.'
+package: Custom
+core_version_requirement: ^10 || ^11
+dependencies:
+  - drupal:field
+  - drupal:filter
+  - drupal:forum
+  - drupal:node
+  - drupal:taxonomy
+  - drupal:text
+  - group:group
+  - lms:lms

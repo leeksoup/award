@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 use Drupal\group\Entity\GroupInterface;
+use Drupal\lms\Entity\Bundle\Course;
 
 /**
  * Implements hook_install().
@@ -361,6 +362,137 @@ function anu_to_lms_migrate_update_10016(): void {
  */
 function anu_to_lms_migrate_update_10017(): void {
   \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
+ * Repairs LMS Classes student management for migrated courses.
+ */
+function anu_to_lms_migrate_update_10018(): void {
+  if (!\Drupal::moduleHandler()->moduleExists('lms_classes')) {
+    \Drupal::logger('anu_to_lms_migrate')->warning(
+      'Skipped LMS Classes student-management repair because lms_classes is not enabled.',
+    );
+    return;
+  }
+
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'lms_classes',
+  );
+
+  _anu_to_lms_migrate_grant_course_student_permissions();
+  $created = _anu_to_lms_migrate_create_missing_course_classes();
+
+  \Drupal::logger('anu_to_lms_migrate')->notice(
+    'Created @count default LMS classes for migrated courses.',
+    ['@count' => $created],
+  );
+
+  \Drupal::service('cache_tags.invalidator')->invalidateTags([
+    'config:group.role.lms_course-teacher',
+    'group_relationship_list:plugin:lms_classes',
+    'group_relationship_list:plugin:group_membership',
+  ]);
+}
+
+/**
+ * Grants course roles the permissions required for the Students tab.
+ */
+function _anu_to_lms_migrate_grant_course_student_permissions(): void {
+  $role_storage = \Drupal::entityTypeManager()->getStorage('group_role');
+  $roles = $role_storage->loadByProperties([
+    'group_type' => 'lms_course',
+    'scope' => ['insider', 'individual'],
+  ]);
+
+  $permissions = [
+    'add students',
+    'view students',
+    'create lms_classes relationship',
+    'delete own lms_classes relationship',
+    'update any lms_classes relationship',
+    'update own lms_classes relationship',
+    'view lms_classes relationship',
+  ];
+
+  foreach ($roles as $role) {
+    $changed = FALSE;
+    foreach ($permissions as $permission) {
+      if (!$role->hasPermission($permission)) {
+        $role->grantPermission($permission);
+        $changed = TRUE;
+      }
+    }
+    if ($changed) {
+      $role->save();
+    }
+  }
+}
+
+/**
+ * Creates a default class for migrated LMS courses that have no classes.
+ */
+function _anu_to_lms_migrate_create_missing_course_classes(): int {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $group_storage = $entity_type_manager->getStorage('group');
+  $relationship_type_storage = $entity_type_manager->getStorage('group_relationship_type');
+
+  if (
+    $relationship_type_storage->load('lms_course-lms_classes') === NULL
+    || $entity_type_manager->getStorage('group_type')->load('lms_class') === NULL
+  ) {
+    return 0;
+  }
+
+  $course_ids = _anu_to_lms_migrate_migrated_course_ids();
+  if ($course_ids === []) {
+    return 0;
+  }
+
+  $created = 0;
+  foreach ($group_storage->loadMultiple($course_ids) as $course) {
+    if (!$course instanceof Course || $course->getRelationships('lms_classes') !== []) {
+      continue;
+    }
+
+    $class = $group_storage->create([
+      'type' => 'lms_class',
+      'label' => $course->label() . ' class',
+      'uid' => $course->getOwnerId(),
+    ]);
+    $class->save();
+
+    if ($class instanceof GroupInterface && !$class->getMember($class->getOwner())) {
+      $class_type = $class->getGroupType();
+      $values = [];
+      if ($class_type->creatorMustCompleteMembership()) {
+        $values['group_roles'] = $class_type->getCreatorRoleIds();
+      }
+      $class->addMember($class->getOwner(), $values);
+    }
+
+    $course->addRelationship($class, 'lms_classes');
+    $created++;
+  }
+
+  return $created;
+}
+
+/**
+ * Returns destination course IDs from the course migration map.
+ */
+function _anu_to_lms_migrate_migrated_course_ids(): array {
+  $database = \Drupal::database();
+  $map_table = 'migrate_map_anu_to_lms_node_courses';
+  if (!$database->schema()->tableExists($map_table)) {
+    return [];
+  }
+
+  return $database->select($map_table, 'm')
+    ->fields('m', ['destid1'])
+    ->isNotNull('m.destid1')
+    ->execute()
+    ->fetchCol();
 }
 
 /**

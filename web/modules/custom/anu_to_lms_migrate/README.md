@@ -255,3 +255,37 @@ For a completed Group 3 update, the entity checks should print `1` and `0`.
 Do not delete matching active configuration blindly: identify its owning module
 and convert, upgrade, or uninstall it using that module's supported Group 3
 upgrade path.
+
+If Group update `10305` aborts with `Attempt to create a field without a
+field_name`, check Drupal's last-installed field definition repository:
+
+```bash
+drush php:eval '$repo = \Drupal::service("entity.last_installed_schema.repository"); echo "group_content fields=", count($repo->getLastInstalledFieldStorageDefinitions("group_content")), PHP_EOL; echo "group_relationship fields=", count($repo->getLastInstalledFieldStorageDefinitions("group_relationship")), PHP_EOL;'
+```
+
+The failed state observed on staging is old `group_content` definitions still
+present with zero `group_relationship` definitions. Repair that state before
+rerunning updates:
+
+```bash
+drush en group3_schema_repair -y
+drush cr
+drush group3-schema-repair:repair-repository
+drush updb -y
+drush cr
+drush group3-schema-repair:repair-group-roles-storage
+drush en anu_to_lms_migrate -y
+drush cr
+drush group3-schema-repair:repair-views
+drush group3-schema-repair:repair-stale-config
+drush group3-schema-repair:repair-group-roles-instances
+drush group3-schema-repair:repair-group-roles-table
+drush cr
+drush group3-schema-repair:audit USER_ID
+```
+
+The repair command only copies installed field-storage definitions into the
+missing Group 3 entity type. It refuses to run if `group_relationship`
+definitions already exist, and it does not patch or overwrite contrib Group
+code. The command lives in the standalone `group3_schema_repair` module so it
+can be enabled before Anu or LMS migration dependencies are available.

@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies: { }
+id: forum_prompt
+name: 'Forum Prompt'
+description: 'Prompt that links learners to a course forum topic.'
+pluginId: no_answer
+pluginConfiguration: { }
+defaultMaxScore: 10
