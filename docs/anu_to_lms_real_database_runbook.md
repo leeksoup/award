@@ -147,6 +147,24 @@ drush anu-to-lms:repair-students
 drush cr
 ```
 
+### Optional: clean progress from deleted staging courses
+
+Do not delete and recreate migrated course groups on a database that contains
+learner progress. LMS progress entities retain the original Group ID, so a
+deleted course can cause a lesson edit form to fail with `The course doesn't
+exist anymore.` This recovery discards only progress for Groups that no longer
+exist or are no longer LMS Courses. Review the report before running the
+destructive form:
+
+```bash
+drush anu-to-lms:repair-orphaned-progress
+drush anu-to-lms:repair-orphaned-progress --delete
+drush cr
+```
+
+The command deletes the orphaned course statuses through LMS's entity APIs and
+drains the LMS cleanup queue, which removes their lesson statuses and answers.
+
 For LMS Course groups that were not created by the Anu migration, pass a
 specific course ID or repair every LMS course:
 

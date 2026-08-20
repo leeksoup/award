@@ -180,6 +180,17 @@ Still pending explicit staging acceptance:
 - resource document links inside checklist activity bodies;
 - achievements/completion integration and Commerce enrollment.
 
+## Deleted course progress recovery
+
+Deleting and recreating LMS course Groups during staging recovery leaves any
+existing `lms_course_status` records pointing to the deleted Group IDs. LMS
+1.1.18 throws while checking that stale progress during lesson-form builds,
+which can make `/admin/lesson/ID` fail with `The course doesn't exist anymore.`
+Use `drush anu-to-lms:repair-orphaned-progress` to report the stale records,
+then repeat it with `--delete` after review. The destructive form uses the LMS
+entity deletion hooks and drains their cleanup queue, removing dependent
+lesson statuses and answers without touching progress for existing courses.
+
 ## Immediate next action
 
 Next deploy the checklist-resource slice, run database updates, update the

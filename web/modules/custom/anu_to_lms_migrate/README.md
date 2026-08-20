@@ -136,6 +136,21 @@ the listing. Update `10009` adds the creator memberships omitted when course
 groups were created through Migrate, then restores normal Group access query
 filtering on the administrative View.
 
+If course groups were deleted and recreated during staging recovery, old LMS
+progress can still point to the deleted Group IDs and make lesson edit forms
+fail with `The course doesn't exist anymore.` Report that condition first,
+then remove only the reported orphaned progress:
+
+```bash
+drush anu-to-lms:repair-orphaned-progress
+drush anu-to-lms:repair-orphaned-progress --delete
+drush cr
+```
+
+The delete operation removes the orphaned course statuses through LMS entity
+APIs and processes the LMS deletion queue for their dependent lesson statuses
+and answers. It does not alter progress for existing LMS course groups.
+
 Update `10010` installs the synchronized `lms_teacher` user and course Group
 roles, assigns the user role to migrated course owners, and thereby grants
 owners the course-level view/edit/take permissions expected by Drupal LMS.

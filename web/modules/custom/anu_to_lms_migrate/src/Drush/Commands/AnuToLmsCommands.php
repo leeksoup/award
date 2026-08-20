@@ -10,6 +10,8 @@ use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Queue\QueueWorkerManagerInterface;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\lms\Entity\Bundle\Course;
 use Drupal\user\UserInterface;
@@ -28,6 +30,8 @@ final class AnuToLmsCommands extends DrushCommands {
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly ConfigInstallerInterface $configInstaller,
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly QueueFactory $queueFactory,
+    private readonly QueueWorkerManagerInterface $queueWorkerManager,
   ) {
     parent::__construct();
   }
@@ -155,6 +159,88 @@ final class AnuToLmsCommands extends DrushCommands {
       [
         '@roles' => $updated_roles,
         '@classes' => $created_classes,
+      ],
+    ));
+  }
+
+  /**
+   * Reports or deletes LMS progress that references deleted course groups.
+   */
+  #[CLI\Command(name: 'anu-to-lms:repair-orphaned-progress', aliases: ['atlrop'])]
+  #[CLI\Option(
+    name: 'delete',
+    description: 'Delete the reported course-status records and their queued dependent progress records.',
+  )]
+  #[CLI\Usage(
+    name: 'drush anu-to-lms:repair-orphaned-progress',
+    description: 'Report LMS course progress that points to a missing or non-course Group.',
+  )]
+  #[CLI\Usage(
+    name: 'drush anu-to-lms:repair-orphaned-progress --delete',
+    description: 'Delete the reported orphaned LMS progress after verifying the report.',
+  )]
+  public function repairOrphanedProgress(
+    array $options = ['delete' => FALSE],
+  ): void {
+    $course_status_storage = $this->entityTypeManager->getStorage('lms_course_status');
+    $course_statuses = $course_status_storage->loadMultiple(
+      $course_status_storage->getQuery()->accessCheck(FALSE)->execute(),
+    );
+    $course_ids = array_unique(array_map(
+      static fn ($course_status): int => (int) $course_status->getCourseId(),
+      $course_statuses,
+    ));
+    $groups = $this->entityTypeManager->getStorage('group')->loadMultiple($course_ids);
+    $lesson_status_storage = $this->entityTypeManager->getStorage('lms_lesson_status');
+    $orphaned = [];
+    $rows = [];
+
+    foreach ($course_statuses as $course_status) {
+      $course_id = (int) $course_status->getCourseId();
+      $course = $groups[$course_id] ?? NULL;
+      if ($course instanceof Course) {
+        continue;
+      }
+
+      $lesson_status_count = (int) $lesson_status_storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('course_status', $course_status->id())
+        ->count()
+        ->execute();
+      $orphaned[] = $course_status;
+      $rows[] = [
+        (string) $course_status->id(),
+        (string) $course_id,
+        (string) $course_status->getUserId(),
+        (string) $lesson_status_count,
+        $course === NULL ? 'course group missing' : 'group is not an LMS course',
+      ];
+    }
+
+    $this->printAuditRows(
+      'Orphaned LMS course progress',
+      ['Course status', 'Course group', 'User', 'Lesson statuses', 'Problem'],
+      $rows,
+      'No LMS course progress refers to a missing or non-course Group.',
+    );
+
+    if ($orphaned === [] || empty($options['delete'])) {
+      if ($orphaned !== []) {
+        $this->logger()->warning(
+          \dt('No records were changed. Re-run with --delete after verifying this report.'),
+        );
+      }
+      return;
+    }
+
+    // LMS hooks queue lesson statuses and answers when parent progress is deleted.
+    $course_status_storage->delete($orphaned);
+    $queue_items = $this->processLmsDeletionQueue();
+    $this->logger()->success(\dt(
+      'Deleted @statuses orphaned course-status records and processed @queue LMS cleanup queue items.',
+      [
+        '@statuses' => count($orphaned),
+        '@queue' => $queue_items,
       ],
     ));
   }
@@ -768,6 +854,29 @@ final class AnuToLmsCommands extends DrushCommands {
       ->execute();
 
     return array_values(array_map('intval', $ids));
+  }
+
+  /**
+   * Processes LMS's queued dependent-progress deletion items synchronously.
+   */
+  private function processLmsDeletionQueue(): int {
+    $queue = $this->queueFactory->get('lms_delete_entities');
+    $worker = $this->queueWorkerManager->createInstance('lms_delete_entities');
+    $processed = 0;
+
+    while (($item = $queue->claimItem(60)) !== FALSE) {
+      try {
+        $worker->processItem($item->data);
+        $queue->deleteItem($item);
+        $processed++;
+      }
+      catch (\Throwable $exception) {
+        $queue->releaseItem($item);
+        throw $exception;
+      }
+    }
+
+    return $processed;
   }
 
   /**
