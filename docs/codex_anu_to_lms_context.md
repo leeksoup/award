@@ -178,3 +178,7 @@ The decommission helper preserves the generic Document media type, its file
 field, and its form/view displays. Although Anu LMS ships default definitions
 for those objects, an existing site may own them and migrated resource links or
 other content can still depend on them.
+
+Malformed legacy Anu Assessment field-storage config is removed only after the
+helper derives its identity from the config name and verifies that no active
+field instance still uses it.

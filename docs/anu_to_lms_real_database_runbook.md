@@ -361,6 +361,12 @@ Remove shared candidates only after checking they have no unrelated consumers:
 drush anu-lms-decommission:remove-config --confirm=REMOVE-ANU-CONFIG --include-shared
 ```
 
+Some legacy Anu Assessment field-storage config records can lack the Field API
+metadata required to load them as field-storage entities. The helper derives
+their identity from the canonical config name and removes them only after it
+confirms no active field instance uses that identity. It does not delete field
+tables directly.
+
 After verification, export and validate active configuration using the site's
 normal configuration-management workflow. Re-run target LMS course, lesson,
 file, teacher, and learner-access smoke tests before disabling maintenance

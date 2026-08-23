@@ -424,7 +424,19 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
       $entity_type = (string) ($data['entity_type'] ?? '');
       $field_name = (string) ($data['field_name'] ?? '');
       if ($entity_type === '' || $field_name === '') {
-        $skipped[] = [$name, 'missing field metadata'];
+        [$entity_type, $field_name] = $this->fieldStorageIdentityFromName($name);
+        if ($entity_type === '' || $field_name === '') {
+          $skipped[] = [$name, 'missing field metadata'];
+          continue;
+        }
+        if ($this->hasRemainingFieldInstances($entity_type, $field_name)) {
+          $skipped[] = [$name, 'used by a non-Anu bundle'];
+          continue;
+        }
+        // A malformed storage record cannot be loaded as a FieldStorageConfig.
+        // Its name still identifies the field, and no active instance uses it.
+        $this->configFactory->getEditable($name)->delete();
+        $removed[] = [$name];
         continue;
       }
       if ($this->hasRemainingFieldInstances($entity_type, $field_name)) {
@@ -451,6 +463,21 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
       }
     }
     return FALSE;
+  }
+
+  /**
+   * Derives a field-storage identity from its canonical configuration name.
+   *
+   * @return array{0: string, 1: string}
+   */
+  private function fieldStorageIdentityFromName(string $name): array {
+    $parts = explode('.', $name, 4);
+    if (count($parts) !== 4
+      || $parts[0] !== 'field'
+      || $parts[1] !== 'storage') {
+      return ['', ''];
+    }
+    return [$parts[2], $parts[3]];
   }
 
   /**
