@@ -3,6 +3,7 @@ services:
     class: Drupal\anu_lms_decommission\Drush\Commands\AnuLmsDecommissionCommands
     arguments:
       - '@entity_type.manager'
+      - '@entity.definition_update_manager'
       - '@config.factory'
       - '@config.storage'
       - '@extension.list.module'

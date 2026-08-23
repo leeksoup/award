@@ -8,6 +8,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -62,10 +63,19 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
   ];
 
   /**
+   * Anu static entity types whose tables can be restored for failed uninstall.
+   */
+  private const RECOVERABLE_ENTITY_TYPES = [
+    'assessment_question',
+    'assessment_question_result',
+  ];
+
+  /**
    * Constructs the command service.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly EntityDefinitionUpdateManagerInterface $entityDefinitionUpdateManager,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly StorageInterface $configStorage,
     private readonly ModuleExtensionList $moduleExtensionList,
@@ -196,6 +206,13 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
     if ($removed_orphans > 0) {
       $this->logger()->warning(
         \dt('Removed @count orphaned deleted-field definitions whose entity tables no longer exist.', ['@count' => $removed_orphans]),
+      );
+    }
+
+    $restored_tables = $this->restoreMissingEntityTables();
+    if ($restored_tables !== []) {
+      $this->logger()->warning(
+        \dt('Restored empty tables for failed-uninstall recovery: @types.', ['@types' => implode(', ', $restored_tables)]),
       );
     }
 
@@ -423,6 +440,31 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
       }
     }
     return $removed;
+  }
+
+  /**
+   * Restores empty tables required by Core's content uninstall validator.
+   *
+   * Core validates static module-provided entity types before it runs module
+   * uninstall hooks. A previous failed uninstall can remove their tables
+   * first, leaving validation unable to establish that the source is empty.
+   *
+   * @return string[]
+   *   Entity type IDs whose empty schema was restored.
+   */
+  private function restoreMissingEntityTables(): array {
+    $restored = [];
+    foreach (self::RECOVERABLE_ENTITY_TYPES as $entity_type) {
+      if (!$this->entityTypeManager->hasDefinition($entity_type)
+        || $this->hasEntityStorageTable($entity_type)) {
+        continue;
+      }
+      $this->entityDefinitionUpdateManager->installEntityType(
+        $this->entityTypeManager->getDefinition($entity_type),
+      );
+      $restored[] = $entity_type;
+    }
+    return $restored;
   }
 
   /**

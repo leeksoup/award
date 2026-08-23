@@ -375,7 +375,11 @@ empty during recovery. It removes only stale field config records for that
 missing storage and never queries or recreates the table. Before the guarded
 uninstall runs, it also clears only deleted Field API definitions whose entity
 type has no base table, preventing cron-purge metadata from blocking the Anu
-uninstall hook.
+uninstall hook. Anu Assessment's static Question and Question result entity
+types can also lose their tables during a failed uninstall before Core's
+content validator runs. The guarded command restores their empty schema through
+Drupal's entity-definition update API immediately before uninstall; Core then
+validates the tables as empty and removes them during uninstall.
 
 After verification, export and validate active configuration using the site's
 normal configuration-management workflow. Re-run target LMS course, lesson,

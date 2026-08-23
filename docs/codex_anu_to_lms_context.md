@@ -192,3 +192,8 @@ entity type with no remaining base table as empty and removes only its stale
 field config records rather than querying or recreating that table. Before
 uninstall, it also clears orphaned deleted-field metadata for such missing
 tables through Drupal's Field API repository service.
+
+Anu Assessment Question and Question result are static entity types. If a
+failed uninstall removes their tables first, the guarded command recreates
+their empty schema through Drupal's entity-definition update API immediately
+before Core validates and completes the uninstall.
