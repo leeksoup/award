@@ -369,6 +369,10 @@ their identity from the canonical config name and removes them only after it
 confirms no active field instance uses that identity. It does not delete field
 tables directly.
 
+If a prior failed uninstall removed an optional Anu ECK entity table, the
+helper treats a temporarily restored entity definition with no base table as
+empty during recovery; it never queries or recreates that table.
+
 After verification, export and validate active configuration using the site's
 normal configuration-management workflow. Re-run target LMS course, lesson,
 file, teacher, and learner-access smoke tests before disabling maintenance

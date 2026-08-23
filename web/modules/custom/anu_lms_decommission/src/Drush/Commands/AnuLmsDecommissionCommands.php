@@ -342,7 +342,7 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
    * Counts every entity of an optional entity type.
    */
   private function countAll(string $entity_type): int {
-    if (!$this->entityTypeManager->hasDefinition($entity_type)) {
+    if (!$this->hasEntityStorageTable($entity_type)) {
       return 0;
     }
     return (int) $this->entityTypeManager->getStorage($entity_type)->getQuery()
@@ -367,11 +367,30 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
    * Deletes every entity from an optional entity type.
    */
   private function deleteAll(string $entity_type): int {
-    if (!$this->entityTypeManager->hasDefinition($entity_type)) {
+    if (!$this->hasEntityStorageTable($entity_type)) {
       return 0;
     }
     $storage = $this->entityTypeManager->getStorage($entity_type);
     return $this->deleteIds($entity_type, $storage->getQuery()->accessCheck(FALSE)->execute());
+  }
+
+  /**
+   * Checks whether a content entity type has a usable base-table schema.
+   *
+   * A failed module uninstall can remove an ECK entity type's table before a
+   * recovery import restores its config entity. Treat that entity type as
+   * empty instead of querying a missing table.
+   */
+  private function hasEntityStorageTable(string $entity_type): bool {
+    if (!$this->entityTypeManager->hasDefinition($entity_type)) {
+      return FALSE;
+    }
+    $definition = $this->entityTypeManager->getDefinition($entity_type);
+    if (!method_exists($definition, 'getBaseTable')) {
+      return FALSE;
+    }
+    $base_table = $definition->getBaseTable();
+    return is_string($base_table) && $base_table !== '' && $this->database->schema()->tableExists($base_table);
   }
 
   /**
