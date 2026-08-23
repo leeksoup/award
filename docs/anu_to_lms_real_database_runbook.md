@@ -332,7 +332,7 @@ root:
 
 ```bash
 mkdir -p ../backups/anu-lms-decommission
-drush sql:dump --gzip --result-file=../backups/anu-lms-decommission/pre-purge.sql
+drush sql:dump --gzip --result-file=../backups/anu-lms-decommission/pre-purge-$(date +%Y%m%d-%H%M%S).sql
 drush anu-lms-decommission:archive --directory=../backups/anu-lms-decommission
 ```
 
@@ -352,8 +352,10 @@ drush cron
 drush anu-lms-decommission:verify
 ```
 
-`remove-config` preserves generic image styles and the embedded node form mode
-by default. Remove those only after checking they have no unrelated consumers:
+`remove-config` preserves generic image styles, the embedded node form mode,
+and Document media configuration by default. Document media can predate Anu
+LMS and can still be used by migrated resources or unrelated site content.
+Remove shared candidates only after checking they have no unrelated consumers:
 
 ```bash
 drush anu-lms-decommission:remove-config --confirm=REMOVE-ANU-CONFIG --include-shared

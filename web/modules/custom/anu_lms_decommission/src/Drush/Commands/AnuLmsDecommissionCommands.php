@@ -45,10 +45,19 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
 
   /**
    * Config whose generic names can be shared by unrelated site features.
+   *
+   * The Anu LMS distribution ships a reusable Document media type. It may
+   * predate Anu LMS on a site and can still be used by migrated resources or
+   * unrelated content, so it must not be treated as Anu-exclusive.
    */
   private const SHARED_CONFIG_PREFIXES = [
     'core.entity_form_mode.node.embedded',
+    'core.entity_form_display.media.document.',
+    'core.entity_view_display.media.document.',
+    'field.field.media.document.field_media_document',
+    'field.storage.media.field_media_document',
     'image.style.',
+    'media.type.document',
   ];
 
   /**
@@ -129,7 +138,7 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
    */
   #[CLI\Command(name: 'anu-lms-decommission:remove-config', aliases: ['ald:remove-config'])]
   #[CLI\Option(name: 'confirm', description: 'Required literal value: REMOVE-ANU-CONFIG.')]
-  #[CLI\Option(name: 'include-shared', description: 'Also remove Anu-shipped image styles and the embedded node form mode after operator review.')]
+  #[CLI\Option(name: 'include-shared', description: 'Also remove shared candidates, including image styles, the embedded node form mode, and Document media configuration, after operator review.')]
   #[CLI\Usage(name: 'drush anu-lms-decommission:remove-config --confirm=REMOVE-ANU-CONFIG', description: 'Remove Anu-exclusive active configuration and preserve shared candidates.')]
   public function removeConfig(array $options = ['confirm' => NULL, 'include-shared' => FALSE]): void {
     $this->assertConfirmation((string) ($options['confirm'] ?? ''), 'REMOVE-ANU-CONFIG');
@@ -143,7 +152,7 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
     $skipped = [];
 
     $active_names = $this->activeAnuConfigNames();
-    $this->removeFieldConfig($active_names, $removed, $skipped);
+    $this->removeFieldConfig($active_names, $removed, $skipped, $include_shared);
 
     foreach ($active_names as $name) {
       if (str_starts_with($name, 'field.field.') || str_starts_with($name, 'field.storage.')) {
@@ -380,7 +389,7 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
   /**
    * Deletes Anu field instances and exclusive storage through Field API.
    */
-  private function removeFieldConfig(array $names, array &$removed, array &$skipped): void {
+  private function removeFieldConfig(array $names, array &$removed, array &$skipped, bool $include_shared): void {
     if (!$this->entityTypeManager->hasDefinition('field_config') || !$this->entityTypeManager->hasDefinition('field_storage_config')) {
       return;
     }
@@ -388,6 +397,10 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
     $field_config_storage = $this->entityTypeManager->getStorage('field_config');
     foreach ($names as $name) {
       if (!str_starts_with($name, 'field.field.')) {
+        continue;
+      }
+      if (!$include_shared && $this->isSharedConfigCandidate($name)) {
+        $skipped[] = [$name, 'shared candidate'];
         continue;
       }
       $id = substr($name, strlen('field.field.'));
@@ -401,6 +414,10 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
     $field_storage_storage = $this->entityTypeManager->getStorage('field_storage_config');
     foreach ($names as $name) {
       if (!str_starts_with($name, 'field.storage.')) {
+        continue;
+      }
+      if (!$include_shared && $this->isSharedConfigCandidate($name)) {
+        $skipped[] = [$name, 'shared candidate'];
         continue;
       }
       $data = $this->configStorage->read($name) ?: [];
@@ -468,7 +485,10 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
    * Finds external active config that still explicitly depends on Anu config.
    */
   private function externalAnuDependencies(): array {
-    $owned = array_flip($this->sourceConfigCandidates());
+    $owned = array_flip(array_filter(
+      $this->sourceConfigCandidates(),
+      fn (string $name): bool => !$this->isSharedConfigCandidate($name),
+    ));
     $matches = [];
     foreach ($this->configStorage->listAll() as $name) {
       if (isset($owned[$name])) {

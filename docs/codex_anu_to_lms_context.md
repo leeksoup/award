@@ -173,3 +173,8 @@ audio can still refer to the original file entity.
 Keep `anu_to_lms_migrate` enabled after Anu removal for now. Its target LMS
 activity config and map tables remain useful operational provenance. Extracting
 that configuration to a neutral runtime module is deliberately deferred.
+
+The decommission helper preserves the generic Document media type, its file
+field, and its form/view displays. Although Anu LMS ships default definitions
+for those objects, an existing site may own them and migrated resource links or
+other content can still depend on them.
