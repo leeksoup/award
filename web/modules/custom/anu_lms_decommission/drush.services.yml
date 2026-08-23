@@ -8,6 +8,7 @@ services:
       - '@extension.list.module'
       - '@module_handler'
       - '@module_installer'
+      - '@entity_field.deleted_fields_repository'
       - '@database'
     tags:
       - { name: drush.command }

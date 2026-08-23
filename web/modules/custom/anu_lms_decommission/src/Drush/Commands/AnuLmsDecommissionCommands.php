@@ -12,6 +12,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Field\DeletedFieldsRepositoryInterface;
 use Drush\Attributes as CLI;
 use Drush\Commands\DrushCommands;
 
@@ -70,6 +71,7 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
     private readonly ModuleExtensionList $moduleExtensionList,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly ModuleInstallerInterface $moduleInstaller,
+    private readonly DeletedFieldsRepositoryInterface $deletedFieldsRepository,
     private readonly Connection $database,
   ) {
     parent::__construct();
@@ -188,6 +190,13 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
     $inventory = $this->inventory();
     if ($inventory['source_entity_count'] > 0) {
       throw new \RuntimeException('Anu source entities remain. Refusing to invoke Anu LMS uninstall hooks.');
+    }
+
+    $removed_orphans = $this->removeOrphanedDeletedFields();
+    if ($removed_orphans > 0) {
+      $this->logger()->warning(
+        \dt('Removed @count orphaned deleted-field definitions whose entity tables no longer exist.', ['@count' => $removed_orphans]),
+      );
     }
 
     $modules = $inventory['enabled_anu_modules'];
@@ -391,6 +400,29 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
     }
     $base_table = $definition->getBaseTable();
     return is_string($base_table) && $base_table !== '' && $this->database->schema()->tableExists($base_table);
+  }
+
+  /**
+   * Removes deleted Field API definitions for entity types without tables.
+   *
+   * Field API normally purges these during cron. A failed third-party module
+   * uninstall can remove an ECK table first, making a later purge impossible.
+   */
+  private function removeOrphanedDeletedFields(): int {
+    $removed = 0;
+    foreach ($this->deletedFieldsRepository->getFieldDefinitions() as $field) {
+      if (!$this->hasEntityStorageTable($field->getTargetEntityTypeId())) {
+        $this->deletedFieldsRepository->removeFieldDefinition($field);
+        $removed++;
+      }
+    }
+    foreach ($this->deletedFieldsRepository->getFieldStorageDefinitions() as $field_storage) {
+      if (!$this->hasEntityStorageTable($field_storage->getTargetEntityTypeId())) {
+        $this->deletedFieldsRepository->removeFieldStorageDefinition($field_storage);
+        $removed++;
+      }
+    }
+    return $removed;
   }
 
   /**

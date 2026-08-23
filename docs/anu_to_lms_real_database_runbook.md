@@ -372,7 +372,10 @@ tables directly.
 If a prior failed uninstall removed an optional Anu ECK entity table, the
 helper treats a temporarily restored entity definition with no base table as
 empty during recovery. It removes only stale field config records for that
-missing storage and never queries or recreates the table.
+missing storage and never queries or recreates the table. Before the guarded
+uninstall runs, it also clears only deleted Field API definitions whose entity
+type has no base table, preventing cron-purge metadata from blocking the Anu
+uninstall hook.
 
 After verification, export and validate active configuration using the site's
 normal configuration-management workflow. Re-run target LMS course, lesson,
