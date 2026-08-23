@@ -8,6 +8,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
@@ -60,14 +61,6 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
     'field.storage.media.field_media_document',
     'image.style.',
     'media.type.document',
-  ];
-
-  /**
-   * Anu static entity types whose tables can be restored for failed uninstall.
-   */
-  private const RECOVERABLE_ENTITY_TYPES = [
-    'assessment_question',
-    'assessment_question_result',
   ];
 
   /**
@@ -209,7 +202,7 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
       );
     }
 
-    $restored_tables = $this->restoreMissingEntityTables();
+    $restored_tables = $this->restoreMissingAnuEntityTables();
     if ($restored_tables !== []) {
       $this->logger()->warning(
         \dt('Restored empty tables for failed-uninstall recovery: @types.', ['@types' => implode(', ', $restored_tables)]),
@@ -443,7 +436,7 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
   }
 
   /**
-   * Restores empty tables required by Core's content uninstall validator.
+   * Restores empty Anu content-entity tables needed for uninstall validation.
    *
    * Core validates static module-provided entity types before it runs module
    * uninstall hooks. A previous failed uninstall can remove their tables
@@ -452,16 +445,15 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
    * @return string[]
    *   Entity type IDs whose empty schema was restored.
    */
-  private function restoreMissingEntityTables(): array {
+  private function restoreMissingAnuEntityTables(): array {
     $restored = [];
-    foreach (self::RECOVERABLE_ENTITY_TYPES as $entity_type) {
-      if (!$this->entityTypeManager->hasDefinition($entity_type)
+    foreach ($this->entityTypeManager->getDefinitions() as $entity_type => $definition) {
+      if (!$definition instanceof ContentEntityTypeInterface
+        || !str_starts_with($definition->getProvider(), 'anu_lms')
         || $this->hasEntityStorageTable($entity_type)) {
         continue;
       }
-      $this->entityDefinitionUpdateManager->installEntityType(
-        $this->entityTypeManager->getDefinition($entity_type),
-      );
+      $this->entityDefinitionUpdateManager->installEntityType($definition);
       $restored[] = $entity_type;
     }
     return $restored;
