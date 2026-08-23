@@ -371,7 +371,8 @@ tables directly.
 
 If a prior failed uninstall removed an optional Anu ECK entity table, the
 helper treats a temporarily restored entity definition with no base table as
-empty during recovery; it never queries or recreates that table.
+empty during recovery. It removes only stale field config records for that
+missing storage and never queries or recreates the table.
 
 After verification, export and validate active configuration using the site's
 normal configuration-management workflow. Re-run target LMS course, lesson,

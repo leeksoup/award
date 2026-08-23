@@ -426,6 +426,15 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
         $skipped[] = [$name, 'shared candidate'];
         continue;
       }
+      $entity_type = $this->fieldConfigEntityTypeFromName($name);
+      if ($entity_type !== '' && !$this->hasEntityStorageTable($entity_type)) {
+        // A recovery import can restore field config after its ECK table was
+        // removed. Field API deletion would query that table, so delete only
+        // the stale config record after confirming the storage is absent.
+        $this->configFactory->getEditable($name)->delete();
+        $removed[] = [$name];
+        continue;
+      }
       $id = substr($name, strlen('field.field.'));
       $field = $field_config_storage->load($id);
       if ($field !== NULL) {
@@ -466,6 +475,11 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
         $skipped[] = [$name, 'used by a non-Anu bundle'];
         continue;
       }
+      if (!$this->hasEntityStorageTable($entity_type)) {
+        $this->configFactory->getEditable($name)->delete();
+        $removed[] = [$name];
+        continue;
+      }
       $id = substr($name, strlen('field.storage.'));
       $field_storage = $field_storage_storage->load($id);
       if ($field_storage !== NULL) {
@@ -501,6 +515,16 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
       return ['', ''];
     }
     return [$parts[2], $parts[3]];
+  }
+
+  /**
+   * Returns a field-config entity type from its canonical configuration name.
+   */
+  private function fieldConfigEntityTypeFromName(string $name): string {
+    $parts = explode('.', $name, 5);
+    return count($parts) === 5 && $parts[0] === 'field' && $parts[1] === 'field'
+      ? $parts[2]
+      : '';
   }
 
   /**

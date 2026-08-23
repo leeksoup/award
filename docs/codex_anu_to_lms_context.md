@@ -188,4 +188,5 @@ Question result ECK entities. They are source-only historical assessment data
 and remain out of migration scope.
 
 For recovery after a failed uninstall, the helper treats an optional Anu ECK
-entity type with no remaining base table as empty rather than querying it.
+entity type with no remaining base table as empty and removes only its stale
+field config records rather than querying or recreating that table.
