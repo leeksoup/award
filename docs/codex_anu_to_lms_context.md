@@ -182,3 +182,7 @@ other content can still depend on them.
 Malformed legacy Anu Assessment field-storage config is removed only after the
 helper derives its identity from the config name and verifies that no active
 field instance still uses it.
+
+The decommission inventory and purge also include Anu Assessment Question and
+Question result ECK entities. They are source-only historical assessment data
+and remain out of migration scope.

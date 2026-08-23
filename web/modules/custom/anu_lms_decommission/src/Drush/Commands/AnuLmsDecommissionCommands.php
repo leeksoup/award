@@ -114,13 +114,15 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
    */
   #[CLI\Command(name: 'anu-lms-decommission:purge-content', aliases: ['ald:purge-content'])]
   #[CLI\Option(name: 'confirm', description: 'Required literal value: PURGE-ANU-SOURCE.')]
-  #[CLI\Usage(name: 'drush anu-lms-decommission:purge-content --confirm=PURGE-ANU-SOURCE', description: 'Delete Anu source nodes, paragraphs, terms, and checklist results after target acceptance.')]
+  #[CLI\Usage(name: 'drush anu-lms-decommission:purge-content --confirm=PURGE-ANU-SOURCE', description: 'Delete Anu source nodes, paragraphs, terms, questions, and result entities after target acceptance.')]
   public function purgeContent(array $options = ['confirm' => NULL]): void {
     $this->assertConfirmation((string) ($options['confirm'] ?? ''), 'PURGE-ANU-SOURCE');
     $inventory = $this->inventory();
     $this->assertTargetMapsReady($inventory);
 
     $deleted = [];
+    $deleted['question_results'] = $this->deleteAll('assessment_question_result');
+    $deleted['questions'] = $this->deleteAll('assessment_question');
     $deleted['nodes'] = $this->deleteBundles('node', $inventory['source_node_bundles']);
     $deleted['paragraphs'] = $this->deleteBundles('paragraph', $inventory['source_paragraph_bundles']);
     $deleted['terms'] = $this->deleteBundles('taxonomy_term', $inventory['source_vocabularies'], 'vid');
@@ -235,6 +237,8 @@ final class AnuLmsDecommissionCommands extends DrushCommands {
       'nodes' => $this->countBundles('node', $node_bundles),
       'paragraphs' => $this->countBundles('paragraph', $paragraph_bundles),
       'terms' => $this->countBundles('taxonomy_term', $vocabularies, 'vid'),
+      'questions' => $this->countAll('assessment_question'),
+      'question_results' => $this->countAll('assessment_question_result'),
       'checklist_results' => $this->countAll('lesson_checklist_result'),
     ];
 

@@ -325,10 +325,12 @@ drush cr
 drush anu-lms-decommission:audit
 ```
 
-The audit must show no migration-map rows with missing destinations. Review all
-reported external configuration dependencies and shared config candidates before
-continuing. Create a database/files backup and a JSON inventory outside the web
-root:
+The audit must show no migration-map rows with missing destinations. It also
+reports Anu Assessment Question and Question result entities; those historical
+source entities are intentionally purged because attempts/results are out of
+scope. Review all reported external configuration dependencies and shared config
+candidates before continuing. Create a database/files backup and a JSON
+inventory outside the web root:
 
 ```bash
 mkdir -p ../backups/anu-lms-decommission
