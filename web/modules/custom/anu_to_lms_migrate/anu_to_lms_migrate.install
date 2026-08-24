@@ -304,3 +304,78 @@ function anu_to_lms_migrate_update_10012(): void {
 
   \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
 }
+
+/**
+ * Retires the obsolete Anu-named checklist activity bundle.
+ */
+function anu_to_lms_migrate_update_10013(): void {
+  // Ensure the replacement bundle and field are available before converting
+  // any activity left behind by an earlier test installation.
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'anu_to_lms_migrate',
+  );
+
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $activity_storage = $entity_type_manager->getStorage('lms_activity');
+  $activity_ids = $activity_storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'anu_checklist')
+    ->execute();
+
+  $bodies = [];
+  foreach ($activity_ids as $activity_id) {
+    $activity = $activity_storage->load($activity_id);
+    $bodies[$activity_id] = $activity->hasField('field_anu_checklist_body')
+      ? $activity->get('field_anu_checklist_body')->getValue()
+      : [];
+  }
+
+  // Content entity bundles cannot be changed through Entity::save(). Change
+  // every bundle column first, keeping entity IDs and lesson references intact.
+  $database = \Drupal::database();
+  $schema = $database->schema();
+  foreach ([
+    'lms_activity',
+    'lms_activity_field_data',
+    'lms_activity_revision',
+    'lms_activity_field_revision',
+  ] as $table) {
+    if ($schema->tableExists($table) && $schema->fieldExists($table, 'type')) {
+      $database->update($table)
+        ->fields(['type' => 'checklist'])
+        ->condition('type', 'anu_checklist')
+        ->execute();
+    }
+  }
+
+  $activity_storage->resetCache($activity_ids);
+  foreach ($bodies as $activity_id => $body) {
+    $activity = $activity_storage->load($activity_id);
+    $activity->set('field_checklist_body', $body);
+    $activity->save();
+  }
+
+  foreach ([
+    'entity_view_display' => [
+      'lms_activity.anu_checklist.default',
+    ],
+    'field_config' => [
+      'lms_activity.anu_checklist.field_anu_checklist_body',
+    ],
+    'field_storage_config' => [
+      'lms_activity.field_anu_checklist_body',
+    ],
+    'lms_activity_type' => [
+      'anu_checklist',
+    ],
+  ] as $entity_type_id => $ids) {
+    $storage = $entity_type_manager->getStorage($entity_type_id);
+    foreach ($ids as $id) {
+      $entity = $storage->load($id);
+      $entity?->delete();
+    }
+  }
+
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}

@@ -174,6 +174,12 @@ Keep `anu_to_lms_migrate` enabled after Anu removal for now. Its target LMS
 activity config and map tables remain useful operational provenance. Extracting
 that configuration to a neutral runtime module is deliberately deferred.
 
+The early `anu_checklist` target bundle is retired. Update `10013` converts any
+unexpected remaining activities to the reusable `checklist` bundle, preserving
+their IDs and lesson references, then removes the old bundle, field, and view
+display configuration. The obsolete defaults are no longer shipped, so a fresh
+installation cannot recreate that bundle.
+
 The decommission helper preserves the generic Document media type, its file
 field, and its form/view displays. Although Anu LMS ships default definitions
 for those objects, an existing site may own them and migrated resource links or

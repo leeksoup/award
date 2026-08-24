@@ -79,8 +79,10 @@ drush cr
 Update `anu_to_lms_migrate_update_10003` converts target-facing names from the
 earlier test bundle/field (`anu_checklist` and
 `field_anu_checklist_body`) to reusable LMS names (`checklist` and
-`field_checklist_body`). It preserves activity IDs so existing lesson
-references and migration map entries remain valid.
+`field_checklist_body`). Update `10013` repeats that guarded conversion for
+sites where the retired bundle was recreated by an older module default. Both
+updates preserve activity IDs so existing lesson references and migration map
+entries remain valid.
 
 Verify that there are no pending database updates:
 
@@ -109,7 +111,14 @@ echo "anu_checklist: ", \Drupal::entityQuery("lms_activity")->accessCheck(FALSE)
 '
 ```
 
-`anu_checklist` must be zero after update `10003` completes.
+`anu_checklist` must be zero and `lms_activity_type.anu_checklist` must be
+absent after updates `10003` and `10013` complete:
+
+```bash
+drush config:get lms.lms_activity_type.anu_checklist
+```
+
+The last command should report that the configuration does not exist.
 
 ## 5. Verify active migration definitions
 
