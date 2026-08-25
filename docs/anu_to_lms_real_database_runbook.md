@@ -101,6 +101,39 @@ drush config:get field.field.lms_activity.checklist.field_checklist_body
 The activity type must use `pluginId: no_answer`. The field must be a
 single-value `text_long` field attached to the `checklist` activity bundle.
 
+## Runtime handoff after migration acceptance
+
+The completed migration's learner-facing configuration and custom runtime code
+are owned by `lms_runtime`, not `anu_to_lms_migrate`. The latter contains only
+migration definitions and historical update hooks after this handoff.
+
+On staging, before disabling the migration module:
+
+```bash
+drush en lms_runtime -y
+drush cr
+drush config:get core.entity_view_display.lms_activity.video.default
+```
+
+The Video URL display formatter must be `safe_video_embed`, and its module
+dependency must be `lms_runtime`. In the learner-facing course flow, test at
+least one YouTube and one Vimeo video, edit/save each LMS activity bundle, and
+create a new LMS course with a non-administrator owner. Confirm the owner has
+a Group membership, `lms_teacher`, and course `view`, `take`, and `update`
+access.
+
+Export and commit the resulting configuration before retiring the migration
+module. Only after those checks pass may an operator run:
+
+```bash
+drush pm:uninstall anu_to_lms_migrate -y
+drush cr
+```
+
+Run the video and course-owner checks again after uninstall. Migration map
+tables remain as historical database provenance, but the Migrate definitions
+and commands are no longer available.
+
 If this database contains activities imported under an earlier test revision,
 verify the bundle rename:
 

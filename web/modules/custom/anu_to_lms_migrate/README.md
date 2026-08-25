@@ -11,6 +11,16 @@ Migration definitions in `migrations/` are discovered only while this module
 is enabled. After installing or updating the module, rebuild Drupal's caches
 before querying migration status.
 
+## Runtime handoff
+
+After migration acceptance, learner-facing LMS configuration and site-specific
+runtime behavior are provided by `lms_runtime`. Enable and validate that module
+before uninstalling this migration module. In particular, Video activities use
+its `safe_video_embed` formatter; disabling this module without the handoff
+removes Migrate definitions but must not remove active LMS activity
+configuration. The runtime module ships that configuration as optional so it
+can be enabled on an already-migrated site without a default-config collision.
+
 ```bash
 drush pm:list --type=module --field=name --status=enabled | grep '^anu_to_lms_migrate$'
 drush en anu_to_lms_migrate -y

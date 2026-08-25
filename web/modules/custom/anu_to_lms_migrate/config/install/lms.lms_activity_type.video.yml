@@ -1,9 +1,0 @@
-langcode: en
-status: true
-dependencies: { }
-id: video
-name: 'Video'
-description: 'Display-oriented video content from an approved provider.'
-pluginId: no_answer
-pluginConfiguration: { }
-defaultMaxScore: 0

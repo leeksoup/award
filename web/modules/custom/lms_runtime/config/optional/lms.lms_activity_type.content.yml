@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies: { }
+id: content
+name: 'Content'
+description: 'Display-oriented lesson text or heading content.'
+pluginId: no_answer
+pluginConfiguration: { }
+defaultMaxScore: 0
+
+

@@ -170,9 +170,14 @@ different literal confirmation token. The source purge retains every managed
 file; file deletion must be a separately audited decision because target LMS
 audio can still refer to the original file entity.
 
-Keep `anu_to_lms_migrate` enabled after Anu removal for now. Its target LMS
-activity config and map tables remain useful operational provenance. Extracting
-that configuration to a neutral runtime module is deliberately deferred.
+`lms_runtime` owns the live LMS activity bundles, fields, displays, roles, the
+safe YouTube/Vimeo iframe formatter, and future LMS-course owner setup. Its
+configuration is optional so it can be enabled alongside the active migrated
+configuration without recreating it. It is the runtime replacement for
+`anu_to_lms_migrate`; the migration module is now only needed to operate or
+inspect its migrations. Do not uninstall the migration module until
+`lms_runtime` has been enabled and browser UAT has confirmed video playback,
+activity editing, and course-owner access.
 
 The early `anu_checklist` target bundle is retired. Update `10013` converts any
 unexpected remaining activities to the reusable `checklist` bundle, preserving

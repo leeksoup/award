@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\anu_to_lms_migrate\Plugin\migrate\source;
 
 use Drupal\anu_to_lms_migrate\AnuLessonBlockHelper;
-use Drupal\anu_to_lms_migrate\VideoUrlNormalizer;
+use Drupal\lms_runtime\VideoUrlNormalizer;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
 
