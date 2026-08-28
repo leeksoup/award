@@ -34,6 +34,7 @@ Do not put redacted course or lesson titles into committed documentation.
 
 ```text
 anu_to_lms_paragraph_lesson_checklists
+anu_to_lms_media_remote_videos
 anu_to_lms_paragraph_lesson_sections
 anu_to_lms_node_module_lessons
 anu_to_lms_paragraph_assessment_questions   (currently zero source rows)
@@ -42,7 +43,7 @@ anu_to_lms_node_courses
 ```
 
 The lesson-section activity migration currently supports text, approved
-YouTube/Vimeo URLs, audio files, and checklist references. Anu heading blocks
+YouTube/Vimeo Remote Video media references, audio files, and checklist references. Anu heading blocks
 are not standalone LMS activities; the nearest immediately preceding heading is
 used as the migrated activity name/title for the following supported activity.
 Divider and currently unsupported image blocks are ignored for this heading
@@ -170,10 +171,11 @@ different literal confirmation token. The source purge retains every managed
 file; file deletion must be a separately audited decision because target LMS
 audio can still refer to the original file entity.
 
-`lms_runtime` owns the live LMS activity bundles, fields, displays, roles, the
-safe YouTube/Vimeo iframe formatter, and future LMS-course owner setup. Its
-configuration is optional so it can be enabled alongside the active migrated
-configuration without recreating it. It is the runtime replacement for
+`lms_runtime` owns the live LMS activity bundles, fields, displays, roles, and
+future LMS-course owner setup. Video activities reference Drupal core Remote
+Video media entities; no custom video formatter is required. Its configuration
+is optional so it can be enabled alongside the active migrated configuration
+without recreating it. It is the runtime replacement for
 `anu_to_lms_migrate`; the migration module is now only needed to operate or
 inspect its migrations. Do not uninstall the migration module until
 `lms_runtime` has been enabled and browser UAT has confirmed video playback,

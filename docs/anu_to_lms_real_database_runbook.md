@@ -8,7 +8,8 @@ also covers the media/resource lesson-content slice:
 1. Anu `lesson_checklist` paragraphs become Drupal LMS `checklist` activities.
 2. Anu `module_lesson` nodes containing those checklists become Drupal LMS
    lessons with ordered activity references.
-3. Text, approved YouTube/Vimeo, and audio section blocks become `content`,
+3. Approved YouTube/Vimeo section blocks become core Remote Video media
+   entities, then text, video references, and audio blocks become `content`,
    `video`, and `audio` display activities. Resource document blocks are
    appended as links inside the immediately preceding checklist activity body.
    Heading blocks are used as names/titles for the immediately following
@@ -115,12 +116,12 @@ drush cr
 drush config:get core.entity_view_display.lms_activity.video.default
 ```
 
-The Video URL display formatter must be `safe_video_embed`, and its module
-dependency must be `lms_runtime`. In the learner-facing course flow, test at
-least one YouTube and one Vimeo video, edit/save each LMS activity bundle, and
-create a new LMS course with a non-administrator owner. Confirm the owner has
-a Group membership, `lms_teacher`, and course `view`, `take`, and `update`
-access.
+Video activities must reference Drupal core Remote Video media entities and
+render through the referenced media display. In the learner-facing course flow,
+test at least one YouTube and one Vimeo video, edit/save each LMS activity
+bundle, and create a new LMS course with a non-administrator owner. Confirm the
+owner has a Group membership, `lms_teacher`, and course `view`, `take`, and
+`update` access.
 
 Export and commit the resulting configuration before retiring the migration
 module. Only after those checks pass may an operator run:
@@ -175,6 +176,7 @@ importing anything.
 
 ```bash
 drush migrate:status anu_to_lms_paragraph_lesson_checklists
+drush migrate:status anu_to_lms_media_remote_videos
 drush migrate:status anu_to_lms_paragraph_lesson_sections
 drush migrate:status anu_to_lms_node_module_lessons
 ```
@@ -237,6 +239,7 @@ Spot-check at least three activities at `/admin/lms/activity`. Confirm that:
 Import supported non-checklist section activities first:
 
 ```bash
+drush migrate:import anu_to_lms_media_remote_videos -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 ```
 
@@ -245,6 +248,7 @@ activities in place so preceding Anu headings become activity names without
 changing existing destination IDs:
 
 ```bash
+drush migrate:import anu_to_lms_media_remote_videos --update -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections --update -y
 ```
 
@@ -260,8 +264,8 @@ $issues = [];
 foreach (["video", "audio"] as $bundle) {
   $ids = \Drupal::entityQuery("lms_activity")->accessCheck(FALSE)->condition("type", $bundle)->execute();
   foreach ($storage->loadMultiple($ids) as $activity) {
-    if ($bundle === "video" && $activity->get("field_video_url")->isEmpty()) {
-      $issues[] = ["video", $activity->id(), "missing URL"];
+    if ($bundle === "video" && $activity->get("field_remote_video")->isEmpty()) {
+      $issues[] = ["video", $activity->id(), "missing Remote Video media reference"];
     }
     if ($bundle === "audio" && ($activity->get("field_audio_name")->isEmpty() || $activity->get("field_audio_file")->isEmpty())) {
       $issues[] = ["audio", $activity->id(), "missing name or file"];
@@ -328,9 +332,11 @@ or currently unsupported image block appears between the heading and activity.
 
 ```bash
 drush migrate:status anu_to_lms_paragraph_lesson_checklists
+drush migrate:status anu_to_lms_media_remote_videos
 drush migrate:status anu_to_lms_paragraph_lesson_sections
 drush migrate:status anu_to_lms_node_module_lessons
 drush migrate:messages anu_to_lms_paragraph_lesson_checklists
+drush migrate:messages anu_to_lms_media_remote_videos
 drush migrate:messages anu_to_lms_paragraph_lesson_sections
 drush migrate:messages anu_to_lms_node_module_lessons
 drush watchdog:show --severity=Error --count=100
@@ -439,6 +445,7 @@ Rollback dependent lessons before activities:
 ```bash
 drush migrate:rollback anu_to_lms_node_module_lessons -y
 drush migrate:rollback anu_to_lms_paragraph_lesson_sections -y
+drush migrate:rollback anu_to_lms_media_remote_videos -y
 drush migrate:rollback anu_to_lms_paragraph_lesson_checklists -y
 drush cr
 ```
@@ -478,6 +485,7 @@ migrated.
 drush en lms_answer_plugins -y
 drush updb -y
 drush cr
+drush migrate:import anu_to_lms_media_remote_videos -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 drush migrate:status anu_to_lms_paragraph_assessment_questions
 drush migrate:status anu_to_lms_node_module_assessments

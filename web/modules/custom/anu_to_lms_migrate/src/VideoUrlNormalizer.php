@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Drupal\lms_runtime;
+namespace Drupal\anu_to_lms_migrate;
 
 /**
- * Normalizes approved public video-provider URLs to safe embed URLs.
+ * Normalizes approved public video-provider URLs for core Remote Video media.
  */
 final class VideoUrlNormalizer {
 
   /**
-   * Converts a YouTube or Vimeo URL to an HTTPS embed URL.
+   * Converts a YouTube or Vimeo URL to a canonical provider URL.
    */
   public static function normalize(string $url): ?string {
     $parts = parse_url(trim($url));
@@ -41,12 +41,13 @@ final class VideoUrlNormalizer {
       $segments = array_values(array_filter(explode('/', $path)));
       $video_id = end($segments) ?: NULL;
       return $video_id !== NULL && ctype_digit((string) $video_id)
-        ? 'https://player.vimeo.com/video/' . $video_id
+        ? 'https://vimeo.com/' . $video_id
         : NULL;
     }
 
     return $video_id !== NULL && preg_match('/^[A-Za-z0-9_-]{6,20}$/', (string) $video_id)
-      ? 'https://www.youtube-nocookie.com/embed/' . $video_id
+      ? 'https://www.youtube.com/watch?v=' . $video_id
       : NULL;
   }
+
 }

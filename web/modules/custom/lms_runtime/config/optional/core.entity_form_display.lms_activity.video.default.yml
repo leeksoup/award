@@ -1,21 +1,18 @@
 langcode: en
 status: true
 dependencies:
-  config: [field.field.lms_activity.video.field_video_url, lms.lms_activity_type.video]
-  module: [link]
+  config: [field.field.lms_activity.video.field_remote_video, lms.lms_activity_type.video]
+  module: [media_library]
 id: lms_activity.video.default
 targetEntityType: lms_activity
 bundle: video
 mode: default
 content:
-  field_video_url:
-    type: link_default
+  field_remote_video:
+    type: media_library_widget
     weight: 0
     region: content
     settings:
-      placeholder_url: 'https://www.youtube.com/watch?v=Ã¢ÂÂ¦'
-      placeholder_title: ''
+      media_types: { }
     third_party_settings: { }
 hidden: { }
-
-

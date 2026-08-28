@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\anu_to_lms_migrate\Plugin\migrate\source;
 
 use Drupal\anu_to_lms_migrate\AnuLessonBlockHelper;
-use Drupal\lms_runtime\VideoUrlNormalizer;
+use Drupal\anu_to_lms_migrate\VideoUrlNormalizer;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
 
@@ -27,7 +27,7 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
       'activity_type' => $this->t('Target LMS activity bundle'),
       'name' => $this->t('Activity name'),
       'body' => $this->t('Formatted content body'),
-      'video_url' => $this->t('Normalized video embed URL'),
+      'remote_video_paragraph_id' => $this->t('Source Remote Video paragraph ID'),
       'audio_name' => $this->t('Accessible audio name'),
       'audio_file_id' => $this->t('Existing audio file ID'),
     ];
@@ -78,7 +78,7 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
         'activity_type' => 'content',
         'name' => 'Content ' . $block->id(),
         'body' => [],
-        'video_url' => NULL,
+        'remote_video_paragraph_id' => NULL,
         'audio_name' => NULL,
         'audio_file_id' => NULL,
       ];
@@ -101,8 +101,7 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
 
         case 'lesson_embedded_video':
           $source_url = (string) $block->get('field_lesson_embedded_video_url')->uri;
-          $embed_url = VideoUrlNormalizer::normalize($source_url);
-          if ($embed_url === NULL) {
+          if (VideoUrlNormalizer::normalize($source_url) === NULL) {
             throw new MigrateException(sprintf(
               'Unsupported video URL in paragraph %s: %s',
               $block->id(),
@@ -111,7 +110,7 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
           }
           $row['activity_type'] = 'video';
           $row['name'] = $heading ?? 'Video ' . $block->id();
-          $row['video_url'] = $embed_url;
+          $row['remote_video_paragraph_id'] = (int) $block->id();
           break;
 
         case 'lesson_audio':
