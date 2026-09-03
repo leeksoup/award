@@ -6,6 +6,5 @@ core_version_requirement: ^10 || ^11
 dependencies:
   - drupal:media
   - drupal:media_library
-  - drupal:media_remote_video
   - group:group
   - lms:lms
