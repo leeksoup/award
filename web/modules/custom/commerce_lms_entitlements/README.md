@@ -11,7 +11,9 @@ This project applies the Composer patch
 `patches/commerce_paypal_subscriptions-1.0.0-commerce-paypal-1.12-sdk-factory.patch`
 to correct stale SDK-factory service arguments in
 `commerce_paypal_subscriptions` 1.0.0. It changes dependency injection only;
-it does not replace the contributed checkout or subscription SDK.
+it does not replace the contributed checkout or subscription SDK. The local
+copy matches the upstream issue patch and is retained so installs are
+reproducible without fetching a remote patch URL.
 
 For a full code and operational guide, read
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). It documents every source file,
