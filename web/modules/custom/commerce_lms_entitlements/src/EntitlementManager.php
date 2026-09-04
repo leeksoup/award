@@ -15,7 +15,7 @@ use Psr\Log\LoggerInterface;
  * Maintains the local learner-entitlement audit trail and safe Class access.
  */
 final class EntitlementManager {
-  public function __construct(private Connection $database, private EntityTypeManagerInterface $entityTypeManager, private QueueFactory $queue, private TimeInterface $time, private LoggerInterface $logger) {}
+  public function __construct(private Connection $database, private EntityTypeManagerInterface $entityTypeManager, private QueueFactory $queue, private TimeInterface $time, private LoggerInterface $logger, private object $sdkFactory) {}
 
   /** Returns the sole offer for a strict, single-variation checkout. */
   public function offerForOrder(object $order): object {
@@ -109,6 +109,25 @@ final class EntitlementManager {
   public function reconcile(): void {
     $ids = $this->database->select('commerce_lms_entitlement', 'e')->fields('e', ['eid'])->condition('status', 'cancelled')->condition('access_through', $this->time->getRequestTime(), '<=')->execute()->fetchCol();
     foreach ($ids as $id) { if ($entitlement = $this->load((int) $id)) { $this->revoke($entitlement); } }
+    // Reconcile current remote state too: webhook delivery is not assumed to be
+    // perfect, and PayPal remains the billing authority for recurring offers.
+    $ids = $this->database->select('commerce_lms_entitlement', 'e')->fields('e', ['eid'])->condition('purchase_type', 'recurring')->condition('paypal_subscription_id', NULL, 'IS NOT NULL')->condition('status', ['pending', 'active', 'suspended', 'cancelled'], 'IN')->execute()->fetchCol();
+    foreach ($ids as $id) {
+      try {
+        $entitlement = $this->load((int) $id);
+        $order = $entitlement ? $this->entityTypeManager->getStorage('commerce_order')->load($entitlement['order_id']) : NULL;
+        $gateway_id = $order?->get('payment_gateway')->target_id;
+        $gateway = $gateway_id ? $this->entityTypeManager->getStorage('commerce_payment_gateway')->load($gateway_id) : NULL;
+        if (!$entitlement || !$gateway) {
+          throw new \RuntimeException('Missing entitlement order or payment gateway.');
+        }
+        $response = $this->sdkFactory->get($gateway->getPluginConfiguration())->getSubscription($entitlement['paypal_subscription_id']);
+        $this->applyRemoteSubscription($entitlement, json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR));
+      }
+      catch (\Throwable $e) {
+        $this->logger->error('Reconciliation failed for entitlement @eid: @message', ['@eid' => $id, '@message' => $e->getMessage()]);
+      }
+    }
   }
 
   /** Immediately removes only memberships that this entitlement created. */

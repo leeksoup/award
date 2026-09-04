@@ -36,7 +36,9 @@ PayPal subscription webhooks arrive at
 signature through the contributed PayPal SDK, deduplicates event IDs, queues
 work, then fetches the authoritative subscription detail before changing LMS
 access. Lifetime access is granted only once its normal Commerce payment is
-completed.
+completed. Cron also queues reconciliation: it expires paid-through
+cancellations and refreshes each nonterminal recurring subscription from
+PayPal, so missed webhook deliveries can self-heal.
 
 Each entitlement records whether it created a Class membership. Revocation
 never deletes a manual membership or one still supported by another active
