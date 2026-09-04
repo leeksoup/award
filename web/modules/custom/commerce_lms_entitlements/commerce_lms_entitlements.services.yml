@@ -8,6 +8,11 @@ services:
   commerce_lms_entitlements.paypal_operations:
     class: Drupal\commerce_lms_entitlements\PayPalSubscriptionOperations
     arguments: ['@http_client']
+  # Override only the upstream service wiring. See PayPalSubscriptionSdkFactory
+  # for the Commerce PayPal 1.12 constructor compatibility explanation.
+  commerce_paypal_subscriptions.checkout_sdk_factory:
+    class: Drupal\commerce_lms_entitlements\PayPalSubscriptionSdkFactory
+    arguments: ['@http_client_factory', '@commerce_order.adjustment_transformer', '@event_dispatcher', '@module_handler', '@datetime.time', '@commerce_price.rounder', '@keyvalue.expirable', '@logger.channel.commerce_paypal_subscriptions']
   commerce_lms_entitlements.plan_subscriber:
     class: Drupal\commerce_lms_entitlements\EventSubscriber\PayPalPlanSubscriber
     arguments: ['@commerce_lms_entitlements.manager']
