@@ -1,0 +1,14 @@
+name: 'Commerce LMS Entitlements'
+type: module
+description: 'Maps Commerce PayPal purchases and subscriptions to LMS Class access.'
+package: Commerce
+core_version_requirement: ^10 || ^11
+dependencies:
+  - commerce:commerce_checkout
+  - commerce:commerce_order
+  - commerce:commerce_payment
+  - commerce:commerce_product
+  - commerce_paypal:commerce_paypal
+  - commerce_paypal_subscriptions:commerce_paypal_subscriptions
+  - group:group
+  - lms:lms_classes

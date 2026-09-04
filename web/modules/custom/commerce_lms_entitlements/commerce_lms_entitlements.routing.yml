@@ -1,0 +1,14 @@
+commerce_lms_entitlements.webhook:
+  path: '/commerce-lms-entitlements/paypal/webhook/{commerce_payment_gateway}'
+  defaults:
+    _controller: '\Drupal\commerce_lms_entitlements\Controller\PayPalWebhookController::receive'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]
+commerce_lms_entitlements.claim:
+  path: '/commerce-lms-entitlements/invitation/{token}'
+  defaults:
+    _form: '\Drupal\commerce_lms_entitlements\Form\ClaimInvitationForm'
+    _title: 'Claim course invitation'
+  requirements:
+    _access: 'TRUE'

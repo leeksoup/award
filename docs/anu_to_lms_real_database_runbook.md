@@ -16,6 +16,10 @@ also covers the media/resource lesson-content slice:
    currently unsupported image blocks are ignored for heading adjacency.
 
 This is a staging/verification procedure, not a production cutover runbook.
+Commerce LMS entitlement setup is a separate operational slice: it uses
+Commerce PayPal and PayPal subscription checkout for billing, and creates LMS
+Class memberships only after verified purchase/subscription state. It does not
+change this migration's import order or progress scope.
 Images, scale/Likert questions, and complete learning paths are not runnable
 yet. Single/multiple-choice and short/long-answer questions are available as a
 staging slice. Treat all new activity types as requiring staging validation

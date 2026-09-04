@@ -1,0 +1,47 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Lifecycle hooks for Commerce LMS Entitlements.
+ */
+
+/**
+ * Implements hook_entity_insert().
+ */
+function commerce_lms_entitlements_entity_insert(\Drupal\Core\Entity\EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() === 'commerce_payment') {
+    \Drupal::service('commerce_lms_entitlements.manager')->syncCompletedPayment($entity);
+  }
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function commerce_lms_entitlements_entity_update(\Drupal\Core\Entity\EntityInterface $entity): void {
+  $manager = \Drupal::service('commerce_lms_entitlements.manager');
+  if ($entity->getEntityTypeId() === 'commerce_payment') {
+    $manager->syncCompletedPayment($entity);
+  }
+  elseif ($entity->getEntityTypeId() === 'commerce_order') {
+    $manager->linkPayPalSubscriptionFromOrder($entity);
+  }
+}
+
+/**
+ * Implements hook_cron().
+ */
+function commerce_lms_entitlements_cron(): void {
+  \Drupal::queue('commerce_lms_entitlements_reconcile')->createItem([]);
+}
+
+/**
+ * Implements hook_mail().
+ */
+function commerce_lms_entitlements_mail(string $key, array &$message, array $params): void {
+  if ($key === 'invitation') {
+    $message['subject'] = t('Your course invitation');
+    $message['body'][] = t('Claim your course invitation: @url', ['@url' => $params['url']]);
+  }
+}

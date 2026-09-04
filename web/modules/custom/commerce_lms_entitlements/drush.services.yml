@@ -1,0 +1,6 @@
+services:
+  commerce_lms_entitlements.commands:
+    class: Drupal\commerce_lms_entitlements\Drush\Commands\EntitlementCommands
+    arguments: ['@database']
+    tags:
+      - { name: drush.command }

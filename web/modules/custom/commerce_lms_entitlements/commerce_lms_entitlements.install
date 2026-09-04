@@ -1,0 +1,82 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Database schema for Commerce LMS Entitlements.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function commerce_lms_entitlements_schema(): array {
+  $schema['commerce_lms_entitlement'] = [
+    'description' => 'A learner entitlement derived from one Commerce purchase.',
+    'fields' => [
+      'eid' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'offer_id' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'purchase_type' => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE],
+      'purchaser_uid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'learner_uid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
+      'invitation_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'order_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'payment_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
+      'paypal_subscription_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'initial_capture_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'refund_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'status' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'pending'],
+      'activated' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
+      'access_through' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
+      'guarantee_requested' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
+      'created' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'changed' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+    ],
+    'primary key' => ['eid'],
+    'unique keys' => ['order' => ['order_id'], 'paypal_subscription' => ['paypal_subscription_id']],
+    'indexes' => ['reconcile' => ['status', 'access_through'], 'purchaser' => ['purchaser_uid']],
+  ];
+  $schema['commerce_lms_entitlement_membership'] = [
+    'description' => 'Class memberships supported by an entitlement.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'eid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'class_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'uid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'membership_created' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
+      'active' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1],
+      'created' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['entitlement_class' => ['eid', 'class_id']],
+    'indexes' => ['class_user_active' => ['class_id', 'uid', 'active']],
+  ];
+  $schema['commerce_lms_entitlement_event'] = [
+    'description' => 'Deduplicated, verified PayPal subscription webhook events.',
+    'fields' => [
+      'event_id' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'paypal_subscription_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'event_type' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'payload' => ['type' => 'blob', 'size' => 'big', 'not null' => TRUE],
+      'status' => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE, 'default' => 'queued'],
+      'created' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'changed' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+    ],
+    'primary key' => ['event_id'],
+    'indexes' => ['subscription' => ['paypal_subscription_id']],
+  ];
+  $schema['commerce_lms_entitlement_invitation'] = [
+    'description' => 'One-time learner invitation tokens, stored only as hashes.',
+    'fields' => [
+      'id' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'email' => ['type' => 'varchar', 'length' => 254, 'not null' => TRUE],
+      'token_hash' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'claimed_uid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
+      'created' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'expires' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['token_hash' => ['token_hash']],
+  ];
+  return $schema;
+}

@@ -1,0 +1,18 @@
+commerce_lms_entitlements.offer.*:
+  type: config_entity
+  label: 'Commerce LMS offer'
+  mapping:
+    id: { type: string, label: 'ID' }
+    label: { type: label, label: 'Label' }
+    variation_id: { type: integer, label: 'Variation ID' }
+    purchase_type: { type: string, label: 'Purchase type' }
+    payment_gateway_id: { type: string, label: 'Payment gateway ID' }
+    paypal_plan_id: { type: string, label: 'PayPal plan ID' }
+    course_class_map:
+      type: sequence
+      label: 'Course/Class targets'
+      sequence:
+        type: mapping
+        mapping:
+          course_id: { type: integer, label: 'Course ID' }
+          class_id: { type: integer, label: 'Class ID' }

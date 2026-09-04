@@ -1,0 +1,6 @@
+administer commerce lms offers:
+  title: 'Administer Commerce LMS offers'
+administer commerce lms entitlements:
+  title: 'Administer Commerce LMS entitlements'
+view own commerce lms entitlements:
+  title: 'View own Commerce LMS entitlements'

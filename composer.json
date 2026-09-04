@@ -29,6 +29,7 @@
         "drupal/ckeditor5_plugin_pack": "^1.",
         "drupal/commerce": "^3",
         "drupal/commerce_paypal": "^1",
+        "drupal/commerce_paypal_subscriptions": "^1.0",
         "drupal/commerce_stock": "^3.0",
         "drupal/core-composer-scaffold": "^10",
         "drupal/core-project-message": "^10",

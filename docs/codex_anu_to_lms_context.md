@@ -198,6 +198,14 @@ checklist and lesson migrations in place, and re-check browser lesson playback.
 Only after lesson order, headings, and checklist resource links pass should
 implementation continue to the next content-parity or achievements slice.
 
+## Commerce LMS entitlement boundary
+
+Commerce enrollment is a separate runtime slice. The custom
+`commerce_lms_entitlements` module uses contributed Commerce PayPal checkout
+and subscriptions modules, then maps verified purchases to administrator-
+selected LMS Class memberships. It does not alter migration ordering or migrate
+historical attempts or progress.
+
 ## Forum Prompt activity feature
 
 The `lms_forum_prompt` module adds a reusable LMS `forum_prompt` activity type
