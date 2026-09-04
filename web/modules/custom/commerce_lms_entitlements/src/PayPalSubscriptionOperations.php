@@ -17,7 +17,12 @@ use GuzzleHttp\ClientInterface;
 final class PayPalSubscriptionOperations {
   public function __construct(private ClientInterface $client) {}
 
-  /** Cancels a subscription and returns the authoritative detail response. */
+  /**
+   * Cancels future billing and fetches the post-cancellation source of truth.
+   *
+   * The cancel endpoint does not itself provide access-through data, so the
+   * follow-up GET is required before EntitlementManager changes local access.
+   */
   public function cancel(object $gateway, string $subscription_id): array {
     $config = $gateway->getPluginConfiguration();
     $base = $this->baseUrl($config);
@@ -32,7 +37,7 @@ final class PayPalSubscriptionOperations {
     return $this->fetchSubscription($gateway, $subscription_id);
   }
 
-  /** Fetches subscription detail using the same gateway credentials. */
+  /** Fetches subscription detail using the same configured gateway credentials. */
   public function fetchSubscription(object $gateway, string $subscription_id): array {
     $config = $gateway->getPluginConfiguration();
     $base = $this->baseUrl($config);
@@ -40,7 +45,12 @@ final class PayPalSubscriptionOperations {
     return json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR);
   }
 
-  /** Refunds the original PayPal capture and returns PayPal's refund ID. */
+  /**
+   * Refunds the initially recorded capture and returns PayPal's immutable ID.
+   *
+   * Exceptions deliberately propagate to the guarantee form, which records
+   * recovery work while retaining the immediate access revocation.
+   */
   public function refundCapture(object $gateway, string $capture_id): string {
     $config = $gateway->getPluginConfiguration();
     $base = $this->baseUrl($config);
@@ -52,6 +62,7 @@ final class PayPalSubscriptionOperations {
     return (string) $body['id'];
   }
 
+  /** Obtains a short-lived OAuth token without persisting a duplicate secret. */
   private function accessToken(string $base, array $config): string {
     $client_id = (string) ($config['client_id'] ?? '');
     $secret = (string) ($config['client_secret'] ?? $config['secret'] ?? '');
@@ -66,6 +77,7 @@ final class PayPalSubscriptionOperations {
     return (string) $body['access_token'];
   }
 
+  /** Chooses the PayPal sandbox only when the gateway is not explicitly live. */
   private function baseUrl(array $config): string {
     return ($config['mode'] ?? 'test') === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
   }

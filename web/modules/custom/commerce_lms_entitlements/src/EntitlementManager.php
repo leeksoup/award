@@ -12,12 +12,27 @@ use Drupal\group\Entity\GroupMembership;
 use Psr\Log\LoggerInterface;
 
 /**
- * Maintains the local learner-entitlement audit trail and safe Class access.
+ * Coordinates the entitlement state machine and Group membership ownership.
+ *
+ * This is the module's central service. It is intentionally the only place
+ * that grants or revokes LMS Class memberships. Controllers, checkout hooks,
+ * event subscribers, and queue workers supply an input event; this service
+ * verifies the relevant local invariants and performs the resulting state
+ * transition. Keeping that policy here makes retries safe and prevents a
+ * webhook handler from accidentally treating its payload as billing truth.
+ *
+ * See docs/ARCHITECTURE.md for the table layout and lifecycle diagrams.
  */
 final class EntitlementManager {
   public function __construct(private Connection $database, private EntityTypeManagerInterface $entityTypeManager, private QueueFactory $queue, private TimeInterface $time, private LoggerInterface $logger, private object $sdkFactory) {}
 
-  /** Returns the sole offer for a strict, single-variation checkout. */
+  /**
+   * Resolves and validates the one offer permitted for an LMS checkout order.
+   *
+   * @throws \DomainException
+   *   If the cart is not exactly one variation at quantity one, the variation
+   *   has no unique offer, or an offer target no longer matches LMS structure.
+   */
   public function offerForOrder(object $order): object {
     $items = $order->getItems();
     if (count($items) !== 1 || (string) $items[0]->getQuantity() !== '1') {
@@ -30,7 +45,12 @@ final class EntitlementManager {
     return $offer;
   }
 
-  /** Creates one pending entitlement from an order's designated learner data. */
+  /**
+   * Creates one pending entitlement from order-scoped learner data.
+   *
+   * The unique `order_id` makes this idempotent. A retry returns the original
+   * row rather than granting a second bundle or creating a second audit trail.
+   */
   public function ensureEntitlement(object $order, object $offer): array {
     if ($existing = $this->loadByOrder((int) $order->id())) { return $existing; }
     $learner = $order->getData('commerce_lms_learner') ?: [];
@@ -49,7 +69,13 @@ final class EntitlementManager {
   public function loadByPayPalSubscription(string $id): ?array { $row = $this->database->select('commerce_lms_entitlement', 'e')->fields('e')->condition('paypal_subscription_id', $id)->execute()->fetchAssoc(); return $row ?: NULL; }
   public function update(int $eid, array $values): void { $values['changed'] = $this->time->getRequestTime(); $this->database->update('commerce_lms_entitlement')->fields($values)->condition('eid', $eid)->execute(); }
 
-  /** Links the subscription ID which contributed checkout persists on the order. */
+  /**
+   * Copies contributed checkout's PayPal subscription ID onto the local row.
+   *
+   * It also wakes verified events that arrived during the approval/order-save
+   * race, preserving them instead of treating a temporary missing link as an
+   * unknown subscription.
+   */
   public function linkPayPalSubscriptionFromOrder(object $order): void {
     $id = $order->getData('paypal_subscription_id');
     if (!is_string($id) || $id === '' || !($entitlement = $this->loadByOrder((int) $order->id()))) { return; }
@@ -61,7 +87,12 @@ final class EntitlementManager {
     }
   }
 
-  /** Creates lifetime access only after the normal Commerce payment completes. */
+  /**
+   * Activates a lifetime offer after a completed normal Commerce payment.
+   *
+   * Recurring offers deliberately do not pass through this path: their
+   * recurring lifecycle is driven by a current PayPal subscription response.
+   */
   public function syncCompletedPayment(object $payment): void {
     if (!$payment->getOrder() || $payment->getState()->value !== 'completed') { return; }
     $order = $payment->getOrder();
@@ -79,7 +110,12 @@ final class EntitlementManager {
     }
   }
 
-  /** Persists a verified event exactly once and schedules the remote-state fetch. */
+  /**
+   * Records a signature-verified PayPal event once and enqueues asynchronous work.
+   *
+   * A database uniqueness exception means the event ID has already been
+   * accepted, which is a normal duplicate delivery rather than an error.
+   */
   public function queueEvent(array $event): bool {
     $event_id = (string) ($event['id'] ?? '');
     if ($event_id === '') { throw new \InvalidArgumentException('PayPal event is missing its ID.'); }
@@ -92,7 +128,13 @@ final class EntitlementManager {
   public function event(string $event_id): ?array { $row = $this->database->select('commerce_lms_entitlement_event', 'e')->fields('e')->condition('event_id', $event_id)->execute()->fetchAssoc(); return $row ?: NULL; }
   public function markEvent(string $event_id, string $status): void { $this->database->update('commerce_lms_entitlement_event')->fields(['status' => $status, 'changed' => $this->time->getRequestTime()])->condition('event_id', $event_id)->execute(); }
 
-  /** Applies current PayPal subscription detail, never just the webhook payload. */
+  /**
+   * Applies authoritative PayPal detail to local status and Group access.
+   *
+   * The webhook worker and reconciliation worker both call this method only
+   * after `GET /v1/billing/subscriptions/{id}`. Cancellation is special: a
+   * cancelled subscription can retain access through the paid-through time.
+   */
   public function applyRemoteSubscription(array $entitlement, array $remote): void {
     $status = strtoupper((string) ($remote['status'] ?? ''));
     $local = ['ACTIVE' => 'active', 'SUSPENDED' => 'suspended', 'CANCELLED' => 'cancelled', 'EXPIRED' => 'expired'][$status] ?? 'pending';
@@ -106,6 +148,12 @@ final class EntitlementManager {
     elseif (in_array($local, ['suspended', 'expired'], TRUE) || ($local === 'cancelled' && (!$through || $through <= $this->time->getRequestTime()))) { $this->revoke($current); }
   }
 
+  /**
+   * Reconciles expiry and nonterminal recurring records during cron.
+   *
+   * Remote failures are isolated and logged by entitlement so that one bad
+   * gateway response cannot prevent unrelated expiry revocations.
+   */
   public function reconcile(): void {
     $ids = $this->database->select('commerce_lms_entitlement', 'e')->fields('e', ['eid'])->condition('status', 'cancelled')->condition('access_through', $this->time->getRequestTime(), '<=')->execute()->fetchCol();
     foreach ($ids as $id) { if ($entitlement = $this->load((int) $id)) { $this->revoke($entitlement); } }
@@ -151,11 +199,23 @@ final class EntitlementManager {
     $this->database->insert('commerce_lms_entitlement_invitation')->fields(['id' => $id, 'email' => mb_strtolower($email), 'token_hash' => hash('sha256', $token), 'created' => $now, 'expires' => $now + 30 * 86400])->execute();
     return ['id' => $id, 'token' => $token];
   }
-  /** Loads an unclaimed, unexpired invitation without exposing its token hash. */
+  /**
+   * Loads an unclaimed, unexpired invitation by a presented plaintext token.
+   *
+   * The token is hashed before comparison; callers never receive the stored
+   * hash and cannot use this method to enumerate valid invitation IDs.
+   */
   public function invitation(string $token): ?array {
     $invite = $this->database->select('commerce_lms_entitlement_invitation', 'i')->fields('i')->condition('token_hash', hash('sha256', $token))->condition('expires', $this->time->getRequestTime(), '>')->isNull('claimed_uid')->execute()->fetchAssoc();
     return $invite ?: NULL;
   }
+  /**
+   * Binds all invitation-backed entitlements to the invited-email account.
+   *
+   * The email comparison prevents a forwarded claim link from assigning course
+   * access to a different Drupal account. Already-active rows are granted as
+   * soon as they acquire their learner UID.
+   */
   public function claimInvitation(string $token, int $uid, string $email): bool {
     $invite = $this->invitation($token);
     if ($invite && mb_strtolower($email) !== $invite['email']) {
@@ -167,6 +227,12 @@ final class EntitlementManager {
     return TRUE;
   }
 
+  /**
+   * Ensures each configured Class is an actual child of its configured Course.
+   *
+   * This permits a Course with many Classes while keeping the offer's class
+   * selection explicit and administrator controlled.
+   */
   private function validateTargets(object $offer): void {
     foreach ($offer->getCourseClassMap() as $target) {
       $course = $this->entityTypeManager->getStorage('group')->load((int) $target['course_id']); $class = $this->entityTypeManager->getStorage('group')->load((int) $target['class_id']);
@@ -175,6 +241,12 @@ final class EntitlementManager {
       throw new \DomainException(sprintf('Class %d is not a child of Course %d for offer %s.', $class->id(), $course->id(), $offer->id()));
     }
   }
+  /**
+   * Grants this entitlement's bundle and records whether it created membership.
+   *
+   * An existing Group membership can be manual or owned elsewhere, so it is
+   * recorded with `membership_created = 0` and will never be deleted here.
+   */
   private function grant(array $entitlement): void {
     if (empty($entitlement['learner_uid'])) { return; }
     $offer = $this->entityTypeManager->getStorage('commerce_lms_offer')->load($entitlement['offer_id']); if (!$offer) { throw new \RuntimeException('Missing offer ' . $entitlement['offer_id']); }
@@ -185,6 +257,13 @@ final class EntitlementManager {
       if (!$membership) { $class->addMember($account)->save(); }
     }
   }
+  /**
+   * Removes access supported solely by this entitlement, never manual access.
+   *
+   * Membership rows are deactivated before checking other rows. That order is
+   * what makes repeated revocation safe and lets another active entitlement
+   * retain the shared Class membership.
+   */
   private function revoke(array $entitlement): void {
     foreach ($this->database->select('commerce_lms_entitlement_membership', 'm')->fields('m')->condition('eid', $entitlement['eid'])->condition('active', 1)->execute()->fetchAll() as $membership) {
       $this->database->update('commerce_lms_entitlement_membership')->fields(['active' => 0])->condition('id', $membership->id)->execute();

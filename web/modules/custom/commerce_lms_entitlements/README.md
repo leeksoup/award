@@ -7,6 +7,10 @@ payment gateway or PayPal checkout flow.
 It is designed for Group 3.2 and LMS 1.2.1. The Group 3 membership API remains
 the authority for normal LMS `view` and `take` access checks.
 
+For a full code and operational guide, read
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). It documents every source file,
+table, lifecycle state, route, queue, and PayPal/Group integration boundary.
+
 ## Offer model
 
 Create three Commerce variations: monthly, annual, and lifetime. Create an LMS
