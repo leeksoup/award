@@ -7,10 +7,11 @@ payment gateway or PayPal checkout flow.
 It is designed for Group 3.2 and LMS 1.2.1. The Group 3 membership API remains
 the authority for normal LMS `view` and `take` access checks.
 
-With Commerce PayPal 1.12, this module also corrects the stale SDK-factory
-service arguments in `commerce_paypal_subscriptions` 1.0.0. The compatibility
-adapter changes dependency injection only; it does not replace the contributed
-checkout or subscription SDK.
+This project applies the Composer patch
+`patches/commerce_paypal_subscriptions-1.0.0-commerce-paypal-1.12-sdk-factory.patch`
+to correct stale SDK-factory service arguments in
+`commerce_paypal_subscriptions` 1.0.0. It changes dependency injection only;
+it does not replace the contributed checkout or subscription SDK.
 
 For a full code and operational guide, read
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). It documents every source file,

@@ -1,0 +1,12 @@
+diff --git a/commerce_paypal_subscriptions.services.yml b/commerce_paypal_subscriptions.services.yml
+index 17f5e31..5592bb8 100644
+--- a/commerce_paypal_subscriptions.services.yml
++++ b/commerce_paypal_subscriptions.services.yml
+@@ -10,7 +10,7 @@ services:
+   commerce_paypal_subscriptions.checkout_sdk_factory:
+     class: Drupal\commerce_paypal_subscriptions\CheckoutSdkFactory
+-    arguments: ['@http_client_factory', '@http_handler_stack', '@commerce_order.adjustment_transformer', '@event_dispatcher', '@module_handler', '@state', '@datetime.time', '@commerce_price.rounder']
++    arguments: ['@http_client_factory', '@commerce_order.adjustment_transformer', '@event_dispatcher', '@module_handler', '@datetime.time', '@commerce_price.rounder', '@keyvalue.expirable', '@logger.channel.commerce_paypal_subscriptions']
+ 
+   commerce_paypal_subscriptions.checkout_sdk:
+     abstract: true

@@ -175,7 +175,7 @@ email. An invitation expires after 30 days.
 | `QueueWorker/ReconcileWorker.php` | Runs the manager’s expiry and remote-state reconciliation from cron. |
 | `EntitlementManager.php` | Central state machine, data access, offer/target validation, invitation handling, and safe Group membership grant/revoke logic. |
 | `PayPalSubscriptionOperations.php` | Small direct PayPal REST adapter for cancellation and capture refund, which the contributed checkout SDK does not expose. |
-| `PayPalSubscriptionSdkFactory.php` | Commerce PayPal 1.12 compatibility adapter. It overrides only the stale service arguments in `commerce_paypal_subscriptions` 1.0.0 and retains its inherited subscription SDK behavior. |
+| `patches/commerce_paypal_subscriptions-1.0.0-commerce-paypal-1.12-sdk-factory.patch` | Composer-managed correction for the stale `commerce_paypal_subscriptions` 1.0.0 factory service arguments when used with Commerce PayPal 1.12. |
 | `Form/ClaimInvitationForm.php` | Creates/reuses only the account matching the invited email, then claims/grants pending access. |
 | `Form/CancelEntitlementForm.php` | Owner-only regular cancellation and 40-day guarantee request. |
 | `Controller/EntitlementController.php` | Purchaser-scoped status table and unrestricted-for-staff audit table. |
