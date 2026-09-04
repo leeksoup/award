@@ -5,6 +5,9 @@ services:
   commerce_lms_entitlements.manager:
     class: Drupal\commerce_lms_entitlements\EntitlementManager
     arguments: ['@database', '@entity_type.manager', '@queue', '@datetime.time', '@logger.channel.commerce_lms_entitlements']
+  commerce_lms_entitlements.paypal_operations:
+    class: Drupal\commerce_lms_entitlements\PayPalSubscriptionOperations
+    arguments: ['@http_client']
   commerce_lms_entitlements.plan_subscriber:
     class: Drupal\commerce_lms_entitlements\EventSubscriber\PayPalPlanSubscriber
     arguments: ['@commerce_lms_entitlements.manager']

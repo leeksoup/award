@@ -54,6 +54,11 @@ final class EntitlementManager {
     $id = $order->getData('paypal_subscription_id');
     if (!is_string($id) || $id === '' || !($entitlement = $this->loadByOrder((int) $order->id()))) { return; }
     $this->update((int) $entitlement['eid'], ['paypal_subscription_id' => $id]);
+    // A webhook can legitimately arrive between buyer approval and this order
+    // update. Requeue those persisted events now that they can be associated.
+    foreach ($this->database->select('commerce_lms_entitlement_event', 'e')->fields('e', ['event_id'])->condition('paypal_subscription_id', $id)->condition('status', ['queued', 'failed'], 'IN')->execute()->fetchCol() as $event_id) {
+      $this->queue->get('commerce_lms_entitlements_webhook')->createItem(['event_id' => $event_id]);
+    }
   }
 
   /** Creates lifetime access only after the normal Commerce payment completes. */
@@ -106,14 +111,37 @@ final class EntitlementManager {
     foreach ($ids as $id) { if ($entitlement = $this->load((int) $id)) { $this->revoke($entitlement); } }
   }
 
+  /** Immediately removes only memberships that this entitlement created. */
+  public function revokeImmediately(array $entitlement): void {
+    $this->revoke($entitlement);
+  }
+
+  /** Returns TRUE while an entitlement is inside its 40 calendar-day guarantee. */
+  public function isGuaranteeEligible(array $entitlement): bool {
+    if (empty($entitlement['activated'])) {
+      return FALSE;
+    }
+    $activated = (new \DateTimeImmutable('@' . $entitlement['activated']))->setTimezone(new \DateTimeZone('UTC'));
+    $now = (new \DateTimeImmutable('@' . $this->time->getRequestTime()))->setTimezone(new \DateTimeZone('UTC'));
+    return $now < $activated->modify('+40 days');
+  }
+
   /** Creates a 30-day invitation; only a hash of the token is persisted. */
   public function createInvitation(string $email): array {
     $id = \Drupal::service('uuid')->generate(); $token = bin2hex(random_bytes(32)); $now = $this->time->getRequestTime();
     $this->database->insert('commerce_lms_entitlement_invitation')->fields(['id' => $id, 'email' => mb_strtolower($email), 'token_hash' => hash('sha256', $token), 'created' => $now, 'expires' => $now + 30 * 86400])->execute();
     return ['id' => $id, 'token' => $token];
   }
-  public function claimInvitation(string $token, int $uid): bool {
+  /** Loads an unclaimed, unexpired invitation without exposing its token hash. */
+  public function invitation(string $token): ?array {
     $invite = $this->database->select('commerce_lms_entitlement_invitation', 'i')->fields('i')->condition('token_hash', hash('sha256', $token))->condition('expires', $this->time->getRequestTime(), '>')->isNull('claimed_uid')->execute()->fetchAssoc();
+    return $invite ?: NULL;
+  }
+  public function claimInvitation(string $token, int $uid, string $email): bool {
+    $invite = $this->invitation($token);
+    if ($invite && mb_strtolower($email) !== $invite['email']) {
+      return FALSE;
+    }
     if (!$invite) { return FALSE; }
     $this->database->update('commerce_lms_entitlement_invitation')->fields(['claimed_uid' => $uid])->condition('id', $invite['id'])->execute();
     foreach ($this->database->select('commerce_lms_entitlement', 'e')->fields('e', ['eid'])->condition('invitation_id', $invite['id'])->execute()->fetchCol() as $eid) { $this->update((int) $eid, ['learner_uid' => $uid]); $entitlement = $this->load((int) $eid); if ($entitlement['status'] === 'active') { $this->grant($entitlement); } }

@@ -12,3 +12,25 @@ commerce_lms_entitlements.claim:
     _title: 'Claim course invitation'
   requirements:
     _access: 'TRUE'
+commerce_lms_entitlements.my_subscriptions:
+  path: '/my-lms-subscriptions'
+  defaults:
+    _controller: '\Drupal\commerce_lms_entitlements\Controller\EntitlementController::mine'
+    _title: 'My course subscriptions'
+  requirements:
+    _permission: 'view own commerce lms entitlements'
+commerce_lms_entitlements.cancel:
+  path: '/my-lms-subscriptions/{eid}/cancel'
+  defaults:
+    _form: '\Drupal\commerce_lms_entitlements\Form\CancelEntitlementForm'
+    _title: 'Cancel course subscription'
+  requirements:
+    _permission: 'cancel own commerce lms entitlements'
+    eid: '\d+'
+commerce_lms_entitlements.admin:
+  path: '/admin/commerce/lms-entitlements'
+  defaults:
+    _controller: '\Drupal\commerce_lms_entitlements\Controller\EntitlementController::admin'
+    _title: 'Commerce LMS entitlements'
+  requirements:
+    _permission: 'administer commerce lms entitlements'

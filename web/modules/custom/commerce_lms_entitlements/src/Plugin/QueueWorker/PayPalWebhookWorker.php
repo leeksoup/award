@@ -6,6 +6,7 @@ namespace Drupal\commerce_lms_entitlements\Plugin\QueueWorker;
 
 use Drupal\commerce_lms_entitlements\EntitlementManager;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Queue\RequeueException;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -19,7 +20,11 @@ final class PayPalWebhookWorker extends QueueWorkerBase implements ContainerFact
     $event = $this->manager->event($data['event_id']); if (!$event || $event['status'] === 'processed') { return; }
     try {
       $entitlement = $this->manager->loadByPayPalSubscription((string) $event['paypal_subscription_id']);
-      if (!$entitlement) { $this->manager->markEvent($event['event_id'], 'ignored'); return; }
+      if (!$entitlement) {
+        // PayPal can notify us before contributed checkout code stores its
+        // subscription ID on the order. Keep the verified event for retry.
+        throw new RequeueException('Subscription has not yet been linked to an entitlement.');
+      }
       $order = \Drupal::entityTypeManager()->getStorage('commerce_order')->load($entitlement['order_id']); $gateway_id = $order->get('payment_gateway')->target_id ?? NULL;
       $gateway = $gateway_id ? \Drupal::entityTypeManager()->getStorage('commerce_payment_gateway')->load($gateway_id) : NULL;
       if (!$gateway) { throw new \RuntimeException('Missing payment gateway for entitlement ' . $entitlement['eid']); }
@@ -27,6 +32,7 @@ final class PayPalWebhookWorker extends QueueWorkerBase implements ContainerFact
       $this->manager->applyRemoteSubscription($entitlement, json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR));
       $this->manager->markEvent($event['event_id'], 'processed');
     }
+    catch (RequeueException $e) { throw $e; }
     catch (\Throwable $e) { $this->manager->markEvent($event['event_id'], 'failed'); throw $e; }
   }
 }

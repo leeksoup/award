@@ -4,6 +4,9 @@ This module is the LMS access layer for the contributed `commerce_paypal` and
 `commerce_paypal_subscriptions` modules. It intentionally does not implement a
 payment gateway or PayPal checkout flow.
 
+It is designed for Group 3.2 and LMS 1.2.1. The Group 3 membership API remains
+the authority for normal LMS `view` and `take` access checks.
+
 ## Offer model
 
 Create three Commerce variations: monthly, annual, and lifetime. Create an LMS
@@ -38,6 +41,21 @@ completed.
 Each entitlement records whether it created a Class membership. Revocation
 never deletes a manual membership or one still supported by another active
 entitlement.
+
+## Purchaser cancellation and guarantee
+
+Purchasers can review their entitlement records at `/my-lms-subscriptions`.
+For recurring offers they can cancel renewal; the module asks PayPal to cancel
+then fetches the resulting subscription detail, retaining access through the
+PayPal-provided paid-through date. During the first 40 calendar days after
+activation, the cancellation form also offers the guarantee path. It cancels a
+recurring subscription (when applicable), revokes LMS access immediately, and
+refunds the recorded initial PayPal capture. A failed refund remains in
+`guarantee_refund_pending` for staff review instead of restoring access.
+
+The PayPal gateway configuration must contain its normal client ID, client
+secret, mode, and webhook ID. The custom cancellation/refund calls use those
+same credentials; no duplicate credentials are stored in this module.
 
 ## Staging checks
 

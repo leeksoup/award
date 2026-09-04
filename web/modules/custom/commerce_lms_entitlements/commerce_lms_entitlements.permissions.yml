@@ -4,3 +4,5 @@ administer commerce lms entitlements:
   title: 'Administer Commerce LMS entitlements'
 view own commerce lms entitlements:
   title: 'View own Commerce LMS entitlements'
+cancel own commerce lms entitlements:
+  title: 'Cancel own Commerce LMS subscriptions'

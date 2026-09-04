@@ -51,3 +51,8 @@ function commerce_lms_entitlements_mail(string $key, array &$message, array $par
     $message['body'][] = t('Claim your course invitation: @url', ['@url' => $params['url']]);
   }
 }
+commerce_lms_entitlements.admin:
+  title: 'LMS entitlements'
+  description: 'Review PayPal-backed LMS access and guarantee recovery.'
+  route_name: commerce_lms_entitlements.admin
+  parent: commerce.configuration

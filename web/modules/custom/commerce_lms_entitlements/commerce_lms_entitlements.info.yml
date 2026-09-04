@@ -1,6 +1,6 @@
 name: 'Commerce LMS Entitlements'
 type: module
-description: 'Maps Commerce PayPal purchases and subscriptions to LMS Class access.'
+description: 'Maps Commerce PayPal purchases and subscriptions to LMS 1.2 Class access.'
 package: Commerce
 core_version_requirement: ^10 || ^11
 dependencies:
