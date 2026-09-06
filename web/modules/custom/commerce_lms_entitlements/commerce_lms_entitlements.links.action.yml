@@ -1,0 +1,5 @@
+commerce_lms_entitlements.offer_add:
+  route_name: entity.commerce_lms_offer.add_form
+  title: 'Add LMS offer'
+  appears_on:
+    - entity.commerce_lms_offer.collection
