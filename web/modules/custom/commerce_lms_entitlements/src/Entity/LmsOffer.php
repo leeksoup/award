@@ -15,7 +15,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *   handlers = {
  *     "list_builder" = "Drupal\\Core\\Config\\Entity\\ConfigEntityListBuilder",
  *     "route_provider" = {
- *       "html" = "Drupal\\Core\\Entity\\Routing\\AdminHtmlRouteProvider"
+ *       "html" = "Drupal\\Core\\Entity\\Routing\\DefaultHtmlRouteProvider"
  *     },
  *     "form" = {"add" = "Drupal\\commerce_lms_entitlements\\Form\\OfferForm", "edit" = "Drupal\\commerce_lms_entitlements\\Form\\OfferForm", "delete" = "Drupal\\Core\\Entity\\EntityDeleteForm"}
  *   },
