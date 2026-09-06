@@ -8,6 +8,7 @@ use Drupal\commerce_checkout\Annotation\CommerceCheckoutPane;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
 use Drupal\commerce_lms_entitlements\EntitlementManager;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -21,7 +22,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   weight = 20
  * )
  */
-final class LearnerPane extends CheckoutPaneBase {
+final class LearnerPane extends CheckoutPaneBase implements ContainerFactoryPluginInterface {
   public function __construct(array $configuration, $plugin_id, $plugin_definition, private EntitlementManager $manager) { parent::__construct($configuration, $plugin_id, $plugin_definition); }
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static { return new static($configuration, $plugin_id, $plugin_definition, $container->get('commerce_lms_entitlements.manager')); }
   public function buildPaneForm(array $form, FormStateInterface $form_state, array &$complete_form): array {
