@@ -13,7 +13,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *   id = "commerce_lms_offer",
  *   label = @Translation("Commerce LMS offer"),
  *   handlers = {
- *     "list_builder" = "Drupal\Core\Config\Entity\ConfigEntityListBuilder",
+ *     "list_builder" = "Drupal\commerce_lms_entitlements\LmsOfferListBuilder",
  *     "form" = {"add" = "Drupal\commerce_lms_entitlements\Form\OfferForm", "edit" = "Drupal\commerce_lms_entitlements\Form\OfferForm", "delete" = "Drupal\Core\Entity\EntityDeleteForm"}
  *   },
  *   config_prefix = "offer",
