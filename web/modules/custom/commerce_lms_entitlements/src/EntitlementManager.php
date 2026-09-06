@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\commerce_lms_entitlements;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\commerce_price\Calculator;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
@@ -35,7 +36,7 @@ final class EntitlementManager {
    */
   public function offerForOrder(object $order): object {
     $items = $order->getItems();
-    if (count($items) !== 1 || (string) $items[0]->getQuantity() !== '1') {
+    if (count($items) !== 1 || Calculator::compare($items[0]->getQuantity(), '1') !== 0) {
       throw new \DomainException('An LMS offer checkout must contain exactly one item at quantity one.');
     }
     $offers = $this->entityTypeManager->getStorage('commerce_lms_offer')->loadByProperties(['variation_id' => (int) $items[0]->getPurchasedEntityId()]);
