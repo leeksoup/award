@@ -167,7 +167,7 @@ email. An invitation expires after 30 days.
 | `services.yml` | Registers the manager, PayPal cancellation/refund adapter, event subscriber, and log channel. |
 | `routing.yml`, `links.menu.yml`, `permissions.yml` | Define the webhook, invitation, purchaser and administrator routes; the admin menu entry; and authorization gates. |
 | `Entity/LmsOffer.php` | Config-entity definition for one variation-to-bundle mapping. |
-| `Form/OfferForm.php` | Administrator UI. Parses `COURSE_ID:CLASS_ID`; entity existence and parent relationship are checked at actual use. |
+| `Form/OfferForm.php` | Administrator UI. Selects an existing Commerce gateway, requires the subscription plugin for recurring offers, and parses `COURSE_ID:CLASS_ID`; Course/Class existence and parent relationships are checked at actual use. |
 | `CheckoutPane/LearnerPane.php` | Stores the chosen existing learner or creates/sends an invitation before payment approval. |
 | `EventSubscriber/PaymentGatewaySubscriber.php` | Filters Commerce's available gateways so a valid LMS offer can use only its configured recurring or one-time gateway. |
 | `EventSubscriber/PayPalPlanSubscriber.php` | Intercepts the contributed module’s subscription creation event, validates the order/offer/gateway, creates the pending entitlement, and injects the PayPal plan ID. |
