@@ -5,6 +5,7 @@ commerce_lms_entitlements.webhook:
   requirements:
     _access: 'TRUE'
   methods: [POST]
+
 commerce_lms_entitlements.claim:
   path: '/commerce-lms-entitlements/invitation/{token}'
   defaults:
@@ -12,6 +13,7 @@ commerce_lms_entitlements.claim:
     _title: 'Claim course invitation'
   requirements:
     _access: 'TRUE'
+
 commerce_lms_entitlements.my_subscriptions:
   path: '/my-lms-subscriptions'
   defaults:
@@ -19,6 +21,7 @@ commerce_lms_entitlements.my_subscriptions:
     _title: 'My course subscriptions'
   requirements:
     _permission: 'view own commerce lms entitlements'
+
 commerce_lms_entitlements.cancel:
   path: '/my-lms-subscriptions/{eid}/cancel'
   defaults:
@@ -27,6 +30,7 @@ commerce_lms_entitlements.cancel:
   requirements:
     _permission: 'cancel own commerce lms entitlements'
     eid: '\d+'
+
 commerce_lms_entitlements.admin:
   path: '/admin/commerce/lms-entitlements'
   defaults:
@@ -34,3 +38,43 @@ commerce_lms_entitlements.admin:
     _title: 'Commerce LMS entitlements'
   requirements:
     _permission: 'administer commerce lms entitlements'
+
+entity.commerce_lms_offer.collection:
+  path: '/admin/commerce/config/lms-offers'
+  defaults:
+    _entity_list: 'commerce_lms_offer'
+    _title: 'LMS offers'
+  requirements:
+    _permission: 'administer commerce lms offers'
+
+entity.commerce_lms_offer.add_form:
+  path: '/admin/commerce/config/lms-offers/add'
+  defaults:
+    _entity_form: 'commerce_lms_offer.add'
+    _title: 'Add LMS offer'
+  requirements:
+    _permission: 'administer commerce lms offers'
+
+entity.commerce_lms_offer.edit_form:
+  path: '/admin/commerce/config/lms-offers/{commerce_lms_offer}'
+  defaults:
+    _entity_form: 'commerce_lms_offer.edit'
+    _title: 'Edit LMS offer'
+  requirements:
+    _permission: 'administer commerce lms offers'
+  options:
+    parameters:
+      commerce_lms_offer:
+        type: 'entity:commerce_lms_offer'
+
+entity.commerce_lms_offer.delete_form:
+  path: '/admin/commerce/config/lms-offers/{commerce_lms_offer}/delete'
+  defaults:
+    _entity_form: 'commerce_lms_offer.delete'
+    _title: 'Delete LMS offer'
+  requirements:
+    _permission: 'administer commerce lms offers'
+  options:
+    parameters:
+      commerce_lms_offer:
+        type: 'entity:commerce_lms_offer'
