@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\commerce_lms_entitlements\Form;
 
+use Drupal\commerce_lms_entitlements\Entity\LmsOffer;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\FormStateInterface;
@@ -14,7 +15,7 @@ final class OfferForm extends EntityForm {
     $offer = $this->entity;
     $lines = array_map(static fn (array $item): string => $item['course_id'] . ':' . $item['class_id'], $offer->getCourseClassMap());
     $form['label'] = ['#type' => 'textfield', '#title' => $this->t('Name'), '#default_value' => $offer->label(), '#required' => TRUE];
-    $form['id'] = ['#type' => 'machine_name', '#default_value' => $offer->id(), '#machine_name' => ['exists' => '\\Drupal::entityTypeManager()->getStorage("commerce_lms_offer")->load'], '#disabled' => !$offer->isNew()];
+    $form['id'] = ['#type' => 'machine_name', '#default_value' => $offer->id(), '#machine_name' => ['exists' => [LmsOffer::class, 'load']], '#disabled' => !$offer->isNew()];
     $form['variation_id'] = ['#type' => 'number', '#title' => $this->t('Commerce variation ID'), '#default_value' => $offer->get('variation_id'), '#min' => 1, '#required' => TRUE];
     $form['purchase_type'] = ['#type' => 'radios', '#title' => $this->t('Purchase type'), '#options' => ['recurring' => $this->t('Recurring'), 'lifetime' => $this->t('Lifetime one-time purchase')], '#default_value' => $offer->getPurchaseType(), '#required' => TRUE];
     $form['payment_gateway_id'] = ['#type' => 'textfield', '#title' => $this->t('Payment gateway ID'), '#description' => $this->t('The only Commerce gateway allowed for this offer.'), '#default_value' => $offer->getPaymentGatewayId(), '#required' => TRUE];
