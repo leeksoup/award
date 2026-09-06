@@ -19,6 +19,15 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *   config_prefix = "offer",
  *   admin_permission = "administer commerce lms offers",
  *   entity_keys = {"id" = "id", "label" = "label"},
+ *   config_export = {
+ *     "id",
+ *     "label",
+ *     "variation_id",
+ *     "purchase_type",
+ *     "payment_gateway_id",
+ *     "paypal_plan_id",
+ *     "course_class_map"
+ *   },
  *   links = {
  *     "collection" = "/admin/commerce/config/lms-offers",
  *     "add-form" = "/admin/commerce/config/lms-offers/add",
