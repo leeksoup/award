@@ -30,6 +30,9 @@ offer for each variation at `/admin/commerce/config/lms-offers`.
 - Each offer names its only permitted payment gateway and contains an ordered
   `COURSE_ID:CLASS_ID` target list. Administrators select the Classes; buyers
   only select the learner.
+- At checkout, the module filters Commerce's available gateways to that sole
+  configured gateway. It never falls back from a recurring offer to one-time
+  PayPal Checkout.
 
 The module validates that every selected Class is an existing `lms_class` child
 of its configured `lms_course`. It does not require a Course to have only one

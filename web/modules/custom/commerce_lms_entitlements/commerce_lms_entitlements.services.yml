@@ -13,3 +13,8 @@ services:
     arguments: ['@commerce_lms_entitlements.manager']
     tags:
       - { name: event_subscriber }
+  commerce_lms_entitlements.payment_gateway_subscriber:
+    class: Drupal\commerce_lms_entitlements\EventSubscriber\PaymentGatewaySubscriber
+    arguments: ['@commerce_lms_entitlements.manager']
+    tags:
+      - { name: event_subscriber }

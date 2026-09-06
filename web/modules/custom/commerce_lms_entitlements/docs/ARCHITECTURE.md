@@ -169,6 +169,7 @@ email. An invitation expires after 30 days.
 | `Entity/LmsOffer.php` | Config-entity definition for one variation-to-bundle mapping. |
 | `Form/OfferForm.php` | Administrator UI. Parses `COURSE_ID:CLASS_ID`; entity existence and parent relationship are checked at actual use. |
 | `CheckoutPane/LearnerPane.php` | Stores the chosen existing learner or creates/sends an invitation before payment approval. |
+| `EventSubscriber/PaymentGatewaySubscriber.php` | Filters Commerce's available gateways so a valid LMS offer can use only its configured recurring or one-time gateway. |
 | `EventSubscriber/PayPalPlanSubscriber.php` | Intercepts the contributed module’s subscription creation event, validates the order/offer/gateway, creates the pending entitlement, and injects the PayPal plan ID. |
 | `Controller/PayPalWebhookController.php` | Public endpoint that verifies the PayPal transmission signature using the contributed SDK, deduplicates the event, queues work, and immediately responds. |
 | `QueueWorker/PayPalWebhookWorker.php` | Loads a verified event, obtains the current subscription detail from PayPal, and applies it. Events that race ahead of the order link are requeued rather than lost. |
