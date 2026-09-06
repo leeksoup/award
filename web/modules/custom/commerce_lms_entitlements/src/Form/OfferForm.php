@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\commerce_lms_entitlements\Form;
 
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -21,6 +22,40 @@ final class OfferForm extends EntityForm {
     $form['course_class_map'] = ['#type' => 'textarea', '#title' => $this->t('Course to Class mapping'), '#description' => $this->t('One administrator-selected target per line as COURSE_ID:CLASS_ID. The Class must be a child of the Course.'), '#default_value' => implode("\n", $lines), '#required' => TRUE];
     return parent::form($form, $form_state);
   }
+
+  /**
+   * Converts scalar form input before Drupal copies it to the typed entity.
+   *
+   * EntityForm builds a working entity before custom validation runs. The
+   * Course/Class field is presented as a textarea but stored as an array, and
+   * the variation ID is submitted as a numeric string but stored as an integer.
+   * Converting both here prevents raw form values from being assigned to the
+   * typed LmsOffer properties.
+   */
+  protected function copyFormValuesToEntity(EntityInterface $entity, array $form, FormStateInterface $form_state) {
+    $map = [];
+    $input = trim((string) $form_state->getValue('course_class_map'));
+    foreach (preg_split('/\R/', $input) ?: [] as $line) {
+      if (preg_match('/^\s*(\d+)\s*:\s*(\d+)\s*$/', $line, $matches)) {
+        $map[] = [
+          'course_id' => (int) $matches[1],
+          'class_id' => (int) $matches[2],
+        ];
+      }
+    }
+
+    $id = trim((string) $form_state->getValue('id'));
+    if ($id !== '') {
+      $entity->set('id', $id);
+    }
+    $entity->set('label', trim((string) $form_state->getValue('label')));
+    $entity->set('variation_id', (int) $form_state->getValue('variation_id'));
+    $entity->set('purchase_type', (string) $form_state->getValue('purchase_type'));
+    $entity->set('payment_gateway_id', trim((string) $form_state->getValue('payment_gateway_id')));
+    $entity->set('paypal_plan_id', trim((string) $form_state->getValue('paypal_plan_id')));
+    $entity->set('course_class_map', $map);
+  }
+
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     parent::validateForm($form, $form_state);
     $map = [];
