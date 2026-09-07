@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\commerce_lms_entitlements\Controller;
 
 use Drupal\commerce_lms_entitlements\EntitlementManager;
+use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -14,7 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 final class PayPalWebhookController extends ControllerBase {
   public function __construct(private EntitlementManager $manager, private object $sdkFactory) {}
   public static function create(ContainerInterface $container): static { return new static($container->get('commerce_lms_entitlements.manager'), $container->get('commerce_paypal_subscriptions.checkout_sdk_factory')); }
-  public function receive(Request $request, object $commerce_payment_gateway): JsonResponse {
+  public function receive(Request $request, PaymentGatewayInterface $commerce_payment_gateway): JsonResponse {
     try {
       if ($commerce_payment_gateway->getPluginId() !== 'paypal_checkout_subscriptions') { return new JsonResponse(['error' => 'Unknown gateway'], 404); }
       $event = json_decode($request->getContent(), TRUE, 512, JSON_THROW_ON_ERROR); $headers = [];

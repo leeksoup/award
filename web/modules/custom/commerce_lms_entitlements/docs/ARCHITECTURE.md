@@ -276,6 +276,11 @@ API with all PayPal transmission headers. Invalid JSON, wrong gateway plugin,
 missing configuration, invalid signature, and verification failures return 4xx
 and are logged. A successful duplicate returns success so PayPal stops retrying.
 
+The webhook route converts its gateway-ID path component into a Commerce
+payment-gateway entity before invoking the controller. Without that route
+parameter conversion, PHP rejects the string argument before signature
+verification and PayPal receives an HTTP 500 response.
+
 ## Purchaser cancellation and guarantee details
 
 The cancellation form first checks the row belongs to the current purchaser;

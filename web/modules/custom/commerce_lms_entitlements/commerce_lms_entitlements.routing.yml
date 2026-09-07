@@ -5,6 +5,10 @@ commerce_lms_entitlements.webhook:
   requirements:
     _access: 'TRUE'
   methods: [POST]
+  options:
+    parameters:
+      commerce_payment_gateway:
+        type: 'entity:commerce_payment_gateway'
 
 commerce_lms_entitlements.claim:
   path: '/commerce-lms-entitlements/invitation/{token}'
