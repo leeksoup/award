@@ -104,6 +104,12 @@ unknown email -> random token (only SHA-256 hash is stored) -> email claim URL
   -> immediately grant any already-active entitlement
 ```
 
+Checkout pane values are nested below the pane's form parents. The learner
+pane reads the submitted email from that nested value tree and refuses an
+empty recipient. Repeated checkout submissions reuse an existing invitation
+for an unchanged email instead of creating a new token and sending duplicate
+mail.
+
 ## Data model
 
 The module deliberately uses tables rather than a content entity: these rows
