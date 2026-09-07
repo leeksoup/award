@@ -248,6 +248,10 @@ Invitation claiming wraps the claimed marker, learner assignment, and active
 membership grants in one database transaction. A failed Group operation rolls
 the claim back so the signed link remains retryable instead of leaving partial
 access behind.
+After a successful anonymous claim, the learner is logged into the claimed
+account and redirected to `/courses`, where the newly granted access is
+immediately usable. An already authenticated matching learner is redirected
+without starting a new session.
 `revoke()` is the inverse, including the cross-entitlement support check.
 
 ## Webhook contract
