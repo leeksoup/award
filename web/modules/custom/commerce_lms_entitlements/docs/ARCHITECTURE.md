@@ -238,9 +238,16 @@ and poll all nonterminal recurring subscriptions to self-heal missed events.
 Failures are logged per entitlement so one PayPal/API error does not stop the
 rest of the batch.
 
-`grant()` uses Group 3’s `GroupMembership::loadByGroupAndUser()`. If a
-membership already exists, the module records support without claiming
-ownership. If absent, it creates the Group membership and records ownership.
+`grant()` uses Group 3's group-level membership API: `Group::getMember()`
+checks for an existing membership and `Group::addMember()` creates one when
+needed. If a membership already exists, the module records support without
+claiming ownership. If absent, it creates the Group membership and records
+ownership. Safe revocation uses the corresponding `Group::removeMember()`
+method only after the ownership and other-entitlement checks pass.
+Invitation claiming wraps the claimed marker, learner assignment, and active
+membership grants in one database transaction. A failed Group operation rolls
+the claim back so the signed link remains retryable instead of leaving partial
+access behind.
 `revoke()` is the inverse, including the cross-entitlement support check.
 
 ## Webhook contract

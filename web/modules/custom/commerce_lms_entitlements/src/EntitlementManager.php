@@ -9,7 +9,6 @@ use Drupal\commerce_price\Calculator;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
-use Drupal\group\Entity\GroupMembership;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -222,9 +221,37 @@ final class EntitlementManager {
     if ($invite && mb_strtolower($email) !== $invite['email']) {
       return FALSE;
     }
-    if (!$invite) { return FALSE; }
-    $this->database->update('commerce_lms_entitlement_invitation')->fields(['claimed_uid' => $uid])->condition('id', $invite['id'])->execute();
-    foreach ($this->database->select('commerce_lms_entitlement', 'e')->fields('e', ['eid'])->condition('invitation_id', $invite['id'])->execute()->fetchCol() as $eid) { $this->update((int) $eid, ['learner_uid' => $uid]); $entitlement = $this->load((int) $eid); if ($entitlement['status'] === 'active') { $this->grant($entitlement); } }
+    if (!$invite) {
+      return FALSE;
+    }
+
+    // Keep the invitation claim and its access grants atomic. If Group rejects
+    // a membership operation, the learner can retry the same claim instead of
+    // being left with a claimed invitation and incomplete access.
+    $transaction = $this->database->startTransaction();
+    try {
+      $this->database->update('commerce_lms_entitlement_invitation')
+        ->fields(['claimed_uid' => $uid])
+        ->condition('id', $invite['id'])
+        ->execute();
+      $entitlement_ids = $this->database
+        ->select('commerce_lms_entitlement', 'e')
+        ->fields('e', ['eid'])
+        ->condition('invitation_id', $invite['id'])
+        ->execute()
+        ->fetchCol();
+      foreach ($entitlement_ids as $eid) {
+        $this->update((int) $eid, ['learner_uid' => $uid]);
+        $entitlement = $this->load((int) $eid);
+        if ($entitlement['status'] === 'active') {
+          $this->grant($entitlement);
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
     return TRUE;
   }
 
@@ -253,9 +280,9 @@ final class EntitlementManager {
     $offer = $this->entityTypeManager->getStorage('commerce_lms_offer')->load($entitlement['offer_id']); if (!$offer) { throw new \RuntimeException('Missing offer ' . $entitlement['offer_id']); }
     $this->validateTargets($offer); $account = $this->entityTypeManager->getStorage('user')->load($entitlement['learner_uid']);
     foreach ($offer->getCourseClassMap() as $target) {
-      $class = $this->entityTypeManager->getStorage('group')->load((int) $target['class_id']); $membership = GroupMembership::loadByGroupAndUser($class, $account);
+      $class = $this->entityTypeManager->getStorage('group')->load((int) $target['class_id']); $membership = $class->getMember($account);
       $this->database->merge('commerce_lms_entitlement_membership')->key(['eid' => $entitlement['eid'], 'class_id' => $class->id()])->fields(['uid' => $account->id(), 'membership_created' => $membership ? 0 : 1, 'active' => 1, 'created' => $this->time->getRequestTime()])->execute();
-      if (!$membership) { $class->addMember($account)->save(); }
+      if (!$membership) { $class->addMember($account); }
     }
   }
   /**
@@ -271,7 +298,7 @@ final class EntitlementManager {
       $other = $this->database->select('commerce_lms_entitlement_membership', 'm')->condition('class_id', $membership->class_id)->condition('uid', $membership->uid)->condition('active', 1)->countQuery()->execute()->fetchField();
       if (!$membership->membership_created || $other) { continue; }
       $class = $this->entityTypeManager->getStorage('group')->load($membership->class_id); $account = $this->entityTypeManager->getStorage('user')->load($membership->uid);
-      if ($class && $account && ($group_membership = GroupMembership::loadByGroupAndUser($class, $account))) { $group_membership->getGroupRelationship()->delete(); }
+      if ($class && $account && $class->getMember($account)) { $class->removeMember($account); }
     }
   }
 }
