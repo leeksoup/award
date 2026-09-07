@@ -1,0 +1,12 @@
+diff --git a/src/Plugin/Commerce/PaymentGateway/CheckoutSubscriptions.php b/src/Plugin/Commerce/PaymentGateway/CheckoutSubscriptions.php
+index d2685c4..4d8e3ab 100644
+--- a/src/Plugin/Commerce/PaymentGateway/CheckoutSubscriptions.php
++++ b/src/Plugin/Commerce/PaymentGateway/CheckoutSubscriptions.php
+@@ -24,6 +24,7 @@ use Symfony\Component\HttpFoundation\Request;
+  *     "live" = @Translation("Live"),
+  *   },
+  *   forms = {
++ *     "checkout-add-payment-method" = "Drupal\commerce_paypal\PluginForm\Checkout\PaymentMethodAddForm",
+  *     "offsite-payment" = "Drupal\commerce_paypal_subscriptions\PluginForm\Checkout\PaymentOffsiteForm",
+  *   },
+  *   credit_card_types = {

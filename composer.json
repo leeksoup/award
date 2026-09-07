@@ -142,7 +142,8 @@
         },
         "patches": {
             "drupal/commerce_paypal_subscriptions": {
-                "Fix SDK factory arguments for Commerce PayPal 1.12": "patches/commerce_paypal_subscriptions-1.0.0-commerce-paypal-1.12-sdk-factory.patch"
+                "Fix SDK factory arguments for Commerce PayPal 1.12": "patches/commerce_paypal_subscriptions-1.0.0-commerce-paypal-1.12-sdk-factory.patch",
+                "Use deferred PayPal checkout form with Commerce 3": "patches/commerce_paypal_subscriptions-1.0.0-commerce-3-checkout-form.patch"
             }
         },
         "enable-patching": true

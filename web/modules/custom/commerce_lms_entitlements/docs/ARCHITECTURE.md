@@ -42,7 +42,12 @@ can prove the entitlement owns it.
 1. Install and configure `commerce_paypal` and
    `commerce_paypal_subscriptions`. The recurring gateway must be the
    contributed `paypal_checkout_subscriptions` plugin and include the PayPal
-   webhook ID, client ID, client secret, and `test` or `live` mode.
+   webhook ID, client ID, client secret, and `test` or `live` mode. Select
+   **Smart payment buttons**, not custom card fields. The repository's
+   Commerce 3 checkout-form patch ensures the payment-information pane defers
+   payment-method creation until PayPal subscription approval; no separate
+   subscription checkout-flow plugin is expected in Commerce's checkout-flow
+   administration screen.
 2. Create the PayPal monthly and annual plans in PayPal. No plan is required
    for the lifetime variation.
 3. Create three Commerce product variations: monthly recurring, annual

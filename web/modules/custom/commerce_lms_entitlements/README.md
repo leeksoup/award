@@ -15,6 +15,16 @@ it does not replace the contributed checkout or subscription SDK. The local
 copy matches the upstream issue patch and is retained so installs are
 reproducible without fetching a remote patch URL.
 
+It also applies
+`patches/commerce_paypal_subscriptions-1.0.0-commerce-3-checkout-form.patch`.
+Commerce 3 supplies a generic checkout payment-method form when a gateway does
+not declare one. That generic form asks the inherited regular PayPal gateway to
+create a payment method before subscription approval, when no PayPal order ID
+exists. The patch explicitly selects Commerce PayPal's Smart Buttons checkout
+form, which defers payment-method creation until the subscription approval
+step. Subscription gateways must use the **Smart payment buttons** payment
+solution; custom card fields are not a subscription checkout path.
+
 For a full code and operational guide, read
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). It documents every source file,
 table, lifecycle state, route, queue, and PayPal/Group integration boundary.
