@@ -256,6 +256,23 @@ final class EntitlementManager {
   }
 
   /**
+   * Returns whether this invitation is backed by an active entitlement.
+   *
+   * Invitation claim and PayPal activation are independent asynchronous
+   * events. Callers use this check to avoid promising access while the linked
+   * subscription is still pending.
+   */
+  public function invitationHasActiveAccess(string $invitation_id): bool {
+    return (bool) $this->database
+      ->select('commerce_lms_entitlement', 'e')
+      ->condition('invitation_id', $invitation_id)
+      ->condition('status', 'active')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+  }
+
+  /**
    * Ensures each configured Class is an actual child of its configured Course.
    *
    * This permits a Course with many Classes while keeping the offer's class

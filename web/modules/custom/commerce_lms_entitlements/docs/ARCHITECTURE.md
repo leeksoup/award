@@ -249,9 +249,11 @@ membership grants in one database transaction. A failed Group operation rolls
 the claim back so the signed link remains retryable instead of leaving partial
 access behind.
 After a successful anonymous claim, the learner is logged into the claimed
-account and redirected to `/courses`, where the newly granted access is
-immediately usable. An already authenticated matching learner is redirected
-without starting a new session.
+account. An active entitlement redirects to `/courses`, where the newly
+granted access is immediately usable. A pending entitlement instead redirects
+to the learner account page and explains that access awaits subscription
+payment activation. An already authenticated matching learner follows the
+same status-sensitive redirect without starting a new session.
 If a purchaser or another user opens the invitation while authenticated, the
 claim form compares that account's email address with the invitation before
 showing a submit button. A mismatch instead provides a logout link whose

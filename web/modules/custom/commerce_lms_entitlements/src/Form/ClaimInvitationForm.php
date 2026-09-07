@@ -64,8 +64,14 @@ final class ClaimInvitationForm extends FormBase {
           user_login_finalize($account);
         }
       }
-      $this->messenger()->addStatus($this->t('Your course access has been claimed.'));
-      $form_state->setRedirectUrl(Url::fromUserInput('/courses'));
+      if ($this->manager->invitationHasActiveAccess($invitation['id'])) {
+        $this->messenger()->addStatus($this->t('Your course access has been claimed.'));
+        $form_state->setRedirectUrl(Url::fromUserInput('/courses'));
+      }
+      else {
+        $this->messenger()->addStatus($this->t('Your learner account has been claimed. Course access will become available after the subscription payment is activated.'));
+        $form_state->setRedirectUrl(Url::fromRoute('user.page'));
+      }
     }
     else { $this->messenger()->addError($this->t('This invitation is invalid, expired, or already claimed.')); }
   }
