@@ -26,6 +26,14 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *     "purchase_type",
  *     "payment_gateway_id",
  *     "paypal_plan_id",
+ *     "paypal_environment",
+ *     "paypal_sandbox_gateway_id",
+ *     "paypal_sandbox_product_id",
+ *     "paypal_sandbox_plan_id",
+ *     "paypal_live_gateway_id",
+ *     "paypal_live_product_id",
+ *     "paypal_live_plan_id",
+ *     "billing_interval",
  *     "course_class_map"
  *   },
  *   links = {
@@ -43,11 +51,42 @@ final class LmsOffer extends ConfigEntityBase {
   protected string $purchase_type = 'recurring';
   protected string $payment_gateway_id = '';
   protected string $paypal_plan_id = '';
+  protected string $paypal_environment = 'sandbox';
+  protected string $paypal_sandbox_gateway_id = '';
+  protected string $paypal_sandbox_product_id = '';
+  protected string $paypal_sandbox_plan_id = '';
+  protected string $paypal_live_gateway_id = '';
+  protected string $paypal_live_product_id = '';
+  protected string $paypal_live_plan_id = '';
+  protected string $billing_interval = 'monthly';
   protected array $course_class_map = [];
 
   public function getVariationId(): int { return $this->variation_id; }
   public function getPurchaseType(): string { return $this->purchase_type; }
   public function getPaymentGatewayId(): string { return $this->payment_gateway_id; }
   public function getPayPalPlanId(): string { return $this->paypal_plan_id; }
+  public function getPayPalEnvironment(): string { return $this->paypal_environment; }
+  public function getPayPalSandboxGatewayId(): string { return $this->paypal_sandbox_gateway_id; }
+  public function getPayPalSandboxProductId(): string { return $this->paypal_sandbox_product_id; }
+  public function getPayPalSandboxPlanId(): string { return $this->paypal_sandbox_plan_id; }
+  public function getPayPalLiveGatewayId(): string { return $this->paypal_live_gateway_id; }
+  public function getPayPalLiveProductId(): string { return $this->paypal_live_product_id; }
+  public function getPayPalLivePlanId(): string { return $this->paypal_live_plan_id; }
+  public function getBillingInterval(): string { return $this->billing_interval; }
+
+  /** Returns the gateway ID for the explicitly active recurring environment. */
+  public function getActivePayPalGatewayId(): string {
+    return $this->paypal_environment === 'live'
+      ? $this->paypal_live_gateway_id
+      : $this->paypal_sandbox_gateway_id;
+  }
+
+  /** Returns the plan ID for the explicitly active recurring environment. */
+  public function getActivePayPalPlanId(): string {
+    return $this->paypal_environment === 'live'
+      ? $this->paypal_live_plan_id
+      : $this->paypal_sandbox_plan_id;
+  }
+
   public function getCourseClassMap(): array { return $this->course_class_map; }
 }

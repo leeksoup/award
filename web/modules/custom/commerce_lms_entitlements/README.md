@@ -31,15 +31,19 @@ table, lifecycle state, route, queue, and PayPal/Group integration boundary.
 
 ## Offer model
 
-Create three Commerce variations: monthly, annual, and lifetime. Create an LMS
-offer for each variation at `/admin/commerce/config/lms-offers`.
+Create Commerce variations for monthly or quarterly, annual, and lifetime
+access. Create an LMS offer for each variation at
+`/admin/commerce/config/lms-offers`.
 
-- Monthly and annual offers use the contributed PayPal subscription gateway and
-  a pre-created PayPal plan ID.
+- Monthly, quarterly, and annual offers use the contributed PayPal subscription
+  gateway and pre-created PayPal plans.
 - Lifetime uses normal Commerce PayPal Checkout and has no plan ID.
-- Each offer names its only permitted payment gateway and contains an ordered
-  `COURSE_ID:CLASS_ID` target list. Administrators select the Classes; buyers
-  only select the learner.
+- Each recurring offer stores separate sandbox and live gateway/product/plan
+  mappings plus an explicit active checkout environment. Sandbox IDs remain
+  manually entered. The offer form loads available live products and plans
+  from PayPal using the selected live gateway credentials.
+- Each offer contains an ordered `COURSE_ID:CLASS_ID` target list.
+  Administrators select the Classes; buyers only select the learner.
 - At checkout, the module filters Commerce's available gateways to that sole
   configured gateway. It never falls back from a recurring offer to one-time
   PayPal Checkout.
@@ -84,10 +88,33 @@ The PayPal gateway configuration must contain its normal client ID, client
 secret, mode, and webhook ID. The custom cancellation/refund calls use those
 same credentials; no duplicate credentials are stored in this module.
 
+## Live plan discovery and validation
+
+Edit a recurring offer, select its live PayPal Subscriptions gateway, and use
+**Load live plans from PayPal**. The module calls the live catalog and billing
+plan APIs server-side; API credentials are never exposed to the browser. A
+selected live plan can be saved only when it is active, has no trial cycles,
+does not support variable quantity, has exactly one regular billing cycle, and
+matches both the offer's expected interval and the Commerce variation's price
+and currency. The validated PayPal product ID is stored with the plan.
+
+The **Active checkout environment** controls which mapping is permitted at
+checkout. Keep it on sandbox during testing and change it to live only when the
+live mapping is complete. The module never automatically prefers live merely
+because both gateways are enabled.
+
+Run `drush commerce-lms-entitlements:audit` to re-fetch and validate every
+configured live plan. This is an explicit/scheduled audit rather than a plan
+webhook mirror; the subscription webhook pipeline continues to accept customer
+subscription lifecycle events only. Drupal cron also queues the same live-plan
+audit and logs discrepancies without delaying the cron request.
+
 ## Staging checks
 
-Test monthly/annual plan selection, lifetime PayPal payment, invitation claim,
-multi-Class Course target validation, valid/invalid and duplicate webhooks,
-cancellation timing, failed payment/recovery, and Group `view`/`take` access.
+Test monthly/quarterly/annual plan selection, sandbox/live environment
+selection, live plan discovery and mismatch validation, lifetime PayPal
+payment, invitation claim, multi-Class Course target validation, valid/invalid
+and duplicate webhooks, cancellation timing, failed payment/recovery, and
+Group `view`/`take` access.
 This repository has no bootstrapped Commerce site, so those checks are not yet
 run here.

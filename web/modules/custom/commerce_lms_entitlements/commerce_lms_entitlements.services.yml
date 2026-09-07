@@ -8,6 +8,9 @@ services:
   commerce_lms_entitlements.paypal_operations:
     class: Drupal\commerce_lms_entitlements\PayPalSubscriptionOperations
     arguments: ['@http_client']
+  commerce_lms_entitlements.paypal_plan_catalog:
+    class: Drupal\commerce_lms_entitlements\PayPalPlanCatalog
+    arguments: ['@entity_type.manager', '@commerce_lms_entitlements.paypal_operations']
   commerce_lms_entitlements.plan_subscriber:
     class: Drupal\commerce_lms_entitlements\EventSubscriber\PayPalPlanSubscriber
     arguments: ['@commerce_lms_entitlements.manager']

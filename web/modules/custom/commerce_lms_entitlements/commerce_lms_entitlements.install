@@ -80,3 +80,48 @@ function commerce_lms_entitlements_schema(): array {
   ];
   return $schema;
 }
+
+/**
+ * Expands legacy recurring offers into separate sandbox and live mappings.
+ */
+function commerce_lms_entitlements_update_10011(): string {
+  $gateway_storage = \Drupal::entityTypeManager()->getStorage('commerce_payment_gateway');
+  $offer_storage = \Drupal::entityTypeManager()->getStorage('commerce_lms_offer');
+  $updated = 0;
+
+  foreach ($offer_storage->loadMultiple() as $offer) {
+    if ($offer->getPurchaseType() !== 'recurring' || $offer->getActivePayPalGatewayId() !== '') {
+      continue;
+    }
+
+    $gateway_id = $offer->getPaymentGatewayId();
+    $plan_id = $offer->getPayPalPlanId();
+    $gateway = $gateway_id !== '' ? $gateway_storage->load($gateway_id) : NULL;
+    $environment = $gateway && $gateway->getPlugin()->getMode() === 'live'
+      ? 'live'
+      : 'sandbox';
+
+    $offer->set('paypal_environment', $environment);
+    $offer->set('paypal_' . $environment . '_gateway_id', $gateway_id);
+    $offer->set('paypal_' . $environment . '_plan_id', $plan_id);
+
+    // The original model did not store cadence. Preserve the known offer
+    // conventions without changing entity IDs or migration references.
+    $identity = strtolower($offer->id() . ' ' . $offer->label());
+    if (str_contains($identity, 'annual') || str_contains($identity, 'year')) {
+      $offer->set('billing_interval', 'annual');
+    }
+    elseif (str_contains($identity, 'quarter')) {
+      $offer->set('billing_interval', 'quarterly');
+    }
+    else {
+      $offer->set('billing_interval', 'monthly');
+    }
+    $offer->save();
+    $updated++;
+  }
+
+  return (string) t('Expanded @count recurring LMS offers into environment-specific PayPal mappings.', [
+    '@count' => $updated,
+  ]);
+}

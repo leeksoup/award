@@ -18,6 +18,44 @@ final class PayPalSubscriptionOperations {
   public function __construct(private ClientInterface $client) {}
 
   /**
+   * Lists every PayPal catalog product visible to a configured gateway.
+   *
+   * PayPal limits catalog pages to 20 records. Following the reported page
+   * count keeps the administrator picker complete without trusting URLs from
+   * the remote response.
+   */
+  public function listProducts(object $gateway): array {
+    return $this->listCollection($gateway, '/v1/catalogs/products', 'products');
+  }
+
+  /**
+   * Lists every PayPal billing plan visible to a configured gateway.
+   *
+   * `Prefer: return=representation` requests billing-cycle and pricing data
+   * for useful labels. The selected plan is still fetched independently when
+   * an offer is validated.
+   */
+  public function listPlans(object $gateway): array {
+    return $this->listCollection($gateway, '/v1/billing/plans', 'plans', [
+      'Prefer' => 'return=representation',
+    ]);
+  }
+
+  /** Fetches authoritative details for one PayPal billing plan. */
+  public function fetchPlan(object $gateway, string $plan_id): array {
+    $config = $gateway->getPluginConfiguration();
+    $base = $this->baseUrl($config);
+    $response = $this->client->get($base . '/v1/billing/plans/' . rawurlencode($plan_id), [
+      'headers' => [
+        'Authorization' => 'Bearer ' . $this->accessToken($base, $config),
+        'Content-Type' => 'application/json',
+        'Prefer' => 'return=representation',
+      ],
+    ]);
+    return json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR);
+  }
+
+  /**
    * Cancels future billing and fetches the post-cancellation source of truth.
    *
    * The cancel endpoint does not itself provide access-through data, so the
@@ -80,5 +118,37 @@ final class PayPalSubscriptionOperations {
   /** Chooses the PayPal sandbox only when the gateway is not explicitly live. */
   private function baseUrl(array $config): string {
     return ($config['mode'] ?? 'test') === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+  }
+
+  /** Retrieves a complete paginated PayPal collection. */
+  private function listCollection(object $gateway, string $path, string $key, array $extra_headers = []): array {
+    $config = $gateway->getPluginConfiguration();
+    $base = $this->baseUrl($config);
+    $token = $this->accessToken($base, $config);
+    $items = [];
+    $page = 1;
+    do {
+      $response = $this->client->get($base . $path, [
+        'headers' => $extra_headers + [
+          'Authorization' => 'Bearer ' . $token,
+          'Content-Type' => 'application/json',
+        ],
+        'query' => [
+          'page_size' => 20,
+          'page' => $page,
+          'total_required' => 'true',
+        ],
+      ]);
+      $body = json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR);
+      foreach ($body[$key] ?? [] as $item) {
+        if (is_array($item)) {
+          $items[] = $item;
+        }
+      }
+      $total_pages = max(1, (int) ($body['total_pages'] ?? 1));
+      $page++;
+    } while ($page <= $total_pages);
+
+    return $items;
   }
 }

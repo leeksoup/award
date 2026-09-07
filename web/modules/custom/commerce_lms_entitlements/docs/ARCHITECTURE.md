@@ -10,7 +10,7 @@ The two contributed modules own PayPal checkout:
   the lifetime variation.
 - `commerce_paypal_subscriptions` owns PayPal subscription approval and stores
   the approved PayPal subscription ID on the Commerce order. This is used for
-  monthly and annual variations.
+  monthly, quarterly, and annual variations.
 
 PayPal remains the billing authority. Group 3.2 and LMS 1.2.1 remain the access
 authority: a learner has LMS access because they are a member of the selected
@@ -36,6 +36,9 @@ can prove the entitlement owns it.
    revocation.
 7. A guarantee refund failure does not restore access. It remains visible as
    recovery work for staff.
+8. A recurring offer has separate sandbox and live mappings, but exactly one
+   explicit environment is active for checkout. The presence of a live
+   gateway never causes an automatic switch from sandbox to live billing.
 
 ## Setup sequence
 
@@ -48,16 +51,19 @@ can prove the entitlement owns it.
    payment-method creation until PayPal subscription approval; no separate
    subscription checkout-flow plugin is expected in Commerce's checkout-flow
    administration screen.
-2. Create the PayPal monthly and annual plans in PayPal. No plan is required
-   for the lifetime variation.
-3. Create three Commerce product variations: monthly recurring, annual
-   recurring, and lifetime one-time.
+2. Create the PayPal monthly or quarterly and annual plans in both PayPal
+   environments as needed. Sandbox and live catalogs have different IDs. No
+   plan is required for the lifetime variation.
+3. Create Commerce product variations for the selected recurring periods and
+   lifetime one-time access.
 4. Configure the Commerce checkout flow to enable the **Learner** pane from
    `src/Plugin/Commerce/CheckoutPane/LearnerPane.php`.
 5. Create one offer per variation at
-   `/admin/commerce/config/lms-offers`. Give recurring offers their PayPal plan
-   IDs and all offers their sole allowed payment-gateway ID. Enter each bundle
-   item as `COURSE_ID:CLASS_ID` in its intended order.
+   `/admin/commerce/config/lms-offers`. Recurring offers store independent
+   sandbox and live gateway/product/plan mappings. Enter sandbox IDs manually;
+   select a live gateway and use **Load live plans from PayPal** to discover
+   the live mapping. Choose the explicit active checkout environment and enter
+   each bundle item as `COURSE_ID:CLASS_ID` in its intended order.
 6. In PayPal, subscribe the recurring gateway to subscription lifecycle and
    payment events and point it to
    `/commerce-lms-entitlements/paypal/GATEWAY_ID` (the exact route currently
@@ -67,7 +73,7 @@ can prove the entitlement owns it.
 
 ## Lifecycle diagrams
 
-### Recurring monthly or annual purchase
+### Recurring monthly, quarterly, or annual purchase
 
 ```text
 checkout learner pane
@@ -146,6 +152,15 @@ Status values currently written are:
 | `guarantee_refunded` | Immediate guarantee revocation succeeded and PayPal returned a refund ID. |
 | `guarantee_refund_pending` | Immediate revocation occurred but refund recovery is required. |
 
+### `commerce_lms_entitlements.offer.*`
+
+Each offer is a configuration entity. Lifetime offers use
+`payment_gateway_id`. Recurring offers use `paypal_environment` and separate
+`paypal_sandbox_*` / `paypal_live_*` gateway, product, and plan values.
+`billing_interval` records the expected monthly, quarterly, or annual cadence.
+Legacy `payment_gateway_id` and `paypal_plan_id` values mirror the active
+recurring mapping for backward compatibility.
+
 ### `commerce_lms_entitlement_membership`
 
 One row per entitlement/Class. `membership_created = 1` means this module
@@ -173,25 +188,27 @@ email. An invitation expires after 30 days.
 | File | Responsibility |
 | --- | --- |
 | `commerce_lms_entitlements.info.yml` | Declares dependencies on Commerce, the PayPal modules, Group, and LMS Classes. |
-| `commerce_lms_entitlements.install` | Defines the four audit/access tables above. Existing sites need an update hook before this module is introduced after installation. |
+| `commerce_lms_entitlements.install` | Defines the four audit/access tables and migrates legacy recurring offers to dual PayPal mappings in update `10011`. |
 | `commerce_lms_entitlements.module` | Bridges Commerce entity events to the manager, queues reconciliation from cron, and supplies invitation mail text. |
-| `services.yml` | Registers the manager, PayPal cancellation/refund adapter, event subscriber, and log channel. |
+| `services.yml` | Registers the manager, PayPal REST/catalog services, event subscribers, and log channel. |
 | `routing.yml`, `links.menu.yml`, `permissions.yml` | Define the webhook, invitation, purchaser and administrator routes; the admin menu entry; and authorization gates. |
 | `Entity/LmsOffer.php` | Config-entity definition for one variation-to-bundle mapping. |
-| `Form/OfferForm.php` | Administrator UI. Selects an existing Commerce gateway, requires the subscription plugin for recurring offers, and parses `COURSE_ID:CLASS_ID`; Course/Class existence and parent relationships are checked at actual use. |
+| `Form/OfferForm.php` | Administrator UI for dual PayPal mappings, live plan discovery/validation, active environment, expected cadence, and `COURSE_ID:CLASS_ID` parsing. |
 | `CheckoutPane/LearnerPane.php` | Stores the chosen existing learner or creates/sends an invitation before payment approval. |
 | `EventSubscriber/PaymentGatewaySubscriber.php` | Filters Commerce's available gateways so a valid LMS offer can use only its configured recurring or one-time gateway. |
 | `EventSubscriber/PayPalPlanSubscriber.php` | Intercepts the contributed module’s subscription creation event, validates the order/offer/gateway, creates the pending entitlement, and injects the PayPal plan ID. |
 | `Controller/PayPalWebhookController.php` | Public endpoint that verifies the PayPal transmission signature using the contributed SDK, deduplicates the event, queues work, and immediately responds. |
 | `QueueWorker/PayPalWebhookWorker.php` | Loads a verified event, obtains the current subscription detail from PayPal, and applies it. Events that race ahead of the order link are requeued rather than lost. |
 | `QueueWorker/ReconcileWorker.php` | Runs the manager’s expiry and remote-state reconciliation from cron. |
+| `QueueWorker/LivePlanAuditWorker.php` | Re-fetches live PayPal mappings asynchronously from cron and logs invalid or missing mappings. |
 | `EntitlementManager.php` | Central state machine, data access, offer/target validation, invitation handling, and safe Group membership grant/revoke logic. |
-| `PayPalSubscriptionOperations.php` | Small direct PayPal REST adapter for cancellation and capture refund, which the contributed checkout SDK does not expose. |
+| `PayPalPlanCatalog.php` | Discovers live products/plans and validates status, quantity, trial, cadence, price, and currency against an offer. |
+| `PayPalSubscriptionOperations.php` | Direct PayPal REST adapter for catalog reads, plan details, cancellation, and capture refunds using gateway-owned credentials. |
 | `patches/commerce_paypal_subscriptions-1.0.0-commerce-paypal-1.12-sdk-factory.patch` | Composer-managed local copy of the upstream issue patch correcting stale `commerce_paypal_subscriptions` 1.0.0 factory service arguments with Commerce PayPal 1.12/2.1.x. |
 | `Form/ClaimInvitationForm.php` | Creates/reuses only the account matching the invited email, then claims/grants pending access. |
 | `Form/CancelEntitlementForm.php` | Owner-only regular cancellation and 40-day guarantee request. |
 | `Controller/EntitlementController.php` | Purchaser-scoped status table and unrestricted-for-staff audit table. |
-| `Drush/Commands/EntitlementCommands.php` | Read-only `drush commerce-lms-entitlements:audit` count of failed webhooks and refund recovery work. |
+| `Drush/Commands/EntitlementCommands.php` | Read-only `drush commerce-lms-entitlements:audit` report for recovery work and current live plan validity. |
 
 ## Important methods in `EntitlementManager`
 
@@ -265,7 +282,19 @@ drush commerce-lms-entitlements:audit
 drush cron
 drush queue:run commerce_lms_entitlements_webhook
 drush queue:run commerce_lms_entitlements_reconcile
+drush queue:run commerce_lms_entitlements_live_plan_audit
 ```
+
+After deploying the dual-mapping schema, run `drush updb`. Update hook `10011`
+copies each legacy recurring gateway/plan pair into the environment indicated
+by that gateway's current mode. Because the old model did not store cadence,
+the hook recognizes `annual`/`year` and `quarter` in the offer ID or label and
+otherwise defaults to monthly. Review the resulting interval before enabling
+live checkout.
+
+The audit command fetches every configured live plan and reports unconfigured
+or invalid mappings. It does not change Commerce prices, PayPal plans, active
+checkout environment, or LMS targets.
 
 For a suspected webhook problem, first inspect the configured gateway’s
 webhook ID and event subscription in PayPal, then inspect Drupal logs and the

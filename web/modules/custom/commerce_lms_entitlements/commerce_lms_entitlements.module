@@ -34,6 +34,7 @@ function commerce_lms_entitlements_entity_update(\Drupal\Core\Entity\EntityInter
  */
 function commerce_lms_entitlements_cron(): void {
   \Drupal::queue('commerce_lms_entitlements_reconcile')->createItem([]);
+  \Drupal::queue('commerce_lms_entitlements_live_plan_audit')->createItem([]);
 }
 
 /**

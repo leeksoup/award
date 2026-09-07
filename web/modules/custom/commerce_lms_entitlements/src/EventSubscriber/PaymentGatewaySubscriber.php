@@ -44,7 +44,9 @@ final class PaymentGatewaySubscriber implements EventSubscriberInterface {
     }
 
     $payment_gateways = $event->getPaymentGateways();
-    $gateway_id = $offer->getPaymentGatewayId();
+    $gateway_id = $offer->getPurchaseType() === 'recurring'
+      ? $offer->getActivePayPalGatewayId()
+      : $offer->getPaymentGatewayId();
     $event->setPaymentGateways(isset($payment_gateways[$gateway_id])
       ? [$gateway_id => $payment_gateways[$gateway_id]]
       : []);

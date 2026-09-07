@@ -8,6 +8,14 @@ commerce_lms_entitlements.offer.*:
     purchase_type: { type: string, label: 'Purchase type' }
     payment_gateway_id: { type: string, label: 'Payment gateway ID' }
     paypal_plan_id: { type: string, label: 'PayPal plan ID' }
+    paypal_environment: { type: string, label: 'Active PayPal environment' }
+    paypal_sandbox_gateway_id: { type: string, label: 'Sandbox PayPal gateway ID' }
+    paypal_sandbox_product_id: { type: string, label: 'Sandbox PayPal product ID' }
+    paypal_sandbox_plan_id: { type: string, label: 'Sandbox PayPal plan ID' }
+    paypal_live_gateway_id: { type: string, label: 'Live PayPal gateway ID' }
+    paypal_live_product_id: { type: string, label: 'Live PayPal product ID' }
+    paypal_live_plan_id: { type: string, label: 'Live PayPal plan ID' }
+    billing_interval: { type: string, label: 'Expected recurring billing interval' }
     course_class_map:
       type: sequence
       label: 'Course/Class targets'
