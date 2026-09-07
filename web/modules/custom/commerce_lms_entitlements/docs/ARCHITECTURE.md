@@ -252,6 +252,11 @@ After a successful anonymous claim, the learner is logged into the claimed
 account and redirected to `/courses`, where the newly granted access is
 immediately usable. An already authenticated matching learner is redirected
 without starting a new session.
+If a purchaser or another user opens the invitation while authenticated, the
+claim form compares that account's email address with the invitation before
+showing a submit button. A mismatch instead provides a logout link whose
+destination returns to the same signed invitation, allowing the intended
+learner to create or claim the account without losing the token.
 `revoke()` is the inverse, including the cross-entitlement support check.
 
 ## Webhook contract
