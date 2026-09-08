@@ -6,7 +6,6 @@ namespace Drupal\commerce_lms_entitlements\Plugin\QueueWorker;
 
 use Drupal\commerce_lms_entitlements\EntitlementManager;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Queue\RequeueException;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -19,11 +18,21 @@ final class PayPalWebhookWorker extends QueueWorkerBase implements ContainerFact
   public function processItem($data): void {
     $event = $this->manager->event($data['event_id']); if (!$event || $event['status'] === 'processed') { return; }
     try {
-      $entitlement = $this->manager->loadByPayPalSubscription((string) $event['paypal_subscription_id']);
+      // Re-extract the subscription ID from the saved payload so events
+      // accepted by an older module version are repaired as they run.
+      $subscription_id = $this->manager->resolveEventSubscriptionId($event);
+      if ($subscription_id === '') {
+        throw new \UnexpectedValueException(sprintf('PayPal event %s does not identify a subscription.', $event['event_id']));
+      }
+      $entitlement = $this->manager->loadByPayPalSubscription($subscription_id);
       if (!$entitlement) {
         // PayPal can notify us before contributed checkout code stores its
-        // subscription ID on the order. Keep the verified event for retry.
-        throw new RequeueException('Subscription has not yet been linked to an entitlement.');
+        // subscription ID on the order. Keep the verified event pending in
+        // our event table. linkPayPalSubscriptionFromOrder() will enqueue it
+        // again after the order and entitlement have been linked. Immediately
+        // requeuing here makes queue runners reclaim the same item in a tight
+        // loop until the command times out.
+        return;
       }
       $order = \Drupal::entityTypeManager()->getStorage('commerce_order')->load($entitlement['order_id']); $gateway_id = $order->get('payment_gateway')->target_id ?? NULL;
       $gateway = $gateway_id ? \Drupal::entityTypeManager()->getStorage('commerce_payment_gateway')->load($gateway_id) : NULL;
@@ -32,7 +41,6 @@ final class PayPalWebhookWorker extends QueueWorkerBase implements ContainerFact
       $this->manager->applyRemoteSubscription($entitlement, json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR));
       $this->manager->markEvent($event['event_id'], 'processed');
     }
-    catch (RequeueException $e) { throw $e; }
     catch (\Throwable $e) { $this->manager->markEvent($event['event_id'], 'failed'); throw $e; }
   }
 }

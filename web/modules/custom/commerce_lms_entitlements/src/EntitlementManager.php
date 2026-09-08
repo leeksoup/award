@@ -136,14 +136,60 @@ final class EntitlementManager {
   public function queueEvent(array $event): bool {
     $event_id = (string) ($event['id'] ?? '');
     if ($event_id === '') { throw new \InvalidArgumentException('PayPal event is missing its ID.'); }
-    $resource = $event['resource'] ?? []; $subscription_id = (string) ($resource['id'] ?? ''); $now = $this->time->getRequestTime();
+    $subscription_id = $this->extractPayPalSubscriptionId($event);
+    $now = $this->time->getRequestTime();
     try { $this->database->insert('commerce_lms_entitlement_event')->fields(['event_id' => $event_id, 'paypal_subscription_id' => $subscription_id ?: NULL, 'event_type' => (string) ($event['event_type'] ?? ''), 'payload' => json_encode($event, JSON_THROW_ON_ERROR), 'created' => $now, 'changed' => $now])->execute(); }
     catch (\Exception) { return FALSE; }
     $this->queue->get('commerce_lms_entitlements_webhook')->createItem(['event_id' => $event_id]);
     return TRUE;
   }
   public function event(string $event_id): ?array { $row = $this->database->select('commerce_lms_entitlement_event', 'e')->fields('e')->condition('event_id', $event_id)->execute()->fetchAssoc(); return $row ?: NULL; }
+
+  /**
+   * Resolves and, when necessary, repairs an event's PayPal subscription ID.
+   *
+   * This also makes already-persisted payment events compatible with the
+   * corrected extraction rules. Earlier module versions stored the payment
+   * transaction's resource ID instead of its parent billing-agreement ID.
+   */
+  public function resolveEventSubscriptionId(array $stored_event): string {
+    $subscription_id = (string) ($stored_event['paypal_subscription_id'] ?? '');
+    try {
+      $payload = json_decode((string) ($stored_event['payload'] ?? ''), TRUE, 512, JSON_THROW_ON_ERROR);
+      if (is_array($payload)) {
+        $extracted_id = $this->extractPayPalSubscriptionId($payload);
+        if ($extracted_id !== '' && $extracted_id !== $subscription_id) {
+          $subscription_id = $extracted_id;
+          $this->database->update('commerce_lms_entitlement_event')
+            ->fields([
+              'paypal_subscription_id' => $subscription_id,
+              'changed' => $this->time->getRequestTime(),
+            ])
+            ->condition('event_id', $stored_event['event_id'])
+            ->execute();
+        }
+      }
+    }
+    catch (\JsonException) {
+      // The worker will report the missing ID or invalid payload when it
+      // attempts to process the event. Do not hide the original failure.
+    }
+    return $subscription_id;
+  }
+
   public function markEvent(string $event_id, string $status): void { $this->database->update('commerce_lms_entitlement_event')->fields(['status' => $status, 'changed' => $this->time->getRequestTime()])->condition('event_id', $event_id)->execute(); }
+
+  /** Extracts a subscription ID from supported PayPal webhook shapes. */
+  private function extractPayPalSubscriptionId(array $event): string {
+    $resource = is_array($event['resource'] ?? NULL) ? $event['resource'] : [];
+    $event_type = (string) ($event['event_type'] ?? '');
+    // Subscription lifecycle resources use their own ID. Payment-sale
+    // resources use a transaction ID as `id` and expose the parent
+    // subscription as `billing_agreement_id`.
+    return str_starts_with($event_type, 'BILLING.SUBSCRIPTION.')
+      ? (string) ($resource['id'] ?? '')
+      : (string) ($resource['billing_agreement_id'] ?? $resource['subscription_id'] ?? '');
+  }
 
   /**
    * Applies authoritative PayPal detail to local status and Group access.

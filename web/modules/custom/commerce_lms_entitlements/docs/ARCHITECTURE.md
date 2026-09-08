@@ -289,6 +289,19 @@ payment-gateway entity before invoking the controller. Without that route
 parameter conversion, PHP rejects the string argument before signature
 verification and PayPal receives an HTTP 500 response.
 
+Lifecycle webhook resources use their own resource ID as the subscription ID.
+Payment-sale resources instead identify the subscription in
+`billing_agreement_id`; their resource ID is the payment transaction and must
+not be used for entitlement lookup. The worker re-extracts this value from the
+saved payload, allowing it to repair events accepted by older module versions.
+
+If PayPal delivers a verified lifecycle event before contributed checkout code
+has copied the subscription ID to the entitlement, the worker leaves the event
+in the module's event table with status `queued` and finishes its queue item.
+The order-link hook enqueues the saved event after the link exists. It must not
+immediately release the queue item, because a CLI queue runner can reclaim the
+same item repeatedly until the command times out.
+
 ## Purchaser cancellation and guarantee details
 
 The cancellation form first checks the row belongs to the current purchaser;
