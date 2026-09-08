@@ -259,6 +259,14 @@ claim form compares that account's email address with the invitation before
 showing a submit button. A mismatch instead provides a logout link whose
 destination returns to the same signed invitation, allowing the intended
 learner to create or claim the account without losing the token.
+
+Purchaser ownership can be established after the pending entitlement is first
+created. A later Commerce order update synchronizes its non-anonymous customer
+ID into `purchaser_uid`. If an anonymous self-purchaser instead creates the
+account through an invitation whose email matches the Commerce order email,
+the verified claim binds both the order customer and the entitlement purchaser
+to that account while also assigning it as learner. A different learner email
+never changes purchaser ownership.
 `revoke()` is the inverse, including the cross-entitlement support check.
 
 ## Webhook contract

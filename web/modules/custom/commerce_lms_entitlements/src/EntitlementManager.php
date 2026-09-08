@@ -78,8 +78,25 @@ final class EntitlementManager {
    */
   public function linkPayPalSubscriptionFromOrder(object $order): void {
     $id = $order->getData('paypal_subscription_id');
-    if (!is_string($id) || $id === '' || !($entitlement = $this->loadByOrder((int) $order->id()))) { return; }
-    $this->update((int) $entitlement['eid'], ['paypal_subscription_id' => $id]);
+    $entitlement = $this->loadByOrder((int) $order->id());
+    if (!$entitlement) {
+      return;
+    }
+
+    $values = [];
+    if (is_string($id) && $id !== '' && $id !== $entitlement['paypal_subscription_id']) {
+      $values['paypal_subscription_id'] = $id;
+    }
+    $purchaser_uid = (int) $order->getCustomerId();
+    if ($purchaser_uid > 0 && $purchaser_uid !== (int) $entitlement['purchaser_uid']) {
+      $values['purchaser_uid'] = $purchaser_uid;
+    }
+    if ($values) {
+      $this->update((int) $entitlement['eid'], $values);
+    }
+    if (!is_string($id) || $id === '') {
+      return;
+    }
     // A webhook can legitimately arrive between buyer approval and this order
     // update. Requeue those persisted events now that they can be associated.
     foreach ($this->database->select('commerce_lms_entitlement_event', 'e')->fields('e', ['event_id'])->condition('paypal_subscription_id', $id)->condition('status', ['queued', 'failed'], 'IN')->execute()->fetchCol() as $event_id) {
@@ -241,7 +258,23 @@ final class EntitlementManager {
         ->execute()
         ->fetchCol();
       foreach ($entitlement_ids as $eid) {
-        $this->update((int) $eid, ['learner_uid' => $uid]);
+        $entitlement = $this->load((int) $eid);
+        $values = ['learner_uid' => $uid];
+        $order = $entitlement
+          ? $this->entityTypeManager->getStorage('commerce_order')->load($entitlement['order_id'])
+          : NULL;
+        $order_email = $order ? mb_strtolower((string) $order->getEmail()) : '';
+        if ($entitlement && (int) $entitlement['purchaser_uid'] === 0 && $order_email === $invite['email']) {
+          // A self-purchaser can create the account through the invitation
+          // after checking out anonymously. In that case the verified invite
+          // email is also sufficient to establish purchaser ownership.
+          $values['purchaser_uid'] = $uid;
+          if ((int) $order->getCustomerId() === 0) {
+            $order->setCustomerId($uid);
+            $order->save();
+          }
+        }
+        $this->update((int) $eid, $values);
         $entitlement = $this->load((int) $eid);
         if ($entitlement['status'] === 'active') {
           $this->grant($entitlement);
