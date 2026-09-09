@@ -10,7 +10,8 @@ declare(strict_types=1);
  *   drush php:script scripts/import_lms_checklist_activities.php
  *
  * Usage (apply changes):
- *   drush php:script scripts/import_lms_checklist_activities.php -- --apply
+ *   drush php:script scripts/import_lms_checklist_activities.php \
+ *     -- --apply --revision-uid=123
  *
  * To import an export made on another environment, allow differing activity
  * revision IDs explicitly:
@@ -22,12 +23,25 @@ declare(strict_types=1);
  *     drush php:script scripts/import_lms_checklist_activities.php -- --apply
  *
  * The importer changes only the activity name and field_checklist_body. It
- * validates all records before saving any entity.
+ * validates all records before saving any entity. Applying requires a
+ * non-anonymous revision author; it does not change the activity owner.
  */
 
 $input_path = getenv('CHECKLIST_IMPORT_PATH') ?: '/tmp/lms-checklist-activities.json';
-$apply = in_array('--apply', $_SERVER['argv'] ?? [], TRUE);
-$allow_revision_mismatch = in_array('--allow-revision-mismatch', $_SERVER['argv'] ?? [], TRUE);
+$arguments = $_SERVER['argv'] ?? [];
+$apply = in_array('--apply', $arguments, TRUE);
+$allow_revision_mismatch = in_array('--allow-revision-mismatch', $arguments, TRUE);
+$revision_uid = NULL;
+
+foreach ($arguments as $argument) {
+  if (str_starts_with($argument, '--revision-uid=')) {
+    $revision_uid = substr($argument, strlen('--revision-uid='));
+  }
+}
+
+if ($apply && (!is_string($revision_uid) || !ctype_digit($revision_uid) || (int) $revision_uid < 1)) {
+  throw new \RuntimeException('Applying requires --revision-uid=USER_ID, using a non-anonymous user ID.');
+}
 
 if (!is_readable($input_path)) {
   throw new \RuntimeException(sprintf('Import file is not readable: %s', $input_path));
@@ -43,6 +57,16 @@ if (!is_array($payload)
 }
 
 $activity_storage = \Drupal::entityTypeManager()->getStorage('lms_activity');
+$revision_author = NULL;
+if ($apply) {
+  $revision_author = \Drupal::entityTypeManager()
+    ->getStorage('user')
+    ->load((int) $revision_uid);
+  if ($revision_author === NULL) {
+    throw new \RuntimeException(sprintf('Revision author user %d does not exist.', (int) $revision_uid));
+  }
+}
+
 $errors = [];
 $prepared = [];
 $unchanged = 0;
@@ -177,6 +201,12 @@ if (!$apply) {
   return;
 }
 
+printf(
+  "Applying new revisions as user %d (%s). Activity ownership will not change.\n",
+  (int) $revision_uid,
+  $revision_author->label(),
+);
+
 foreach ($prepared as $item) {
   /** @var \Drupal\Core\Entity\ContentEntityInterface $activity */
   $activity = $item['activity'];
@@ -187,9 +217,9 @@ foreach ($prepared as $item) {
   // and make the import traceable in the entity's revision history.
   if ($activity instanceof \Drupal\Core\Entity\RevisionableInterface) {
     $activity->setNewRevision(TRUE);
-    $activity->isDefaultRevision(TRUE);
   }
   if ($activity instanceof \Drupal\Core\Entity\RevisionLogInterface) {
+    $activity->setRevisionUserId((int) $revision_uid);
     $activity->setRevisionLogMessage(sprintf(
       'Checklist batch import from %s.',
       basename($input_path),
