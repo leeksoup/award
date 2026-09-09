@@ -1,0 +1,6 @@
+lms_course_discussions.create_discussion:
+  route_name: entity.group_relationship.group_node_create_page
+  title: 'Start a discussion'
+  appears_on:
+    - view.course_discussions.page
+  class: Drupal\group\Plugin\Menu\LocalAction\WithDestination

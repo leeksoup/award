@@ -1,0 +1,51 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for LMS Course Discussions.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_install().
+ */
+function lms_course_discussions_install(): void {
+  _lms_course_discussions_grant_learner_creation_permissions();
+}
+
+/**
+ * Grants course learners permission to start a discussion in their course.
+ */
+function _lms_course_discussions_grant_learner_creation_permissions(): void {
+  $role_storage = \Drupal::entityTypeManager()->getStorage('group_role');
+  $roles = $role_storage->loadByProperties([
+    'group_type' => 'lms_course',
+  ]);
+
+  $permissions = [
+    'create group_node:discussion relationship',
+    'create group_node:discussion entity',
+  ];
+
+  foreach ($roles as $role) {
+    if (
+      $role->getGlobalRoleId() === 'anonymous'
+      || !$role->hasPermission('take course')
+    ) {
+      continue;
+    }
+
+    $changed = FALSE;
+    foreach ($permissions as $permission) {
+      if (!$role->hasPermission($permission)) {
+        $role->grantPermission($permission);
+        $changed = TRUE;
+      }
+    }
+
+    if ($changed) {
+      $role->save();
+    }
+  }
+}

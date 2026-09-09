@@ -1,0 +1,11 @@
+lms_course_discussions.course_start:
+  route_name: view.course_discussions.page
+  title: Discussions
+  base_route: lms.course.start
+  weight: 20
+
+lms_course_discussions.course_activity:
+  route_name: view.course_discussions.page
+  title: Discussions
+  base_route: lms.group.answer_form
+  weight: 20
