@@ -12,3 +12,5 @@ dependencies:
   - commerce_paypal_subscriptions:commerce_paypal_subscriptions
   - group:group
   - lms:lms_classes
+  - recurring_events:recurring_events
+  - recurring_events:recurring_events_registration

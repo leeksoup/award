@@ -6,3 +6,10 @@ view own commerce lms entitlements:
   title: 'View own Commerce LMS entitlements'
 cancel own commerce lms entitlements:
   title: 'Cancel own Commerce LMS subscriptions'
+change own commerce lms tier:
+  title: 'Change VIP tier on own Commerce LMS subscriptions'
+book own vip sessions:
+  title: 'Book own VIP live sessions'
+administer vip sessions:
+  title: 'Administer VIP live sessions and settings'
+  restrict access: true

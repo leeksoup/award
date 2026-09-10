@@ -28,6 +28,8 @@ solution; custom card fields are not a subscription checkout path.
 For a full code and operational guide, read
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). It documents every source file,
 table, lifecycle state, route, queue, and PayPal/Group integration boundary.
+The VIP checkout, PayPal tier-change, and session-booking workflow is documented
+separately in [`docs/VIP.md`](docs/VIP.md).
 
 ## Offer model
 
@@ -47,6 +49,9 @@ access. Create an LMS offer for each variation at
 - At checkout, the module filters Commerce's available gateways to that sole
   configured gateway. It never falls back from a recurring offer to one-time
   PayPal Checkout.
+- A recurring offer can additionally map base-plus-VIP plans for sandbox and
+  live. The VIP checkbox adds a labeled recurring adjustment while retaining
+  one order item, one PayPal approval, and one PayPal subscription.
 
 The module validates that every selected Class is an existing `lms_class` child
 of its configured `lms_course`. It does not require a Course to have only one
@@ -109,12 +114,29 @@ webhook mirror; the subscription webhook pipeline continues to accept customer
 subscription lifecycle events only. Drupal cron also queues the same live-plan
 audit and logs discrepancies without delaying the cron request.
 
+## VIP live sessions
+
+VIP uses Recurring Events 3.x for event series, instances, registrants, and
+capacity. Configure the protected LMS hub, eligible instance-registration
+series, shared meeting URL, and booking cutoff at
+`/admin/commerce/config/lms-vip`. Learners with an active VIP entitlement book
+at `/vip-sessions`; the module enforces one booking per site-timezone calendar
+month and disables selection when contrib reports no remaining capacity.
+
+Existing subscribers can add or remove VIP from `/my-lms-subscriptions`.
+Drupal asks PayPal to revise the existing subscription and sends the purchaser
+through PayPal re-consent. No second subscription is created. The tier remains
+unchanged until a successful payment at the next billing boundary, so the
+workflow deliberately performs no proration.
+
 ## Staging checks
 
-Test monthly/quarterly/annual plan selection, sandbox/live environment
+Test monthly/quarterly/annual base and VIP plan selection, sandbox/live environment
 selection, live plan discovery and mismatch validation, lifetime PayPal
 payment, invitation claim, multi-Class Course target validation, valid/invalid
 and duplicate webhooks, cancellation timing, failed payment/recovery, and
-Group `view`/`take` access.
+Group `view`/`take` access. Also test PayPal revision approval/abandonment,
+renewal-boundary tier activation, monthly booking quota, cutoff, capacity,
+booking changes, and mail delivery.
 This repository has no bootstrapped Commerce site, so those checks are not yet
 run here.

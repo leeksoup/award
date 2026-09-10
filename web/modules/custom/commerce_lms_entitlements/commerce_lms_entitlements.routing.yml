@@ -35,6 +35,54 @@ commerce_lms_entitlements.cancel:
     _permission: 'cancel own commerce lms entitlements'
     eid: '\d+'
 
+commerce_lms_entitlements.change_tier:
+  path: '/my-lms-subscriptions/{eid}/change-tier'
+  defaults:
+    _form: '\Drupal\commerce_lms_entitlements\Form\ChangeTierForm'
+    _title: 'Change VIP tier'
+  requirements:
+    _permission: 'change own commerce lms tier'
+    eid: '\d+'
+
+commerce_lms_entitlements.plan_change_return:
+  path: '/commerce-lms-entitlements/paypal/revision/{token}/complete'
+  defaults:
+    _controller: '\Drupal\commerce_lms_entitlements\Controller\PlanChangeController::complete'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+commerce_lms_entitlements.plan_change_cancel:
+  path: '/commerce-lms-entitlements/paypal/revision/{token}/cancel'
+  defaults:
+    _controller: '\Drupal\commerce_lms_entitlements\Controller\PlanChangeController::cancel'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+commerce_lms_entitlements.vip_sessions:
+  path: '/vip-sessions'
+  defaults:
+    _controller: '\Drupal\commerce_lms_entitlements\Controller\VipSessionController::page'
+    _title: 'VIP live sessions'
+  requirements:
+    _permission: 'book own vip sessions'
+
+commerce_lms_entitlements.vip_booking_cancel:
+  path: '/vip-sessions/{month}/cancel'
+  defaults:
+    _form: '\Drupal\commerce_lms_entitlements\Form\VipBookingCancelForm'
+    _title: 'Cancel VIP session'
+  requirements:
+    _permission: 'book own vip sessions'
+    month: '\d{4}-\d{2}'
+
+commerce_lms_entitlements.vip_settings:
+  path: '/admin/commerce/config/lms-vip'
+  defaults:
+    _form: '\Drupal\commerce_lms_entitlements\Form\VipSettingsForm'
+    _title: 'LMS VIP settings'
+  requirements:
+    _permission: 'administer vip sessions'
+
 commerce_lms_entitlements.admin:
   path: '/admin/commerce/lms-entitlements'
   defaults:

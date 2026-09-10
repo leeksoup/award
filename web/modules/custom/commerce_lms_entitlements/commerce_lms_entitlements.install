@@ -23,6 +23,9 @@ function commerce_lms_entitlements_schema(): array {
       'order_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
       'payment_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
       'paypal_subscription_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'paypal_plan_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'vip_selected' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
+      'vip_active' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
       'initial_capture_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
       'refund_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
       'status' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'pending'],
@@ -44,11 +47,12 @@ function commerce_lms_entitlements_schema(): array {
       'class_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
       'uid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
       'membership_created' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
+      'benefit' => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE, 'default' => 'base'],
       'active' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1],
       'created' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
     ],
     'primary key' => ['id'],
-    'unique keys' => ['entitlement_class' => ['eid', 'class_id']],
+    'unique keys' => ['entitlement_class_benefit' => ['eid', 'class_id', 'benefit']],
     'indexes' => ['class_user_active' => ['class_id', 'uid', 'active']],
   ];
   $schema['commerce_lms_entitlement_event'] = [
@@ -77,6 +81,40 @@ function commerce_lms_entitlements_schema(): array {
     ],
     'primary key' => ['id'],
     'unique keys' => ['token_hash' => ['token_hash']],
+  ];
+  $schema['commerce_lms_plan_change'] = [
+    'description' => 'Auditable PayPal subscription tier revisions.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'eid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'from_tier' => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE],
+      'to_tier' => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE],
+      'from_plan_id' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'target_plan_id' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'state_hash' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'status' => ['type' => 'varchar', 'length' => 24, 'not null' => TRUE, 'default' => 'approval_pending'],
+      'requested' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'effective' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
+      'changed' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'error' => ['type' => 'text', 'size' => 'normal', 'not null' => FALSE],
+    ],
+    'primary key' => ['id'],
+    'indexes' => ['entitlement_status' => ['eid', 'status']],
+  ];
+  $schema['commerce_lms_vip_booking'] = [
+    'description' => 'Active one-per-month VIP registrant reservations.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'uid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'month_key' => ['type' => 'varchar', 'length' => 7, 'not null' => TRUE],
+      'eventinstance_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'registrant_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'created' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'changed' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['learner_month' => ['uid', 'month_key'], 'registrant' => ['registrant_id']],
+    'indexes' => ['eventinstance' => ['eventinstance_id']],
   ];
   return $schema;
 }
@@ -124,4 +162,68 @@ function commerce_lms_entitlements_update_10011(): string {
   return (string) t('Expanded @count recurring LMS offers into environment-specific PayPal mappings.', [
     '@count' => $updated,
   ]);
+}
+
+/**
+ * Adds VIP subscription tiers, plan-change audit, and booking ownership.
+ */
+function commerce_lms_entitlements_update_10012(): string {
+  $schema = \Drupal::database()->schema();
+  $definition = commerce_lms_entitlements_schema();
+  foreach (['paypal_plan_id', 'vip_selected', 'vip_active'] as $field) {
+    if (!$schema->fieldExists('commerce_lms_entitlement', $field)) {
+      $schema->addField('commerce_lms_entitlement', $field, $definition['commerce_lms_entitlement']['fields'][$field]);
+    }
+  }
+  if (!$schema->fieldExists('commerce_lms_entitlement_membership', 'benefit')) {
+    $schema->addField('commerce_lms_entitlement_membership', 'benefit', $definition['commerce_lms_entitlement_membership']['fields']['benefit']);
+  }
+  if ($schema->indexExists('commerce_lms_entitlement_membership', 'entitlement_class')) {
+    $schema->dropUniqueKey('commerce_lms_entitlement_membership', 'entitlement_class');
+  }
+  if (!$schema->indexExists('commerce_lms_entitlement_membership', 'entitlement_class_benefit')) {
+    $schema->addUniqueKey('commerce_lms_entitlement_membership', 'entitlement_class_benefit', ['eid', 'class_id', 'benefit']);
+  }
+  foreach (['commerce_lms_plan_change', 'commerce_lms_vip_booking'] as $table) {
+    if (!$schema->tableExists($table)) {
+      $schema->createTable($table, $definition[$table]);
+    }
+  }
+
+  $vip_config = \Drupal::configFactory()->getEditable('commerce_lms_entitlements.vip');
+  if ($vip_config->get('hub_course_id') === NULL) {
+    $vip_config
+      ->set('hub_course_id', 0)
+      ->set('hub_class_id', 0)
+      ->set('event_series_ids', [])
+      ->set('meeting_url', '')
+      ->set('change_cutoff_hours', 24)
+      ->save();
+  }
+
+  $database = \Drupal::database();
+  $offer_storage = \Drupal::entityTypeManager()->getStorage('commerce_lms_offer');
+  $order_storage = \Drupal::entityTypeManager()->getStorage('commerce_order');
+  foreach ($database->select('commerce_lms_entitlement', 'e')->fields('e', ['eid', 'offer_id', 'order_id'])->execute() as $row) {
+    $offer = $offer_storage->load($row->offer_id);
+    if ($offer && $offer->getPurchaseType() === 'recurring') {
+      $order = $order_storage->load($row->order_id);
+      $gateway_id = (string) ($order?->get('payment_gateway')->target_id ?? '');
+      if ($gateway_id !== '' && $gateway_id === $offer->getPayPalSandboxGatewayId()) {
+        $plan_id = $offer->getPayPalSandboxPlanId();
+      }
+      elseif ($gateway_id !== '' && $gateway_id === $offer->getPayPalLiveGatewayId()) {
+        $plan_id = $offer->getPayPalLivePlanId();
+      }
+      else {
+        $plan_id = $offer->getActivePayPalPlanId();
+      }
+      $database->update('commerce_lms_entitlement')
+        ->fields(['paypal_plan_id' => $plan_id])
+        ->condition('eid', $row->eid)
+        ->isNull('paypal_plan_id')
+        ->execute();
+    }
+  }
+  return (string) t('Added VIP plan, access, revision, and booking storage.');
 }

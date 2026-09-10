@@ -7,6 +7,7 @@ namespace Drupal\commerce_lms_entitlements;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\commerce_price\Calculator;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Psr\Log\LoggerInterface;
@@ -24,7 +25,7 @@ use Psr\Log\LoggerInterface;
  * See docs/ARCHITECTURE.md for the table layout and lifecycle diagrams.
  */
 final class EntitlementManager {
-  public function __construct(private Connection $database, private EntityTypeManagerInterface $entityTypeManager, private QueueFactory $queue, private TimeInterface $time, private LoggerInterface $logger, private object $sdkFactory) {}
+  public function __construct(private Connection $database, private EntityTypeManagerInterface $entityTypeManager, private ConfigFactoryInterface $configFactory, private QueueFactory $queue, private TimeInterface $time, private LoggerInterface $logger, private object $sdkFactory) {}
 
   /**
    * Resolves and validates the one offer permitted for an LMS checkout order.
@@ -52,14 +53,29 @@ final class EntitlementManager {
    * row rather than granting a second bundle or creating a second audit trail.
    */
   public function ensureEntitlement(object $order, object $offer): array {
-    if ($existing = $this->loadByOrder((int) $order->id())) { return $existing; }
+    $vip_selected = $offer->getPurchaseType() === 'recurring' && $offer->isVipEnabled() && (bool) $order->getData('commerce_lms_vip_selected');
+    $plan_id = $offer->getPurchaseType() === 'recurring' ? ($vip_selected ? $offer->getActivePayPalVipPlanId() : $offer->getActivePayPalPlanId()) : NULL;
+    if ($existing = $this->loadByOrder((int) $order->id())) {
+      // A checkout rebuild may change the bump before PayPal approval. It is
+      // safe to refresh only a still-unlinked pending row; billing-linked rows
+      // can change tier only through the revision workflow.
+      if ($existing['status'] === 'pending' && empty($existing['paypal_subscription_id'])) {
+        $this->update((int) $existing['eid'], ['paypal_plan_id' => $plan_id, 'vip_selected' => $vip_selected ? 1 : 0]);
+        return $this->load((int) $existing['eid']);
+      }
+      return $existing;
+    }
     $learner = $order->getData('commerce_lms_learner') ?: [];
     if (empty($learner['uid']) && empty($learner['invitation_id'])) { throw new \DomainException('A learner must be selected before payment approval.'); }
     $now = $this->time->getRequestTime();
     $this->database->insert('commerce_lms_entitlement')->fields([
       'offer_id' => $offer->id(), 'purchase_type' => $offer->getPurchaseType(), 'purchaser_uid' => (int) $order->getCustomerId(),
       'learner_uid' => !empty($learner['uid']) ? (int) $learner['uid'] : NULL, 'invitation_id' => $learner['invitation_id'] ?? NULL,
-      'order_id' => (int) $order->id(), 'status' => 'pending', 'created' => $now, 'changed' => $now,
+      'order_id' => (int) $order->id(), 'status' => 'pending',
+      'paypal_plan_id' => $plan_id,
+      'vip_selected' => $vip_selected ? 1 : 0,
+      'vip_active' => 0,
+      'created' => $now, 'changed' => $now,
     ])->execute();
     return $this->loadByOrder((int) $order->id());
   }
@@ -203,10 +219,32 @@ final class EntitlementManager {
     $local = ['ACTIVE' => 'active', 'SUSPENDED' => 'suspended', 'CANCELLED' => 'cancelled', 'EXPIRED' => 'expired'][$status] ?? 'pending';
     $through = !empty($remote['billing_info']['next_billing_time']) ? strtotime($remote['billing_info']['next_billing_time']) ?: NULL : NULL;
     $values = ['status' => $local, 'access_through' => $through];
+    $remote_plan_id = (string) ($remote['plan_id'] ?? '');
+    $pending_change = $this->pendingPlanChange((int) $entitlement['eid']);
+    if ($pending_change && $pending_change['status'] === 'approval_pending' && $remote_plan_id === (string) $pending_change['target_plan_id']) {
+      $this->database->update('commerce_lms_plan_change')
+        ->fields(['status' => 'approved', 'changed' => $this->time->getRequestTime()])
+        ->condition('id', $pending_change['id'])
+        ->execute();
+    }
+    if ($remote_plan_id !== '') {
+      $values['paypal_plan_id'] = $remote_plan_id;
+    }
+    $offer = $this->entityTypeManager->getStorage('commerce_lms_offer')->load($entitlement['offer_id']);
+    if ($offer && $remote_plan_id !== '' && $remote_plan_id === $this->vipPlanForEntitlement($entitlement, $offer)) {
+      $values['vip_selected'] = 1;
+      // Initial VIP subscriptions activate immediately. Revised upgrades are
+      // finalized separately only after their first VIP-priced payment.
+      if (!$this->pendingPlanChange((int) $entitlement['eid'])) {
+        $values['vip_active'] = 1;
+      }
+    }
     if ($local === 'active' && empty($entitlement['activated'])) { $values['activated'] = $this->time->getRequestTime(); }
     $capture = $remote['billing_info']['last_payment']['transaction_id'] ?? NULL;
     if ($capture && empty($entitlement['initial_capture_id'])) { $values['initial_capture_id'] = $capture; }
-    $this->update((int) $entitlement['eid'], $values); $current = $this->load((int) $entitlement['eid']);
+    $this->update((int) $entitlement['eid'], $values);
+    $this->finalizeDuePlanChange((int) $entitlement['eid'], $remote);
+    $current = $this->load((int) $entitlement['eid']);
     if ($local === 'active') { $this->grant($current); }
     elseif (in_array($local, ['suspended', 'expired'], TRUE) || ($local === 'cancelled' && (!$through || $through <= $this->time->getRequestTime()))) { $this->revoke($current); }
   }
@@ -239,6 +277,59 @@ final class EntitlementManager {
         $this->logger->error('Reconciliation failed for entitlement @eid: @message', ['@eid' => $id, '@message' => $e->getMessage()]);
       }
     }
+  }
+
+  /** Returns an unresolved PayPal plan revision for an entitlement. */
+  public function pendingPlanChange(int $eid): ?array {
+    $row = $this->database->select('commerce_lms_plan_change', 'p')
+      ->fields('p')
+      ->condition('eid', $eid)
+      ->condition('status', ['approval_pending', 'approved'], 'IN')
+      ->orderBy('id', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+    return $row ?: NULL;
+  }
+
+  /** Applies an approved tier at its first successfully paid billing boundary. */
+  private function finalizeDuePlanChange(int $eid, array $remote): void {
+    $change = $this->pendingPlanChange($eid);
+    if (!$change || $change['status'] !== 'approved' || empty($change['effective'])) {
+      return;
+    }
+    $last_payment = !empty($remote['billing_info']['last_payment']['time'])
+      ? strtotime((string) $remote['billing_info']['last_payment']['time'])
+      : FALSE;
+    if (!$last_payment || $last_payment < (int) $change['effective']) {
+      return;
+    }
+    $vip = $change['to_tier'] === 'vip';
+    $this->update($eid, [
+      'paypal_plan_id' => $change['target_plan_id'],
+      'vip_selected' => $vip ? 1 : 0,
+      'vip_active' => $vip ? 1 : 0,
+    ]);
+    $this->database->update('commerce_lms_plan_change')
+      ->fields(['status' => 'effective', 'changed' => $this->time->getRequestTime()])
+      ->condition('id', $change['id'])
+      ->execute();
+    if (!$vip && ($entitlement = $this->load($eid))) {
+      $this->revokeBenefit($entitlement, 'vip');
+    }
+  }
+
+  /** Resolves the VIP plan from the subscription's original gateway. */
+  private function vipPlanForEntitlement(array $entitlement, object $offer): string {
+    $order = $this->entityTypeManager->getStorage('commerce_order')->load($entitlement['order_id']);
+    $gateway_id = (string) ($order?->get('payment_gateway')->target_id ?? '');
+    if ($gateway_id !== '' && $gateway_id === $offer->getPayPalSandboxGatewayId()) {
+      return $offer->getPayPalSandboxVipPlanId();
+    }
+    if ($gateway_id !== '' && $gateway_id === $offer->getPayPalLiveGatewayId()) {
+      return $offer->getPayPalLiveVipPlanId();
+    }
+    return '';
   }
 
   /** Immediately removes only memberships that this entitlement created. */
@@ -374,12 +465,37 @@ final class EntitlementManager {
   private function grant(array $entitlement): void {
     if (empty($entitlement['learner_uid'])) { return; }
     $offer = $this->entityTypeManager->getStorage('commerce_lms_offer')->load($entitlement['offer_id']); if (!$offer) { throw new \RuntimeException('Missing offer ' . $entitlement['offer_id']); }
-    $this->validateTargets($offer); $account = $this->entityTypeManager->getStorage('user')->load($entitlement['learner_uid']);
-    foreach ($offer->getCourseClassMap() as $target) {
+    $this->validateTargets($offer);
+    $account = $this->entityTypeManager->getStorage('user')->load($entitlement['learner_uid']);
+    if (!$account) {
+      throw new \RuntimeException('Missing learner account ' . $entitlement['learner_uid']);
+    }
+    $this->grantTargets($entitlement, $account, $offer->getCourseClassMap(), 'base');
+    if (!empty($entitlement['vip_active'])) {
+      $this->grantTargets($entitlement, $account, [$this->vipTarget()], 'vip');
+    }
+  }
+
+  /** Grants one named benefit without conflating its membership ownership. */
+  private function grantTargets(array $entitlement, object $account, array $targets, string $benefit): void {
+    foreach ($targets as $target) {
       $class = $this->entityTypeManager->getStorage('group')->load((int) $target['class_id']); $membership = $class->getMember($account);
-      $this->database->merge('commerce_lms_entitlement_membership')->key(['eid' => $entitlement['eid'], 'class_id' => $class->id()])->fields(['uid' => $account->id(), 'membership_created' => $membership ? 0 : 1, 'active' => 1, 'created' => $this->time->getRequestTime()])->execute();
+      $this->database->merge('commerce_lms_entitlement_membership')->key(['eid' => $entitlement['eid'], 'class_id' => $class->id(), 'benefit' => $benefit])->fields(['uid' => $account->id(), 'membership_created' => $membership ? 0 : 1, 'active' => 1, 'created' => $this->time->getRequestTime()])->execute();
       if (!$membership) { $class->addMember($account); }
     }
+  }
+
+  /** Resolves the single configured VIP LMS hub target. */
+  private function vipTarget(): array {
+    $config = $this->configFactory->get('commerce_lms_entitlements.vip');
+    $target = ['course_id' => (int) $config->get('hub_course_id'), 'class_id' => (int) $config->get('hub_class_id')];
+    $stub = new class($target) {
+      public function __construct(private array $target) {}
+      public function id(): string { return 'vip'; }
+      public function getCourseClassMap(): array { return [$this->target]; }
+    };
+    $this->validateTargets($stub);
+    return $target;
   }
   /**
    * Removes access supported solely by this entitlement, never manual access.
@@ -389,12 +505,36 @@ final class EntitlementManager {
    * retain the shared Class membership.
    */
   private function revoke(array $entitlement): void {
-    foreach ($this->database->select('commerce_lms_entitlement_membership', 'm')->fields('m')->condition('eid', $entitlement['eid'])->condition('active', 1)->execute()->fetchAll() as $membership) {
+    $this->revokeBenefit($entitlement);
+  }
+
+  /** Revokes all benefits, or only the selected benefit, idempotently. */
+  private function revokeBenefit(array $entitlement, ?string $benefit = NULL): void {
+    $query = $this->database->select('commerce_lms_entitlement_membership', 'm')->fields('m')->condition('eid', $entitlement['eid'])->condition('active', 1);
+    if ($benefit !== NULL) {
+      $query->condition('benefit', $benefit);
+    }
+    foreach ($query->execute()->fetchAll() as $membership) {
       $this->database->update('commerce_lms_entitlement_membership')->fields(['active' => 0])->condition('id', $membership->id)->execute();
       $other = $this->database->select('commerce_lms_entitlement_membership', 'm')->condition('class_id', $membership->class_id)->condition('uid', $membership->uid)->condition('active', 1)->countQuery()->execute()->fetchField();
-      if (!$membership->membership_created || $other) { continue; }
+      $module_created = $this->database->select('commerce_lms_entitlement_membership', 'm')->condition('class_id', $membership->class_id)->condition('uid', $membership->uid)->condition('membership_created', 1)->countQuery()->execute()->fetchField();
+      if (!$module_created || $other) { continue; }
       $class = $this->entityTypeManager->getStorage('group')->load($membership->class_id); $account = $this->entityTypeManager->getStorage('user')->load($membership->uid);
       if ($class && $account && $class->getMember($account)) { $class->removeMember($account); }
+    }
+    $other_vip = !empty($entitlement['learner_uid']) && (bool) $this->database->select('commerce_lms_entitlement', 'e')
+      ->condition('learner_uid', $entitlement['learner_uid'])
+      ->condition('eid', $entitlement['eid'], '<>')
+      ->condition('status', 'active')
+      ->condition('vip_active', 1)
+      ->countQuery()->execute()->fetchField();
+    if (($benefit === NULL || $benefit === 'vip') && !empty($entitlement['learner_uid']) && !$other_vip) {
+      $bookings = $this->database->select('commerce_lms_vip_booking', 'b')->fields('b')->condition('uid', $entitlement['learner_uid'])->execute()->fetchAll();
+      foreach ($bookings as $booking) {
+        $registrant = $this->entityTypeManager->getStorage('registrant')->load((int) $booking->registrant_id);
+        $registrant?->delete();
+      }
+      $this->database->delete('commerce_lms_vip_booking')->condition('uid', $entitlement['learner_uid'])->execute();
     }
   }
 }

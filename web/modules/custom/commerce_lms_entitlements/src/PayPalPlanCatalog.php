@@ -129,6 +129,57 @@ final class PayPalPlanCatalog {
       ]);
     }
 
+    if ($offer->isVipEnabled()) {
+      $vip_plan_id = $offer->getPayPalLiveVipPlanId();
+      if ($vip_plan_id === '') {
+        $errors[] = (string) $this->t('The live VIP-inclusive PayPal plan is not configured.');
+        return ['errors' => $errors, 'plan' => $plan];
+      }
+      try {
+        $vip_plan = $this->operations->fetchPlan($gateway, $vip_plan_id);
+      }
+      catch (\Throwable $e) {
+        $errors[] = (string) $this->t('The live VIP-inclusive PayPal plan could not be loaded: @message', ['@message' => $e->getMessage()]);
+        return ['errors' => $errors, 'plan' => $plan];
+      }
+      if (($vip_plan['status'] ?? '') !== 'ACTIVE') {
+        $errors[] = (string) $this->t('The live VIP-inclusive PayPal plan must be ACTIVE.');
+      }
+      if (($vip_plan['product_id'] ?? '') !== ($plan['product_id'] ?? '')) {
+        $errors[] = (string) $this->t('The base and VIP-inclusive PayPal plans must belong to the same product.');
+      }
+      if (!empty($vip_plan['quantity_supported'])) {
+        $errors[] = (string) $this->t('The live VIP-inclusive PayPal plan must not support variable quantities.');
+      }
+      $vip_regular_cycles = array_values(array_filter(
+        $vip_plan['billing_cycles'] ?? [],
+        static fn(array $item): bool => ($item['tenure_type'] ?? '') === 'REGULAR',
+      ));
+      if (count($vip_regular_cycles) !== 1) {
+        $errors[] = (string) $this->t('The live VIP-inclusive PayPal plan must contain exactly one regular billing cycle.');
+      }
+      else {
+        $vip_cycle = reset($vip_regular_cycles);
+        if (($vip_cycle['frequency'] ?? []) !== ($cycle['frequency'] ?? [])) {
+          $errors[] = (string) $this->t('The base and VIP-inclusive PayPal plans must have the same billing frequency.');
+        }
+        $vip_price = $vip_cycle['pricing_scheme']['fixed_price'] ?? [];
+        $expected_currency = $variation_price?->getCurrencyCode();
+        $expected_number = $variation_price
+          ? Calculator::add($variation_price->getNumber(), $offer->getVipSurchargeNumber())
+          : NULL;
+        if (!$expected_number || ($vip_price['currency_code'] ?? '') !== $expected_currency || Calculator::compare((string) ($vip_price['value'] ?? ''), $expected_number) !== 0) {
+          $errors[] = (string) $this->t('The live VIP plan price must equal the Commerce price plus the VIP surcharge (@amount @currency).', [
+            '@amount' => $expected_number ?? '?',
+            '@currency' => $expected_currency ?? '?',
+          ]);
+        }
+        if ($offer->getVipSurchargeCurrency() !== $expected_currency) {
+          $errors[] = (string) $this->t('The VIP surcharge currency must match the Commerce variation currency.');
+        }
+      }
+    }
+
     return ['errors' => $errors, 'plan' => $plan];
   }
 

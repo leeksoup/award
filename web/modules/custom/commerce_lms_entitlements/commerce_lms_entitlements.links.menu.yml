@@ -9,3 +9,9 @@ commerce_lms_entitlements.admin:
   description: 'Review PayPal-backed LMS access and guarantee recovery.'
   route_name: commerce_lms_entitlements.admin
   parent: commerce.configuration
+
+commerce_lms_entitlements.vip_settings:
+  title: 'LMS VIP settings'
+  description: 'Configure the VIP LMS hub and eligible live-session series.'
+  route_name: commerce_lms_entitlements.vip_settings
+  parent: commerce.configuration

@@ -16,6 +16,11 @@ commerce_lms_entitlements.offer.*:
     paypal_live_product_id: { type: string, label: 'Live PayPal product ID' }
     paypal_live_plan_id: { type: string, label: 'Live PayPal plan ID' }
     billing_interval: { type: string, label: 'Expected recurring billing interval' }
+    vip_enabled: { type: boolean, label: 'VIP upgrade enabled' }
+    vip_surcharge_number: { type: string, label: 'VIP surcharge number' }
+    vip_surcharge_currency: { type: string, label: 'VIP surcharge currency' }
+    paypal_sandbox_vip_plan_id: { type: string, label: 'Sandbox VIP PayPal plan ID' }
+    paypal_live_vip_plan_id: { type: string, label: 'Live VIP PayPal plan ID' }
     course_class_map:
       type: sequence
       label: 'Course/Class targets'
@@ -24,3 +29,17 @@ commerce_lms_entitlements.offer.*:
         mapping:
           course_id: { type: integer, label: 'Course ID' }
           class_id: { type: integer, label: 'Class ID' }
+
+commerce_lms_entitlements.vip:
+  type: config_object
+  label: 'Commerce LMS VIP settings'
+  mapping:
+    hub_course_id: { type: integer, label: 'VIP hub Course ID' }
+    hub_class_id: { type: integer, label: 'VIP hub Class ID' }
+    event_series_ids:
+      type: sequence
+      label: 'Eligible VIP event series IDs'
+      sequence:
+        type: integer
+    meeting_url: { type: string, label: 'Protected meeting URL' }
+    change_cutoff_hours: { type: integer, label: 'Booking change cutoff in hours' }

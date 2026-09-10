@@ -39,6 +39,12 @@ can prove the entitlement owns it.
 8. A recurring offer has separate sandbox and live mappings, but exactly one
    explicit environment is active for checkout. The presence of a live
    gateway never causes an automatic switch from sandbox to live billing.
+9. VIP remains an order-level adjustment on the sole recurring item. Base and
+   VIP are paired PayPal plans, never simultaneous subscriptions.
+10. A tier revision changes access only after PayPal confirms the target plan
+    and a successful payment reaches the stored billing boundary.
+11. Recurring Events owns session capacity and registrants. The module's
+    booking ledger adds only active-VIP authorization and a one-per-month quota.
 
 ## Setup sequence
 
@@ -56,7 +62,8 @@ can prove the entitlement owns it.
    plan is required for the lifetime variation.
 3. Create Commerce product variations for the selected recurring periods and
    lifetime one-time access.
-4. Configure the Commerce checkout flow to enable the **Learner** pane from
+4. Configure the Commerce checkout flow to enable the **Learner** and optional
+   **VIP upgrade** panes from
    `src/Plugin/Commerce/CheckoutPane/LearnerPane.php`.
 5. Create one offer per variation at
    `/admin/commerce/config/lms-offers`. Recurring offers store independent
@@ -70,6 +77,9 @@ can prove the entitlement owns it.
    configured in `commerce_lms_entitlements.routing.yml` is
    `/commerce-lms-entitlements/paypal/webhook/GATEWAY_ID`).
 7. Assign the listed permissions. Enable cron and monitor the audit command.
+8. For VIP, install Recurring Events 3.x, configure paired VIP PayPal plans on
+   each recurring offer, then configure the VIP hub and eligible event series
+   at `/admin/commerce/config/lms-vip`. See `docs/VIP.md`.
 
 ## Lifecycle diagrams
 
@@ -134,6 +144,8 @@ One row per order (`order_id` is unique).
 | `learner_uid`, `invitation_id` | Current learner or unclaimed invitation. Exactly one is expected initially. |
 | `order_id`, `payment_id` | Commerce audit links. `payment_id` is populated for lifetime payments. |
 | `paypal_subscription_id` | Recurring PayPal object used to match webhooks. |
+| `paypal_plan_id` | Last authoritative PayPal plan observed for the subscription. |
+| `vip_selected`, `vip_active` | Requested checkout tier and currently paid/active VIP benefit. |
 | `initial_capture_id`, `refund_id` | PayPal transaction IDs for the guarantee path. |
 | `status` | Current local access state; see below. |
 | `activated`, `access_through` | Unix timestamps for guarantee eligibility and deferred cancellation. |
@@ -163,12 +175,27 @@ recurring mapping for backward compatibility.
 
 ### `commerce_lms_entitlement_membership`
 
-One row per entitlement/Class. `membership_created = 1` means this module
+One row per entitlement/Class/benefit. `benefit` distinguishes `base` from
+`vip`; `membership_created = 1` means this module
 created the Group membership. `active = 1` means this entitlement still
 supports it. When revoking, the code first flips the row inactive, then checks
-for any other active entitlement for the same user and Class. Only a row with
-`membership_created = 1` and no other support can cause a Group relationship
-deletion.
+for any other active entitlement for the same user and Class. A Group
+relationship is deleted only when no support remains and the history proves
+that this module originally created it; an entirely manual membership has no
+such ownership row and survives.
+
+### `commerce_lms_plan_change`
+
+One immutable audit row per requested PayPal revision. It records source and
+target tiers/plans, only a hash of the browser state token, approval status,
+and the next-billing effective time. `approval_pending` and `approved` are the
+only unresolved states; `effective`, `abandoned`, and `failed` are terminal.
+
+### `commerce_lms_vip_booking`
+
+Maps an active Recurring Events registrant to its learner and site-timezone
+calendar month. The learner/month unique key is the quota boundary. The
+registrant entity remains authoritative for event capacity and administration.
 
 ### `commerce_lms_entitlement_event`
 
@@ -188,13 +215,14 @@ email. An invitation expires after 30 days.
 | File | Responsibility |
 | --- | --- |
 | `commerce_lms_entitlements.info.yml` | Declares dependencies on Commerce, the PayPal modules, Group, and LMS Classes. |
-| `commerce_lms_entitlements.install` | Defines the four audit/access tables and migrates legacy recurring offers to dual PayPal mappings in update `10011`. |
+| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings and `10012` adds VIP state. |
 | `commerce_lms_entitlements.module` | Bridges Commerce entity events to the manager, queues reconciliation from cron, and supplies invitation mail text. |
 | `services.yml` | Registers the manager, PayPal REST/catalog services, event subscribers, and log channel. |
 | `routing.yml`, `links.menu.yml`, `permissions.yml` | Define the webhook, invitation, purchaser and administrator routes; the admin menu entry; and authorization gates. |
 | `Entity/LmsOffer.php` | Config-entity definition for one variation-to-bundle mapping. |
 | `Form/OfferForm.php` | Administrator UI for dual PayPal mappings, live plan discovery/validation, active environment, expected cadence, and `COURSE_ID:CLASS_ID` parsing. |
 | `CheckoutPane/LearnerPane.php` | Stores the chosen existing learner or creates/sends an invitation before payment approval. |
+| `CheckoutPane/VipUpgradePane.php`, `VipOrderProcessor.php` | Store the order-bump choice and add its idempotent labeled recurring adjustment. |
 | `EventSubscriber/PaymentGatewaySubscriber.php` | Filters Commerce's available gateways so a valid LMS offer can use only its configured recurring or one-time gateway. |
 | `EventSubscriber/PayPalPlanSubscriber.php` | Intercepts the contributed module’s subscription creation event, validates the order/offer/gateway, creates the pending entitlement, and injects the PayPal plan ID. |
 | `Controller/PayPalWebhookController.php` | Public endpoint that verifies the PayPal transmission signature using the contributed SDK, deduplicates the event, queues work, and immediately responds. |
@@ -203,7 +231,9 @@ email. An invitation expires after 30 days.
 | `QueueWorker/LivePlanAuditWorker.php` | Re-fetches live PayPal mappings asynchronously from cron and logs invalid or missing mappings. |
 | `EntitlementManager.php` | Central state machine, data access, offer/target validation, invitation handling, and safe Group membership grant/revoke logic. |
 | `PayPalPlanCatalog.php` | Discovers live products/plans and validates status, quantity, trial, cadence, price, and currency against an offer. |
-| `PayPalSubscriptionOperations.php` | Direct PayPal REST adapter for catalog reads, plan details, cancellation, and capture refunds using gateway-owned credentials. |
+| `PayPalSubscriptionOperations.php` | Direct PayPal REST adapter for catalog reads, plan details, revision, cancellation, and capture refunds using gateway-owned credentials. |
+| `PlanChangeManager.php` and tier form/controller | Own the revision state token, PayPal re-consent return, and next-renewal transition. |
+| `VipBookingManager.php` and VIP forms/controller | Enforce active learner access, capacity, cutoff, monthly quota, protected meeting display, and booking mail. |
 | `patches/commerce_paypal_subscriptions-1.0.0-commerce-paypal-1.12-sdk-factory.patch` | Composer-managed local copy of the upstream issue patch correcting stale `commerce_paypal_subscriptions` 1.0.0 factory service arguments with Commerce PayPal 1.12/2.1.x. |
 | `Form/ClaimInvitationForm.php` | Creates/reuses only the account matching the invited email, then claims/grants pending access. |
 | `Form/CancelEntitlementForm.php` | Owner-only regular cancellation and 40-day guarantee request. |
@@ -335,6 +365,11 @@ by that gateway's current mode. Because the old model did not store cadence,
 the hook recognizes `annual`/`year` and `quarter` in the offer ID or label and
 otherwise defaults to monthly. Review the resulting interval before enabling
 live checkout.
+
+Update `10012` adds VIP fields, benefit-aware membership uniqueness, tier
+revision history, and monthly booking ownership. It backfills existing
+recurring rows with their base plan and does not grant VIP. Complete setup and
+operational details are in `docs/VIP.md`.
 
 The audit command fetches every configured live plan and reports unconfigured
 or invalid mappings. It does not change Commerce prices, PayPal plans, active

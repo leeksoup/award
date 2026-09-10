@@ -34,6 +34,11 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *     "paypal_live_product_id",
  *     "paypal_live_plan_id",
  *     "billing_interval",
+ *     "vip_enabled",
+ *     "vip_surcharge_number",
+ *     "vip_surcharge_currency",
+ *     "paypal_sandbox_vip_plan_id",
+ *     "paypal_live_vip_plan_id",
  *     "course_class_map"
  *   },
  *   links = {
@@ -59,6 +64,11 @@ final class LmsOffer extends ConfigEntityBase {
   protected string $paypal_live_product_id = '';
   protected string $paypal_live_plan_id = '';
   protected string $billing_interval = 'monthly';
+  protected bool $vip_enabled = FALSE;
+  protected string $vip_surcharge_number = '0';
+  protected string $vip_surcharge_currency = 'USD';
+  protected string $paypal_sandbox_vip_plan_id = '';
+  protected string $paypal_live_vip_plan_id = '';
   protected array $course_class_map = [];
 
   public function getVariationId(): int { return $this->variation_id; }
@@ -73,6 +83,11 @@ final class LmsOffer extends ConfigEntityBase {
   public function getPayPalLiveProductId(): string { return $this->paypal_live_product_id; }
   public function getPayPalLivePlanId(): string { return $this->paypal_live_plan_id; }
   public function getBillingInterval(): string { return $this->billing_interval; }
+  public function isVipEnabled(): bool { return $this->vip_enabled; }
+  public function getVipSurchargeNumber(): string { return $this->vip_surcharge_number; }
+  public function getVipSurchargeCurrency(): string { return $this->vip_surcharge_currency; }
+  public function getPayPalSandboxVipPlanId(): string { return $this->paypal_sandbox_vip_plan_id; }
+  public function getPayPalLiveVipPlanId(): string { return $this->paypal_live_vip_plan_id; }
 
   /** Returns the gateway ID for the explicitly active recurring environment. */
   public function getActivePayPalGatewayId(): string {
@@ -86,6 +101,13 @@ final class LmsOffer extends ConfigEntityBase {
     return $this->paypal_environment === 'live'
       ? $this->paypal_live_plan_id
       : $this->paypal_sandbox_plan_id;
+  }
+
+  /** Returns the VIP-inclusive plan for the active PayPal environment. */
+  public function getActivePayPalVipPlanId(): string {
+    return $this->paypal_environment === 'live'
+      ? $this->paypal_live_vip_plan_id
+      : $this->paypal_sandbox_vip_plan_id;
   }
 
   public function getCourseClassMap(): array { return $this->course_class_map; }

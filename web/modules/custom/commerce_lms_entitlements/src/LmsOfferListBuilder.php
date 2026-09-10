@@ -29,6 +29,7 @@ final class LmsOfferListBuilder extends ConfigEntityListBuilder {
     $header['paypal_plan_id'] = $this->t('Active PayPal plan');
     $header['paypal_mappings'] = $this->t('Other PayPal mapping');
     $header['course_class_map'] = $this->t('Course/Class targets');
+    $header['vip'] = $this->t('VIP');
 
     return $header + parent::buildHeader();
   }
@@ -71,6 +72,13 @@ final class LmsOfferListBuilder extends ConfigEntityListBuilder {
       $row['paypal_mappings'] = $this->t('—');
     }
     $row['course_class_map'] = implode(', ', $targets);
+    $row['vip'] = $entity->isVipEnabled()
+      ? $this->t('@amount @currency / @interval', [
+        '@amount' => $entity->getVipSurchargeNumber(),
+        '@currency' => $entity->getVipSurchargeCurrency(),
+        '@interval' => $entity->getBillingInterval(),
+      ])
+      : $this->t('Disabled');
 
     return $row + parent::buildRow($entity);
   }

@@ -185,6 +185,10 @@ final class OfferForm extends EntityForm implements ContainerInjectionInterface 
         '@id' => $saved_live_plan,
       ]);
     }
+    $saved_live_vip_plan = $offer->getPayPalLiveVipPlanId();
+    if ($saved_live_vip_plan !== '' && !$this->optionExists($live_plan_options, $saved_live_vip_plan)) {
+      $live_plan_options[$saved_live_vip_plan] = $this->t('@id (saved VIP mapping; load plans to refresh)', ['@id' => $saved_live_vip_plan]);
+    }
     $form['paypal']['live']['load_live_plans'] = [
       '#type' => 'submit',
       '#value' => $this->t('Load live plans from PayPal'),
@@ -207,6 +211,41 @@ final class OfferForm extends EntityForm implements ContainerInjectionInterface 
       '#description' => $this->t('Filled automatically from the validated PayPal plan.'),
       '#default_value' => $offer->getPayPalLiveProductId(),
       '#disabled' => TRUE,
+    ];
+
+    $form['paypal']['vip'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('VIP order bump'),
+    ];
+    $form['paypal']['vip']['vip_enabled'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Offer a recurring VIP upgrade during checkout'),
+      '#default_value' => $offer->isVipEnabled(),
+    ];
+    $form['paypal']['vip']['vip_surcharge_number'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('VIP recurring surcharge'),
+      '#default_value' => $offer->getVipSurchargeNumber(),
+      '#description' => $this->t('Amount added to this variation for each billing period.'),
+    ];
+    $form['paypal']['vip']['vip_surcharge_currency'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('VIP surcharge currency'),
+      '#default_value' => $offer->getVipSurchargeCurrency(),
+      '#maxlength' => 3,
+    ];
+    $form['paypal']['vip']['paypal_sandbox_vip_plan_id'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Sandbox VIP-inclusive plan ID'),
+      '#default_value' => $offer->getPayPalSandboxVipPlanId(),
+    ];
+    $form['paypal']['vip']['paypal_live_vip_plan_id'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Live VIP-inclusive PayPal plan'),
+      '#description' => $this->t('Must belong to the same PayPal product and use the same cadence as the base plan.'),
+      '#options' => $live_plan_options,
+      '#empty_option' => $this->t('- Select -'),
+      '#default_value' => $offer->getPayPalLiveVipPlanId(),
     ];
 
     $form['course_class_map'] = [
@@ -248,6 +287,7 @@ final class OfferForm extends EntityForm implements ContainerInjectionInterface 
     $paypal = $values['paypal'] ?? [];
     $sandbox = $paypal['sandbox'] ?? [];
     $live = $paypal['live'] ?? [];
+    $vip = $paypal['vip'] ?? [];
     $map = $this->parseCourseClassMap((string) ($values['course_class_map'] ?? ''));
 
     $id = trim((string) ($values['id'] ?? ''));
@@ -266,6 +306,11 @@ final class OfferForm extends EntityForm implements ContainerInjectionInterface 
     $entity->set('paypal_live_gateway_id', trim((string) ($live['paypal_live_gateway_id'] ?? '')));
     $entity->set('paypal_live_product_id', trim((string) ($live['paypal_live_product_id'] ?? $entity->get('paypal_live_product_id'))));
     $entity->set('paypal_live_plan_id', trim((string) ($live['paypal_live_plan_id'] ?? '')));
+    $entity->set('vip_enabled', !empty($vip['vip_enabled']));
+    $entity->set('vip_surcharge_number', trim((string) ($vip['vip_surcharge_number'] ?? '0')));
+    $entity->set('vip_surcharge_currency', strtoupper(trim((string) ($vip['vip_surcharge_currency'] ?? 'USD'))));
+    $entity->set('paypal_sandbox_vip_plan_id', trim((string) ($vip['paypal_sandbox_vip_plan_id'] ?? '')));
+    $entity->set('paypal_live_vip_plan_id', trim((string) ($vip['paypal_live_vip_plan_id'] ?? '')));
     $entity->set('course_class_map', $map);
   }
 
@@ -284,6 +329,9 @@ final class OfferForm extends EntityForm implements ContainerInjectionInterface 
       $gateway = PaymentGateway::load($offer->getPaymentGatewayId());
       if (!$gateway) {
         $form_state->setErrorByName('payment_gateway_id', $this->t('Select an existing lifetime payment gateway.'));
+      }
+      if ($offer->isVipEnabled()) {
+        $form_state->setError($form['paypal']['vip']['vip_enabled'], $this->t('Lifetime VIP is not supported in this release.'));
       }
       return;
     }
@@ -320,6 +368,17 @@ final class OfferForm extends EntityForm implements ContainerInjectionInterface 
         }
       }
     }
+    if ($offer->isVipEnabled()) {
+      if (!is_numeric($offer->getVipSurchargeNumber()) || (float) $offer->getVipSurchargeNumber() <= 0) {
+        $form_state->setError($form['paypal']['vip']['vip_surcharge_number'], $this->t('Enter a positive VIP recurring surcharge.'));
+      }
+      if (!preg_match('/^[A-Z]{3}$/', $offer->getVipSurchargeCurrency())) {
+        $form_state->setError($form['paypal']['vip']['vip_surcharge_currency'], $this->t('Enter a three-letter currency code.'));
+      }
+      if ($offer->getActivePayPalVipPlanId() === '') {
+        $form_state->setError($form['paypal']['vip'], $this->t('The active PayPal environment requires a VIP-inclusive plan.'));
+      }
+    }
   }
 
   /** {@inheritdoc} */
@@ -345,6 +404,16 @@ final class OfferForm extends EntityForm implements ContainerInjectionInterface 
       }
     }
     return $map;
+  }
+
+  /** Returns whether a possibly grouped select option contains the value. */
+  private function optionExists(array $options, string $value): bool {
+    foreach ($options as $key => $option) {
+      if ((string) $key === $value || (is_array($option) && $this->optionExists($option, $value))) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
 }

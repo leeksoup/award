@@ -18,9 +18,10 @@ final class PayPalPlanSubscriber implements EventSubscriberInterface {
     if ($offer->getPurchaseType() !== 'recurring') { throw new \DomainException('A lifetime offer cannot use the PayPal subscriptions gateway.'); }
     $gateway_id = (string) ($order->get('payment_gateway')->target_id ?? '');
     if ($gateway_id !== $offer->getActivePayPalGatewayId()) { throw new \DomainException('The selected payment gateway is not permitted for this offer environment.'); }
-    $this->manager->ensureEntitlement($order, $offer);
-    $plan_id = $offer->getActivePayPalPlanId();
+    $vip = $offer->isVipEnabled() && (bool) $order->getData('commerce_lms_vip_selected');
+    $plan_id = $vip ? $offer->getActivePayPalVipPlanId() : $offer->getActivePayPalPlanId();
     if ($plan_id === '') { throw new \DomainException('The active PayPal environment has no subscription plan mapping.'); }
+    $this->manager->ensureEntitlement($order, $offer);
     $event->setPlanId($plan_id);
   }
 }

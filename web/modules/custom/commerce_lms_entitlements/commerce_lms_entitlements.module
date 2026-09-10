@@ -45,4 +45,47 @@ function commerce_lms_entitlements_mail(string $key, array &$message, array $par
     $message['subject'] = t('Your course invitation');
     $message['body'][] = t('Claim your course invitation: @url', ['@url' => $params['url']]);
   }
+  elseif (in_array($key, ['vip_booking_confirmed', 'vip_booking_changed', 'vip_booking_cancelled'], TRUE)) {
+    $actions = [
+      'vip_booking_confirmed' => t('confirmed'),
+      'vip_booking_changed' => t('changed'),
+      'vip_booking_cancelled' => t('cancelled'),
+    ];
+    $message['subject'] = t('Your VIP session booking was @action', ['@action' => $actions[$key]]);
+    $message['body'][] = t('Your booking for @session on @start was @action.', [
+      '@session' => $params['session'],
+      '@start' => $params['start'],
+      '@action' => $actions[$key],
+    ]);
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * VIP registrations must pass through the quota-aware form. Staff retain the
+ * native Recurring Events forms for remediation and reporting.
+ */
+function commerce_lms_entitlements_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $form_state, string $form_id): void {
+  if (\Drupal::currentUser()->hasPermission('administer vip sessions')) {
+    return;
+  }
+  $form_object = $form_state->getFormObject();
+  if (!method_exists($form_object, 'getEntity')) {
+    return;
+  }
+  $entity = $form_object->getEntity();
+  if (!$entity || $entity->getEntityTypeId() !== 'registrant') {
+    return;
+  }
+  $instance = method_exists($entity, 'getEventInstance') ? $entity->getEventInstance() : NULL;
+  $instance ??= \Drupal::routeMatch()->getParameter('eventinstance');
+  if (!is_object($instance)) {
+    return;
+  }
+  $series_ids = array_map('intval', \Drupal::config('commerce_lms_entitlements.vip')->get('event_series_ids') ?: []);
+  if (in_array((int) $instance->get('eventseries_id')->target_id, $series_ids, TRUE)) {
+    $form['#access'] = FALSE;
+    \Drupal::messenger()->addWarning(t('VIP sessions must be booked through the protected VIP sessions page.'));
+  }
 }

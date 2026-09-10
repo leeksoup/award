@@ -11,8 +11,7 @@ use GuzzleHttp\ClientInterface;
  *
  * Checkout, captures, and webhook signature verification remain with the
  * contributed Commerce gateways. This deliberately small adapter is limited
- * to subscription cancellation and initial-capture refunds needed by the
- * LMS guarantee policy.
+ * to subscription lifecycle operations needed by the LMS access policy.
  */
 final class PayPalSubscriptionOperations {
   public function __construct(private ClientInterface $client) {}
@@ -81,6 +80,35 @@ final class PayPalSubscriptionOperations {
     $base = $this->baseUrl($config);
     $response = $this->client->get($base . '/v1/billing/subscriptions/' . rawurlencode($subscription_id), ['headers' => ['Authorization' => 'Bearer ' . $this->accessToken($base, $config)]]);
     return json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR);
+  }
+
+  /**
+   * Starts a plan revision and returns PayPal's buyer approval URL.
+   */
+  public function revise(object $gateway, string $subscription_id, string $plan_id, string $return_url, string $cancel_url, string $request_id): string {
+    $config = $gateway->getPluginConfiguration();
+    $base = $this->baseUrl($config);
+    $response = $this->client->post($base . '/v1/billing/subscriptions/' . rawurlencode($subscription_id) . '/revise', [
+      'headers' => [
+        'Authorization' => 'Bearer ' . $this->accessToken($base, $config),
+        'Content-Type' => 'application/json',
+        'PayPal-Request-Id' => $request_id,
+      ],
+      'json' => [
+        'plan_id' => $plan_id,
+        'application_context' => [
+          'return_url' => $return_url,
+          'cancel_url' => $cancel_url,
+        ],
+      ],
+    ]);
+    $body = json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR);
+    foreach ($body['links'] ?? [] as $link) {
+      if (($link['rel'] ?? '') === 'approve' && !empty($link['href'])) {
+        return (string) $link['href'];
+      }
+    }
+    throw new \RuntimeException('PayPal did not return an approval URL for the plan revision.');
   }
 
   /**
