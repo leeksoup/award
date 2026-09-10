@@ -6,12 +6,14 @@ Provides learner-facing course discussion navigation for the existing
 ## Behavior
 
 - Adds a **Discussions** local-task tab to the LMS course start route and every
-  course activity route.
+  course activity route. The tab is injected only while a route has the
+  current course, lesson, and activity context required by LMS.
 - Both tabs link to the existing course-specific View at
   `/group/{group}/course-discussions`.
-- Adds a **Start a discussion** local action on that View. It opens GNode's
-  group-scoped node creation route, so the new `discussion` node is attached
-  to the current LMS Course group.
+- Adds a **Start a discussion** local action on that View. It opens Group's
+  final, group-scoped `discussion` creation form directly, so the new node is
+  attached to the current LMS Course group. It preserves a return destination
+  to the discussion board after the post is saved.
 - Grants non-anonymous LMS Course roles with the `take course` permission the
   two Group permissions required to create a `discussion` relationship and
   entity. It does not grant edit or delete permissions.
