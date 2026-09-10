@@ -22,7 +22,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class OfferForm extends EntityForm implements ContainerInjectionInterface {
 
-  private PayPalPlanCatalog $planCatalog;
+  /**
+   * Loads and validates PayPal's live product and plan catalog.
+   *
+   * This injected service must remain protected rather than private. Drupal's
+   * form cache serializes the form object between the initial display and a
+   * later submit/rebuild request; the inherited dependency-serialization trait
+   * can restore protected service properties but cannot see a child class's
+   * private properties.
+   */
+  protected PayPalPlanCatalog $planCatalog;
 
   /** {@inheritdoc} */
   public static function create(ContainerInterface $container): static {
