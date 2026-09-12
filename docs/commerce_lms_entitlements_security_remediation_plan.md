@@ -45,17 +45,69 @@ membership whose ownership flag was incorrectly overwritten. Those cases must
 be distinguished using backups, Group relationship history, entitlement
 timestamps, and operational knowledge.
 
+## First implementation slice
+
+Begin with the membership-ownership defect because it affects the fundamental
+paid-access boundary. Use this sequence:
+
+1. Take a current database backup before deploying or repairing entitlement
+   data.
+2. Add a regression test that grants one entitlement, grants it again through
+   reconciliation, and then revokes it.
+3. Confirm that the test fails against the original implementation because the
+   repeated grant changes `membership_created` from `1` to `0`.
+4. Correct `grantTargets()` so an existing ledger row retains its ownership
+   value, while a missing Group membership created during the current grant is
+   recorded as module-owned.
+5. Correct `revokeBenefit()` so each membership and ledger mutation is
+   transactional and a failed `removeMember()` remains retryable.
+6. Add companion coverage for manual memberships, overlapping entitlements,
+   removal failure, and successful retry.
+7. Run the existing-data ownership audit before production deployment. Do not
+   automatically repair ambiguous rows.
+
+The primary regression must prove this complete transition:
+
+```text
+first grant:
+  Group membership exists
+  membership_created = 1
+  active = 1
+
+repeated grant:
+  Group membership still exists
+  membership_created remains 1
+  active remains 1
+
+revocation:
+  Group membership is removed
+  ledger row becomes inactive
+```
+
+The implementation should isolate membership mutation from unrelated payment
+and invitation flows so its database transaction behavior can be tested
+directly.
+
+Implementation status (2026-09-12): the membership operations have been
+isolated in `EntitlementMembershipManager`; ownership-preserving grants and
+transactional revocations are implemented. A kernel regression suite covers
+the primary transition and the manual, overlapping-entitlement, base/VIP, and
+failure/retry cases. Run that suite on a complete Drupal development checkout
+before deployment; this documentation checkout does not contain PHPUnit or the
+full runtime dependency tree.
+
 ## Critical remediation
 
 ### 1. Preserve membership ownership and make revocation retryable
 
 Affected code:
 
-- `src/EntitlementManager.php::grantTargets()`
-- `src/EntitlementManager.php::revokeBenefit()`
+- `src/EntitlementMembershipManager.php::grantTargets()`
+- `src/EntitlementMembershipManager.php::revokeBenefit()`
+- `src/EntitlementManager.php` grant and revocation callers
 - all active subscription reconciliation and webhook paths that call `grant()`
 
-Current failure:
+Original failure:
 
 `grantTargets()` writes `membership_created` through a database `merge()` on
 every grant. The first grant records `1` and creates the Group membership. A

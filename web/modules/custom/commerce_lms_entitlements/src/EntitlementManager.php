@@ -25,7 +25,16 @@ use Psr\Log\LoggerInterface;
  * See docs/ARCHITECTURE.md for the table layout and lifecycle diagrams.
  */
 final class EntitlementManager {
-  public function __construct(private Connection $database, private EntityTypeManagerInterface $entityTypeManager, private ConfigFactoryInterface $configFactory, private QueueFactory $queue, private TimeInterface $time, private LoggerInterface $logger, private object $sdkFactory) {}
+  public function __construct(
+    private Connection $database,
+    private EntityTypeManagerInterface $entityTypeManager,
+    private EntitlementMembershipManager $membershipManager,
+    private ConfigFactoryInterface $configFactory,
+    private QueueFactory $queue,
+    private TimeInterface $time,
+    private LoggerInterface $logger,
+    private object $sdkFactory,
+  ) {}
 
   /**
    * Resolves and validates the one offer permitted for an LMS checkout order.
@@ -459,8 +468,8 @@ final class EntitlementManager {
   /**
    * Grants this entitlement's bundle and records whether it created membership.
    *
-   * An existing Group membership can be manual or owned elsewhere, so it is
-   * recorded with `membership_created = 0` and will never be deleted here.
+   * A new ledger row does not claim an existing Group membership. A repeated
+   * grant preserves the ownership decision already recorded in its ledger row.
    */
   private function grant(array $entitlement): void {
     if (empty($entitlement['learner_uid'])) { return; }
@@ -470,18 +479,9 @@ final class EntitlementManager {
     if (!$account) {
       throw new \RuntimeException('Missing learner account ' . $entitlement['learner_uid']);
     }
-    $this->grantTargets($entitlement, $account, $offer->getCourseClassMap(), 'base');
+    $this->membershipManager->grantTargets($entitlement, $account, $offer->getCourseClassMap(), 'base');
     if (!empty($entitlement['vip_active'])) {
-      $this->grantTargets($entitlement, $account, [$this->vipTarget()], 'vip');
-    }
-  }
-
-  /** Grants one named benefit without conflating its membership ownership. */
-  private function grantTargets(array $entitlement, object $account, array $targets, string $benefit): void {
-    foreach ($targets as $target) {
-      $class = $this->entityTypeManager->getStorage('group')->load((int) $target['class_id']); $membership = $class->getMember($account);
-      $this->database->merge('commerce_lms_entitlement_membership')->key(['eid' => $entitlement['eid'], 'class_id' => $class->id(), 'benefit' => $benefit])->fields(['uid' => $account->id(), 'membership_created' => $membership ? 0 : 1, 'active' => 1, 'created' => $this->time->getRequestTime()])->execute();
-      if (!$membership) { $class->addMember($account); }
+      $this->membershipManager->grantTargets($entitlement, $account, [$this->vipTarget()], 'vip');
     }
   }
 
@@ -510,18 +510,7 @@ final class EntitlementManager {
 
   /** Revokes all benefits, or only the selected benefit, idempotently. */
   private function revokeBenefit(array $entitlement, ?string $benefit = NULL): void {
-    $query = $this->database->select('commerce_lms_entitlement_membership', 'm')->fields('m')->condition('eid', $entitlement['eid'])->condition('active', 1);
-    if ($benefit !== NULL) {
-      $query->condition('benefit', $benefit);
-    }
-    foreach ($query->execute()->fetchAll() as $membership) {
-      $this->database->update('commerce_lms_entitlement_membership')->fields(['active' => 0])->condition('id', $membership->id)->execute();
-      $other = $this->database->select('commerce_lms_entitlement_membership', 'm')->condition('class_id', $membership->class_id)->condition('uid', $membership->uid)->condition('active', 1)->countQuery()->execute()->fetchField();
-      $module_created = $this->database->select('commerce_lms_entitlement_membership', 'm')->condition('class_id', $membership->class_id)->condition('uid', $membership->uid)->condition('membership_created', 1)->countQuery()->execute()->fetchField();
-      if (!$module_created || $other) { continue; }
-      $class = $this->entityTypeManager->getStorage('group')->load($membership->class_id); $account = $this->entityTypeManager->getStorage('user')->load($membership->uid);
-      if ($class && $account && $class->getMember($account)) { $class->removeMember($account); }
-    }
+    $this->membershipManager->revokeBenefit($entitlement, $benefit);
     $other_vip = !empty($entitlement['learner_uid']) && (bool) $this->database->select('commerce_lms_entitlement', 'e')
       ->condition('learner_uid', $entitlement['learner_uid'])
       ->condition('eid', $entitlement['eid'], '<>')

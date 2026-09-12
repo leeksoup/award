@@ -271,9 +271,13 @@ rest of the batch.
 `grant()` uses Group 3's group-level membership API: `Group::getMember()`
 checks for an existing membership and `Group::addMember()` creates one when
 needed. If a membership already exists, the module records support without
-claiming ownership. If absent, it creates the Group membership and records
-ownership. Safe revocation uses the corresponding `Group::removeMember()`
-method only after the ownership and other-entitlement checks pass.
+claiming ownership. An existing ledger row retains its original ownership
+decision during repeated grants. If the Group membership is absent, the module
+creates it and records ownership. Each Group mutation and its ledger mutation
+share a database transaction. Safe revocation uses the corresponding
+`Group::removeMember()` method only after the ownership and other-entitlement
+checks pass; a removal failure rolls the ledger state back so reconciliation
+can retry it.
 Invitation claiming wraps the claimed marker, learner assignment, and active
 membership grants in one database transaction. A failed Group operation rolls
 the claim back so the signed link remains retryable instead of leaving partial

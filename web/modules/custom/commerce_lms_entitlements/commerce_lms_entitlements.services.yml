@@ -2,9 +2,12 @@ services:
   logger.channel.commerce_lms_entitlements:
     parent: logger.channel_base
     arguments: ['commerce_lms_entitlements']
+  commerce_lms_entitlements.membership_manager:
+    class: Drupal\commerce_lms_entitlements\EntitlementMembershipManager
+    arguments: ['@database', '@entity_type.manager', '@datetime.time']
   commerce_lms_entitlements.manager:
     class: Drupal\commerce_lms_entitlements\EntitlementManager
-    arguments: ['@database', '@entity_type.manager', '@config.factory', '@queue', '@datetime.time', '@logger.channel.commerce_lms_entitlements', '@commerce_paypal_subscriptions.checkout_sdk_factory']
+    arguments: ['@database', '@entity_type.manager', '@commerce_lms_entitlements.membership_manager', '@config.factory', '@queue', '@datetime.time', '@logger.channel.commerce_lms_entitlements', '@commerce_paypal_subscriptions.checkout_sdk_factory']
   commerce_lms_entitlements.paypal_operations:
     class: Drupal\commerce_lms_entitlements\PayPalSubscriptionOperations
     arguments: ['@http_client']
