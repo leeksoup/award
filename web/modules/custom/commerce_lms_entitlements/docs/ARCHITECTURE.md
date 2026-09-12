@@ -277,7 +277,11 @@ creates it and records ownership. Each Group mutation and its ledger mutation
 share a database transaction. Safe revocation uses the corresponding
 `Group::removeMember()` method only after the ownership and other-entitlement
 checks pass; a removal failure rolls the ledger state back so reconciliation
-can retry it.
+can retry it. The implementation uses core's `Connection::startTransaction()`
+and `SelectInterface::forUpdate()` APIs; production row-lock behavior must be
+validated with the site's MariaDB driver because SQLite treats `forUpdate()`
+as a no-op.
+
 Invitation claiming wraps the claimed marker, learner assignment, and active
 membership grants in one database transaction. A failed Group operation rolls
 the claim back so the signed link remains retryable instead of leaving partial

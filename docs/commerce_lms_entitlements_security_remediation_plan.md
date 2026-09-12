@@ -96,6 +96,21 @@ failure/retry cases. Run that suite on a complete Drupal development checkout
 before deployment; this documentation checkout does not contain PHPUnit or the
 full runtime dependency tree.
 
+Drupal API validation recorded on 2026-09-12:
+
+- The Drupal MCP confirmed that Group's `getMember()` returns `FALSE` when the
+  account is not a member, matching the truth-value check in the implementation.
+- The Drupal MCP confirmed that Group's `addMember()` and `removeMember()`
+  accept `UserInterface`, which is now enforced by the membership manager.
+- The Drupal MCP confirmed that core provides `Connection::startTransaction()`
+  and `SelectInterface::forUpdate()` on the supported database API.
+- The Drupal MCP confirmed that SQLite intentionally treats `forUpdate()` as a
+  no-op. The kernel suite can therefore run with SQLite, but concurrency and row
+  locking must also be exercised on the site's MariaDB staging environment.
+- Drupal 10.6 core source confirms that `EntityStorageInterface::load($id)` has
+  no native return type, so the kernel-test storage callbacks are compatible
+  with that interface.
+
 ## Critical remediation
 
 ### 1. Preserve membership ownership and make revocation retryable
