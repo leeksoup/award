@@ -15,7 +15,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /** Renders the protected VIP meeting details and learner bookings. */
 final class VipSessionController extends ControllerBase {
 
-  public function __construct(private VipBookingManager $bookings, private EntityTypeManagerInterface $entityTypeManager, private DateFormatterInterface $dateFormatter) {}
+  public function __construct(private VipBookingManager $bookings, private EntityTypeManagerInterface $entityTypeManagerService, private DateFormatterInterface $dateFormatter) {}
 
   public static function create(ContainerInterface $container): static {
     return new static($container->get('commerce_lms_entitlements.vip_booking_manager'), $container->get('entity_type.manager'), $container->get('date.formatter'));
@@ -28,7 +28,7 @@ final class VipSessionController extends ControllerBase {
     }
     $rows = [];
     foreach ($this->bookings->bookings($uid) as $month => $booking) {
-      $instance = $this->entityTypeManager->getStorage('eventinstance')->load((int) $booking['eventinstance_id']);
+      $instance = $this->entityTypeManagerService->getStorage('eventinstance')->load((int) $booking['eventinstance_id']);
       if (!$instance) {
         continue;
       }
