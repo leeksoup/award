@@ -24,7 +24,7 @@ final class ClaimInvitationForm extends FormBase {
   public function __construct(
     private EntitlementManager $manager,
     private EntityTypeManagerInterface $entityTypeManager,
-    private LoginFinalizer $loginFinalizer,
+    private ?LoginFinalizer $loginFinalizer,
   ) {}
 
   /**
@@ -34,7 +34,9 @@ final class ClaimInvitationForm extends FormBase {
     return new static(
       $container->get('commerce_lms_entitlements.manager'),
       $container->get('entity_type.manager'),
-      $container->get(LoginFinalizer::class),
+      $container->has(LoginFinalizer::class)
+        ? $container->get(LoginFinalizer::class)
+        : NULL,
     );
   }
 
@@ -245,7 +247,12 @@ final class ClaimInvitationForm extends FormBase {
     }
 
     if ($created_account) {
-      $this->loginFinalizer->finalizeLogin($account);
+      if ($this->loginFinalizer) {
+        $this->loginFinalizer->finalizeLogin($account);
+      }
+      else {
+        user_login_finalize($account);
+      }
     }
     if ($this->manager->invitationHasActiveAccess($invitation['id'])) {
       $this->messenger()->addStatus($this->t('Your course access has been claimed.'));

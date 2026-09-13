@@ -225,11 +225,13 @@ Required tests:
 Implementation status (2026-09-12): the claim form now routes an existing
 invited-email account through Drupal's normal login form and retains the signed
 claim URL as its destination. Only a newly created, entity-validated account is
-passed to `LoginFinalizer`. The claim update requires a matching unexpired
-token, `claimed_uid IS NULL`, and exactly one affected row. Kernel coverage for
-one-winner, wrong-email, and expired-token claim invariants was run by the site
-owner against MariaDB with Drupal 10.6.15 and PHPUnit 9.6.36; all 3 tests passed
-with 10 assertions.
+passed to Drupal's login finalization API. Drupal versions that register the
+`LoginFinalizer` service use it; Drupal 10.6 falls back to its supported
+`user_login_finalize()` function. The claim update requires a matching
+unexpired token, `claimed_uid IS NULL`, and exactly one affected row. Kernel
+coverage for one-winner, wrong-email, and expired-token claim invariants was
+run by the site owner against MariaDB with Drupal 10.6.15 and PHPUnit 9.6.36;
+all 3 tests passed with 10 assertions.
 
 ## High-priority remediation
 
