@@ -393,10 +393,17 @@ final class EntitlementManager {
     // being left with a claimed invitation and incomplete access.
     $transaction = $this->database->startTransaction();
     try {
-      $this->database->update('commerce_lms_entitlement_invitation')
+      $claimed = $this->database->update('commerce_lms_entitlement_invitation')
         ->fields(['claimed_uid' => $uid])
         ->condition('id', $invite['id'])
+        ->condition('token_hash', hash('sha256', $token))
+        ->condition('expires', $this->time->getRequestTime(), '>')
+        ->isNull('claimed_uid')
         ->execute();
+      if ($claimed !== 1) {
+        $transaction->rollBack();
+        return FALSE;
+      }
       $entitlement_ids = $this->database
         ->select('commerce_lms_entitlement', 'e')
         ->fields('e', ['eid'])

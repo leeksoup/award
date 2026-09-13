@@ -115,7 +115,7 @@ checkout learner pane -> order data
 ```text
 unknown email -> random token (only SHA-256 hash is stored) -> email claim URL
   -> claimant must use the invited email
-  -> create/reuse account
+  -> create a validated account, or authenticate an existing account normally
   -> claim pending entitlements for that invitation
   -> immediately grant any already-active entitlement
 ```
@@ -235,7 +235,7 @@ email. An invitation expires after 30 days.
 | `PlanChangeManager.php` and tier form/controller | Own the revision state token, PayPal re-consent return, and next-renewal transition. |
 | `VipBookingManager.php` and VIP forms/controller | Enforce active learner access, capacity, cutoff, monthly quota, protected meeting display, and booking mail. |
 | `patches/commerce_paypal_subscriptions-1.0.0-commerce-paypal-1.12-sdk-factory.patch` | Composer-managed local copy of the upstream issue patch correcting stale `commerce_paypal_subscriptions` 1.0.0 factory service arguments with Commerce PayPal 1.12/2.1.x. |
-| `Form/ClaimInvitationForm.php` | Creates/reuses only the account matching the invited email, then claims/grants pending access. |
+| `Form/ClaimInvitationForm.php` | Creates a validated invited-email account or sends an existing account through Drupal's normal login flow, then claims/grants pending access. |
 | `Form/CancelEntitlementForm.php` | Owner-only regular cancellation and 40-day guarantee request. |
 | `Controller/EntitlementController.php` | Purchaser-scoped status table and unrestricted-for-staff audit table. |
 | `Drush/Commands/EntitlementCommands.php` | Read-only `drush commerce-lms-entitlements:audit` report for recovery work and current live plan validity. |
@@ -282,16 +282,19 @@ and `SelectInterface::forUpdate()` APIs; production row-lock behavior must be
 validated with the site's MariaDB driver because SQLite treats `forUpdate()`
 as a no-op.
 
-Invitation claiming wraps the claimed marker, learner assignment, and active
-membership grants in one database transaction. A failed Group operation rolls
-the claim back so the signed link remains retryable instead of leaving partial
-access behind.
-After a successful anonymous claim, the learner is logged into the claimed
-account. An active entitlement redirects to `/courses`, where the newly
-granted access is immediately usable. A pending entitlement instead redirects
-to the learner account page and explains that access awaits subscription
-payment activation. An already authenticated matching learner follows the
-same status-sensitive redirect without starting a new session.
+Invitation claiming conditionally updates only an unclaimed, unexpired row and
+requires exactly one affected row. The claimed marker, learner assignment, and
+active membership grants share one database transaction. A losing concurrent
+claim or failed Group operation therefore cannot produce a partial claim.
+After a successful new-account claim, the learner is logged into that newly
+created account. An active entitlement redirects to `/courses`, where the
+newly granted access is immediately usable. A pending entitlement instead
+redirects to the learner account page and explains that access awaits
+subscription payment activation. An already authenticated matching learner
+follows the same status-sensitive redirect without starting a new session.
+An anonymous claimant whose invited email already belongs to an account sees
+no account-creation or claim controls; the form sends that claimant through
+Drupal's normal login route and returns to the signed claim URL afterward.
 If a purchaser or another user opens the invitation while authenticated, the
 claim form compares that account's email address with the invitation before
 showing a submit button. A mismatch instead provides a logout link whose

@@ -65,6 +65,10 @@ this module validates the offer, creates a pending entitlement, and supplies
 the configured plan ID. After approval, the contributed module stores the
 PayPal subscription ID on the order.
 
+An invitation can create a validated account only when its normalized email is
+not already registered. Existing accounts must authenticate through Drupal's
+normal login form and return to the invitation URL before claiming access.
+
 PayPal subscription webhooks arrive at
 `/commerce-lms-entitlements/paypal/webhook/GATEWAY_ID`. The module verifies the
 signature through the contributed PayPal SDK, deduplicates event IDs, queues

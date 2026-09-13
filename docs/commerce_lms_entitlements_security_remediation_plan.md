@@ -92,9 +92,8 @@ Implementation status (2026-09-12): the membership operations have been
 isolated in `EntitlementMembershipManager`; ownership-preserving grants and
 transactional revocations are implemented. A kernel regression suite covers
 the primary transition and the manual, overlapping-entitlement, base/VIP, and
-failure/retry cases. Run that suite on a complete Drupal development checkout
-before deployment; this documentation checkout does not contain PHPUnit or the
-full runtime dependency tree.
+failure/retry cases. The suite was run by the site owner against MariaDB with
+Drupal 10.6.15 and PHPUnit 9.6.36; all 5 tests passed with 32 assertions.
 
 Drupal API validation recorded on 2026-09-12:
 
@@ -222,6 +221,14 @@ Required tests:
 - expired and previously claimed tokens are rejected;
 - concurrent claim attempts produce one winner; and
 - active and pending entitlements produce the correct post-claim status.
+
+Implementation status (2026-09-12): the claim form now routes an existing
+invited-email account through Drupal's normal login form and retains the signed
+claim URL as its destination. Only a newly created, entity-validated account is
+passed to `LoginFinalizer`. The claim update requires a matching unexpired
+token, `claimed_uid IS NULL`, and exactly one affected row. Kernel coverage for
+one-winner, wrong-email, and expired-token claim invariants has been added and
+awaits execution on the site's MariaDB test database.
 
 ## High-priority remediation
 
