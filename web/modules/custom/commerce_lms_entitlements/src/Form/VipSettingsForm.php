@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\commerce_lms_entitlements\Form;
 
-use Drupal\Core\Config\ConfigFormBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
