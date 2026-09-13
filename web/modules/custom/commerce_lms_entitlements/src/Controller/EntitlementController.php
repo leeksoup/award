@@ -47,6 +47,14 @@ final class EntitlementController extends ControllerBase {
     }
     $header = [$this->t('ID'), $this->t('Offer'), $this->t('Type'), $this->t('Status'), $this->t('Learner'), $this->t('Access through')];
     if ($allow_cancel) { $header[] = $this->t('Operations'); }
-    return ['table' => ['#type' => 'table', '#header' => $header, '#rows' => $rows, '#empty' => $this->t('No entitlement records found.')]];
+    return [
+      'table' => [
+        '#type' => 'table',
+        '#header' => $header,
+        '#rows' => $rows,
+        '#empty' => $this->t('No entitlement records found.'),
+      ],
+      '#cache' => ['max-age' => 0],
+    ];
   }
 }

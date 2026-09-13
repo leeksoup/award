@@ -273,6 +273,12 @@ Required tests:
 - an administrator sees current status; and
 - response cache headers contain the intended contexts/max-age.
 
+Implementation status (2026-09-13): both controller paths now return root
+render arrays with a zero cache maximum age. This is the immediate fail-safe
+design; no entitlement cache tags are required while these pages remain
+uncacheable. A kernel regression checks both purchaser and administrator
+render arrays and awaits execution on the site's MariaDB test database.
+
 ### 4. Grant lifetime access only after the order is fully paid
 
 Affected code:

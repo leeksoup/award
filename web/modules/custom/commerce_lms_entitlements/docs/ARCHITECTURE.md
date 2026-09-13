@@ -237,7 +237,7 @@ email. An invitation expires after 30 days.
 | `patches/commerce_paypal_subscriptions-1.0.0-commerce-paypal-1.12-sdk-factory.patch` | Composer-managed local copy of the upstream issue patch correcting stale `commerce_paypal_subscriptions` 1.0.0 factory service arguments with Commerce PayPal 1.12/2.1.x. |
 | `Form/ClaimInvitationForm.php` | Creates a validated invited-email account or sends an existing account through Drupal's normal login flow, then claims/grants pending access. |
 | `Form/CancelEntitlementForm.php` | Owner-only regular cancellation and 40-day guarantee request. |
-| `Controller/EntitlementController.php` | Purchaser-scoped status table and unrestricted-for-staff audit table. |
+| `Controller/EntitlementController.php` | Purchaser-scoped status table and unrestricted-for-staff audit table. Both custom-table views use a zero cache maximum age so personalized or changed entitlement data cannot be reused. |
 | `Drush/Commands/EntitlementCommands.php` | Read-only `drush commerce-lms-entitlements:audit` report for recovery work and current live plan validity. |
 
 ## Important methods in `EntitlementManager`
