@@ -233,6 +233,12 @@ coverage for one-winner, wrong-email, and expired-token claim invariants was
 run by the site owner against MariaDB with Drupal 10.6.15 and PHPUnit 9.6.36;
 all 3 tests passed with 10 assertions.
 
+Browser verification (2026-09-13): the site owner verified on the development
+site that an existing invited account must authenticate normally, a genuinely
+new invited email can create and enter its new account, and a signed-in account
+with the wrong email cannot claim the invitation. PayPal was not required for
+these account-authentication and claim-ownership checks.
+
 ## High-priority remediation
 
 ### 3. Make personalized entitlement pages uncacheable or correctly varied
