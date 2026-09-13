@@ -277,7 +277,8 @@ Implementation status (2026-09-13): both controller paths now return root
 render arrays with a zero cache maximum age. This is the immediate fail-safe
 design; no entitlement cache tags are required while these pages remain
 uncacheable. A kernel regression checks both purchaser and administrator
-render arrays and awaits execution on the site's MariaDB test database.
+render arrays. The site owner ran it against MariaDB with Drupal 10.6.15 and
+PHPUnit 9.6.36; both tests passed with 2 assertions.
 
 ### 4. Grant lifetime access only after the order is fully paid
 
