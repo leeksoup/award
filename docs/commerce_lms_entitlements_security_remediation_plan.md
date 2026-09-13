@@ -227,8 +227,9 @@ invited-email account through Drupal's normal login form and retains the signed
 claim URL as its destination. Only a newly created, entity-validated account is
 passed to `LoginFinalizer`. The claim update requires a matching unexpired
 token, `claimed_uid IS NULL`, and exactly one affected row. Kernel coverage for
-one-winner, wrong-email, and expired-token claim invariants has been added and
-awaits execution on the site's MariaDB test database.
+one-winner, wrong-email, and expired-token claim invariants was run by the site
+owner against MariaDB with Drupal 10.6.15 and PHPUnit 9.6.36; all 3 tests passed
+with 10 assertions.
 
 ## High-priority remediation
 
