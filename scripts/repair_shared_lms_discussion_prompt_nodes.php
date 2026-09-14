@@ -21,7 +21,12 @@ declare(strict_types=1);
  * the repair unless --allow-revision-mismatch is supplied explicitly.
  */
 
-$arguments = $_SERVER['argv'] ?? [];
+// Drush removes the script name and exposes arguments after `--` through the
+// local $extra variable before including this file. Keep argv as a fallback so
+// the parsing remains predictable when the script is executed another way.
+$arguments = isset($extra) && is_array($extra)
+  ? $extra
+  : array_slice($_SERVER['argv'] ?? [], 1);
 $input_path = getenv('DISCUSSION_PROMPT_IMPORT_PATH')
   ?: '/tmp/lms-discussion-prompt-activities.json';
 $apply = in_array('--apply', $arguments, TRUE);
