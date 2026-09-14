@@ -309,6 +309,17 @@ Required tests:
 - refunded, voided, failed, and pending payments do not grant access; and
 - a legitimate fully paid lifetime checkout still succeeds.
 
+Implementation status (2026-09-14): lifetime activation now requires both a
+completed Commerce payment and the associated order's aggregate `isPaid()`
+result. Because Commerce may defer updating the aggregate paid total until its
+payment order updater saves the order, the order-update hook also locates a
+completed payment whose order and configured gateway match and invokes the
+same idempotent activation path. Kernel regression coverage has been added for
+partial and full payment, deferred order refresh, cross-order payment,
+duplicate processing, and non-completed payment states. The new suite still
+requires execution on the bootstrapped site before this item is marked
+validated.
+
 ## Payment and benefit integrity
 
 ### 5. Fail closed on unexpected PayPal subscription plans

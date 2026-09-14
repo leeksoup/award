@@ -255,9 +255,15 @@ invitation ID.
 checkout. It also requeues matching stored webhook events to close the normal
 race where PayPal posts before Drupal persists the subscription ID.
 
-`syncCompletedPayment()` handles only lifetime offers. It intentionally ignores
-recurring offers because their billing state is PayPal subscription state, not
-the initial Commerce payment state.
+`syncCompletedPayment()` handles only lifetime offers. It requires both a
+completed payment and Commerce's aggregate `Order::isPaid()` result before it
+activates access. Commerce can refresh the order's paid total after the payment
+entity hook, so the later order update also calls `syncPaidLifetimeOrder()`.
+That method loads completed payments for the order and accepts only a payment
+whose order and configured gateway match. Both paths converge on the same
+idempotent activation method. Recurring offers deliberately ignore this path
+because their billing state is PayPal subscription state, not the initial
+Commerce payment state.
 
 `applyRemoteSubscription()` maps PayPal `ACTIVE`, `SUSPENDED`, `CANCELLED`, and
 `EXPIRED` to local state. It records initial capture and paid-through data,

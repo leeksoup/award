@@ -26,6 +26,7 @@ function commerce_lms_entitlements_entity_update(\Drupal\Core\Entity\EntityInter
   }
   elseif ($entity->getEntityTypeId() === 'commerce_order') {
     $manager->linkPayPalSubscriptionFromOrder($entity);
+    $manager->syncPaidLifetimeOrder($entity);
   }
 }
 

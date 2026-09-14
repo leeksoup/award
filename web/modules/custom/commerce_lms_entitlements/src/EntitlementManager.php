@@ -136,20 +136,116 @@ final class EntitlementManager {
    * recurring lifecycle is driven by a current PayPal subscription response.
    */
   public function syncCompletedPayment(object $payment): void {
-    if (!$payment->getOrder() || $payment->getState()->value !== 'completed') { return; }
-    $order = $payment->getOrder();
-    try { $offer = $this->offerForOrder($order); }
-    catch (\DomainException) { return; }
-    if ($offer->getPurchaseType() !== 'lifetime') { return; }
-    if ((string) ($payment->getPaymentGateway()->id() ?? '') !== $offer->getPaymentGatewayId()) {
-      $this->logger->warning('Lifetime order @order completed through unexpected gateway @gateway.', ['@order' => $order->id(), '@gateway' => $payment->getPaymentGateway()->id() ?? 'none']);
+    if (!$payment->getOrder() || $payment->getState()->value !== 'completed') {
       return;
     }
-    $entitlement = $this->ensureEntitlement($order, $offer);
-    if ($entitlement['status'] !== 'active') {
-      $this->update((int) $entitlement['eid'], ['payment_id' => (int) $payment->id(), 'initial_capture_id' => $payment->getRemoteId(), 'status' => 'active', 'activated' => $this->time->getRequestTime()]);
-      $this->grant($this->load((int) $entitlement['eid']));
+    $order = $payment->getOrder();
+    if (!$order->isPaid()) {
+      return;
     }
+
+    $this->activatePaidLifetimeOrder($order, $payment);
+  }
+
+  /**
+   * Activates a fully paid lifetime order after Commerce refreshes its totals.
+   *
+   * Commerce's payment order updater can defer the aggregate `total_paid`
+   * recalculation until after the payment entity hook has run. The subsequent
+   * order save calls this method, which finds a completed payment belonging to
+   * this order and applies the same activation checks.
+   */
+  public function syncPaidLifetimeOrder(object $order): void {
+    if (!$order->isPaid()) {
+      return;
+    }
+
+    try {
+      $offer = $this->offerForOrder($order);
+    }
+    catch (\DomainException) {
+      return;
+    }
+    if ($offer->getPurchaseType() !== 'lifetime') {
+      return;
+    }
+
+    $payments = $this->entityTypeManager
+      ->getStorage('commerce_payment')
+      ->loadByProperties([
+        'order_id' => (int) $order->id(),
+        'state' => 'completed',
+      ]);
+    usort(
+      $payments,
+      static fn (object $a, object $b): int => (int) $b->id() <=> (int) $a->id(),
+    );
+
+    foreach ($payments as $payment) {
+      if ($this->paymentBelongsToOrder($payment, $order)
+        && (string) ($payment->getPaymentGateway()->id() ?? '') === $offer->getPaymentGatewayId()
+      ) {
+        $this->activatePaidLifetimeOrder($order, $payment, $offer);
+        return;
+      }
+    }
+  }
+
+  /**
+   * Performs the final, idempotent lifetime-entitlement activation.
+   */
+  private function activatePaidLifetimeOrder(
+    object $order,
+    object $payment,
+    ?object $offer = NULL,
+  ): void {
+    if (!$order->isPaid()
+      || $payment->getState()->value !== 'completed'
+      || !$this->paymentBelongsToOrder($payment, $order)) {
+      return;
+    }
+
+    if (!$offer) {
+      try {
+        $offer = $this->offerForOrder($order);
+      }
+      catch (\DomainException) {
+        return;
+      }
+    }
+    if ($offer->getPurchaseType() !== 'lifetime') {
+      return;
+    }
+
+    $gateway_id = (string) ($payment->getPaymentGateway()->id() ?? '');
+    if ($gateway_id !== $offer->getPaymentGatewayId()) {
+      $this->logger->warning('Lifetime order @order completed through unexpected gateway @gateway.', [
+        '@order' => $order->id(),
+        '@gateway' => $gateway_id ?: 'none',
+      ]);
+      return;
+    }
+
+    $entitlement = $this->ensureEntitlement($order, $offer);
+    if ($entitlement['status'] === 'active') {
+      return;
+    }
+
+    $this->update((int) $entitlement['eid'], [
+      'payment_id' => (int) $payment->id(),
+      'initial_capture_id' => $payment->getRemoteId(),
+      'status' => 'active',
+      'activated' => $this->time->getRequestTime(),
+    ]);
+    $this->grant($this->load((int) $entitlement['eid']));
+  }
+
+  /**
+   * Confirms that a payment's order reference matches the candidate order.
+   */
+  private function paymentBelongsToOrder(object $payment, object $order): bool {
+    $payment_order = $payment->getOrder();
+    return $payment_order && (int) $payment_order->id() === (int) $order->id();
   }
 
   /**
