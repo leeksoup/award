@@ -177,12 +177,20 @@ final class DiscussionPromptManager {
     }
 
     $title = $this->discussionTitle($activity);
-    $existing_discussion = $this->loadDiscussionByTitle($title, $course);
-    if ($existing_discussion instanceof NodeInterface) {
-      $this->ensureDiscussionAttached($existing_discussion, $course);
-      $activity->set('field_discussion_node', $existing_discussion);
-      $activity->save();
-      return $existing_discussion;
+    // Only an explicit discussion title signals that an existing course
+    // discussion may be reused. Falling back to a generic activity label such
+    // as "Discussion" must not cause unrelated prompts to share one node.
+    if (
+      $activity->hasField('field_discussion_title')
+      && !$activity->get('field_discussion_title')->isEmpty()
+    ) {
+      $existing_discussion = $this->loadDiscussionByTitle($title, $course);
+      if ($existing_discussion instanceof NodeInterface) {
+        $this->ensureDiscussionAttached($existing_discussion, $course);
+        $activity->set('field_discussion_node', $existing_discussion);
+        $activity->save();
+        return $existing_discussion;
+      }
     }
 
     $discussion = $this->entityTypeManager->getStorage('node')->create([

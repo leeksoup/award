@@ -116,6 +116,8 @@ foreach ($lessons as $lesson) {
 }
 
 $records = [];
+$discussion_usage = [];
+$discussion_details = [];
 foreach ($activities as $activity) {
   if (!$activity->hasField('field_discussion_prompt_body')
     || !$activity->hasField('field_discussion_title')
@@ -149,6 +151,15 @@ foreach ($activities as $activity) {
       'bundle' => $discussion->bundle(),
       'title' => (string) $discussion->label(),
     ];
+    $discussion_usage[$discussion->uuid()][] = [
+      'activity_id' => (int) $activity->id(),
+      'activity_uuid' => $activity->uuid(),
+      'activity_name' => (string) $activity->label(),
+    ];
+    $discussion_details[$discussion->uuid()] = [
+      'node_id' => (int) $discussion->id(),
+      'title' => (string) $discussion->label(),
+    ];
   }
 
   $records[] = [
@@ -166,6 +177,20 @@ foreach ($activities as $activity) {
   ];
 }
 
+$shared_discussions = [];
+foreach ($discussion_usage as $discussion_uuid => $referencing_activities) {
+  if (count($referencing_activities) < 2) {
+    continue;
+  }
+
+  $shared_discussions[] = [
+    'discussion_uuid' => $discussion_uuid,
+    'node_id' => $discussion_details[$discussion_uuid]['node_id'],
+    'title' => $discussion_details[$discussion_uuid]['title'],
+    'referencing_activities' => $referencing_activities,
+  ];
+}
+
 $export = [
   'export_type' => 'lms_discussion_prompt_activities',
   'schema_version' => 1,
@@ -177,6 +202,15 @@ $export = [
     'All IDs, UUIDs, revision IDs, bundle, status, langcode, and used_in',
     'are validation or context values.',
   ]),
+  'shared_discussion_warning' => $shared_discussions === []
+    ? NULL
+    : implode(' ', [
+      'Some activities reference the same Discussion node.',
+      'Review shared_discussions before importing.',
+      'For accidental sharing, give every affected activity a unique, nonblank',
+      'discussion_title and run repair_shared_lms_discussion_prompt_nodes.php.',
+    ]),
+  'shared_discussions' => $shared_discussions,
   'activities' => $records,
 ];
 
@@ -194,3 +228,10 @@ printf(
   count($records),
   $output_path,
 );
+if ($shared_discussions !== []) {
+  printf(
+    "WARNING: Found %d Discussion node(s) referenced by multiple activities. " .
+    "Review shared_discussions in the export before importing.\n",
+    count($shared_discussions),
+  );
+}
