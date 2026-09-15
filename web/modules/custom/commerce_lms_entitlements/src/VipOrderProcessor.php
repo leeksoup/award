@@ -12,7 +12,10 @@ use Drupal\commerce_price\Price;
 /** Adds the checkout-visible VIP recurring surcharge exactly once. */
 final class VipOrderProcessor implements OrderProcessorInterface {
 
-  public function __construct(private EntitlementManager $manager) {}
+  public function __construct(
+    private EntitlementManager $manager,
+    private SubscriptionCampaignResolver $campaignResolver,
+  ) {}
 
   /** {@inheritdoc} */
   public function process(OrderInterface $order): void {
@@ -21,9 +24,6 @@ final class VipOrderProcessor implements OrderProcessorInterface {
         $order->removeAdjustment($adjustment);
       }
     }
-    if (!$order->getData('commerce_lms_vip_selected')) {
-      return;
-    }
     try {
       $offer = $this->manager->offerForOrder($order);
     }
@@ -31,6 +31,33 @@ final class VipOrderProcessor implements OrderProcessorInterface {
       return;
     }
     if ($offer->getPurchaseType() !== 'recurring' || !$offer->isVipEnabled()) {
+      return;
+    }
+    $context = NULL;
+    try {
+      $context = $this->campaignResolver->resolve($order, $offer);
+    }
+    catch (\DomainException) {
+      // Checkout validation reports unsupported or conflicting coupons. Keep
+      // order refresh non-fatal so the customer can remove the coupon.
+    }
+    $auto_campaign = (string) ($order->getData('commerce_lms_campaign_auto_vip') ?? '');
+    if ($context && $context['campaign']->forcesVip()) {
+      $campaign_id = $context['campaign']->id();
+      if ($auto_campaign !== $campaign_id) {
+        if ($auto_campaign === '') {
+          $order->setData('commerce_lms_campaign_previous_vip', (bool) $order->getData('commerce_lms_vip_selected'));
+        }
+        $order->setData('commerce_lms_campaign_auto_vip', $campaign_id);
+      }
+      $order->setData('commerce_lms_vip_selected', TRUE);
+    }
+    elseif ($auto_campaign !== '') {
+      $order->setData('commerce_lms_vip_selected', (bool) $order->getData('commerce_lms_campaign_previous_vip'));
+      $order->setData('commerce_lms_campaign_previous_vip', NULL);
+      $order->setData('commerce_lms_campaign_auto_vip', NULL);
+    }
+    if (!$order->getData('commerce_lms_vip_selected')) {
       return;
     }
     $order->addAdjustment(new Adjustment([

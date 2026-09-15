@@ -3,3 +3,9 @@ commerce_lms_entitlements.offer_add:
   title: 'Add LMS offer'
   appears_on:
     - entity.commerce_lms_offer.collection
+
+commerce_lms_entitlements.subscription_campaign_add:
+  route_name: entity.commerce_lms_subscription_campaign.add_form
+  title: 'Add subscription campaign'
+  appears_on:
+    - entity.commerce_lms_subscription_campaign.collection

@@ -8,6 +8,7 @@ dependencies:
   - commerce:commerce_order
   - commerce:commerce_payment
   - commerce:commerce_product
+  - commerce:commerce_promotion
   - commerce_paypal:commerce_paypal
   - commerce_paypal_subscriptions:commerce_paypal_subscriptions
   - group:group

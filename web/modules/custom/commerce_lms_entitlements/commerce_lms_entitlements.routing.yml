@@ -130,3 +130,43 @@ entity.commerce_lms_offer.delete_form:
     parameters:
       commerce_lms_offer:
         type: 'entity:commerce_lms_offer'
+
+entity.commerce_lms_subscription_campaign.collection:
+  path: '/admin/commerce/config/lms-subscription-campaigns'
+  defaults:
+    _entity_list: 'commerce_lms_subscription_campaign'
+    _title: 'LMS subscription campaigns'
+  requirements:
+    _permission: 'administer commerce lms subscription campaigns'
+
+entity.commerce_lms_subscription_campaign.add_form:
+  path: '/admin/commerce/config/lms-subscription-campaigns/add'
+  defaults:
+    _entity_form: 'commerce_lms_subscription_campaign.add'
+    _title: 'Add LMS subscription campaign'
+  requirements:
+    _permission: 'administer commerce lms subscription campaigns'
+
+entity.commerce_lms_subscription_campaign.edit_form:
+  path: '/admin/commerce/config/lms-subscription-campaigns/{commerce_lms_subscription_campaign}'
+  defaults:
+    _entity_form: 'commerce_lms_subscription_campaign.edit'
+    _title: 'Edit LMS subscription campaign'
+  requirements:
+    _permission: 'administer commerce lms subscription campaigns'
+  options:
+    parameters:
+      commerce_lms_subscription_campaign:
+        type: 'entity:commerce_lms_subscription_campaign'
+
+entity.commerce_lms_subscription_campaign.delete_form:
+  path: '/admin/commerce/config/lms-subscription-campaigns/{commerce_lms_subscription_campaign}/delete'
+  defaults:
+    _entity_form: 'commerce_lms_subscription_campaign.delete'
+    _title: 'Delete LMS subscription campaign'
+  requirements:
+    _permission: 'administer commerce lms subscription campaigns'
+  options:
+    parameters:
+      commerce_lms_subscription_campaign:
+        type: 'entity:commerce_lms_subscription_campaign'

@@ -30,6 +30,31 @@ commerce_lms_entitlements.offer.*:
           course_id: { type: integer, label: 'Course ID' }
           class_id: { type: integer, label: 'Class ID' }
 
+commerce_lms_entitlements.campaign.*:
+  type: config_entity
+  label: 'Commerce LMS subscription campaign'
+  mapping:
+    id: { type: string, label: 'ID' }
+    label: { type: label, label: 'Label' }
+    status: { type: boolean, label: 'Enabled' }
+    behavior: { type: string, label: 'Campaign behavior' }
+    terms: { type: text, label: 'Customer-facing terms' }
+    offer_mappings:
+      type: sequence
+      label: 'Eligible offer mappings'
+      sequence:
+        type: mapping
+        mapping:
+          intro_cycles: { type: integer, label: 'Introductory payments' }
+          base_intro_number: { type: string, label: 'Base introductory amount' }
+          base_intro_currency: { type: string, label: 'Base introductory currency' }
+          vip_intro_number: { type: string, label: 'VIP introductory amount' }
+          vip_intro_currency: { type: string, label: 'VIP introductory currency' }
+          paypal_sandbox_base_plan_id: { type: string, label: 'Sandbox base plan ID' }
+          paypal_sandbox_vip_plan_id: { type: string, label: 'Sandbox VIP plan ID' }
+          paypal_live_base_plan_id: { type: string, label: 'Live base plan ID' }
+          paypal_live_vip_plan_id: { type: string, label: 'Live VIP plan ID' }
+
 commerce_lms_entitlements.vip:
   type: config_object
   label: 'Commerce LMS VIP settings'

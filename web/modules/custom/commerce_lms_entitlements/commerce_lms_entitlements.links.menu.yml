@@ -4,6 +4,12 @@ commerce_lms_entitlements.offers:
   route_name: entity.commerce_lms_offer.collection
   parent: commerce.configuration
 
+commerce_lms_entitlements.subscription_campaigns:
+  title: 'LMS subscription campaigns'
+  description: 'Map Commerce coupons to curated introductory PayPal plans.'
+  route_name: entity.commerce_lms_subscription_campaign.collection
+  parent: commerce.configuration
+
 commerce_lms_entitlements.admin:
   title: 'LMS entitlements'
   description: 'Review PayPal-backed LMS access and guarantee recovery.'

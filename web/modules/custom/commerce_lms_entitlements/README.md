@@ -118,6 +118,34 @@ webhook mirror; the subscription webhook pipeline continues to accept customer
 subscription lifecycle events only. Drupal cron also queues the same live-plan
 audit and logs discrepancies without delaying the cron request.
 
+## Introductory subscription campaigns
+
+Reusable coupon-backed campaigns are managed at
+`/admin/commerce/config/lms-subscription-campaigns`. A campaign maps each
+eligible recurring LMS offer to pre-created sandbox/live PayPal plans. Each
+campaign plan must have exactly one finite `TRIAL` cycle at the configured
+introductory price followed by one infinite `REGULAR` cycle at the offer's
+normal base or base-plus-VIP price.
+
+Create the campaign before its Commerce promotion. On the promotion, choose
+the **LMS subscription campaign** offer plugin and select the campaign. Create
+its coupon and configure Commerce's availability and usage limits normally.
+Recurring checkout accepts zero coupons or exactly one coupon using this offer
+plugin; it rejects stacking and unrelated coupons rather than allowing Drupal's
+order total to diverge from PayPal billing.
+
+Add the **Subscription offer** pane to the checkout flow's order-information
+step so buyers see the introductory payment count, normal renewal price, VIP
+treatment, and campaign terms. A launch campaign forces the existing VIP pane
+on while its coupon remains attached, then restores the buyer's previous VIP
+choice if the coupon is removed.
+
+Run `drush commerce-lms-entitlements:audit` after creating or changing a
+campaign. Enabled campaigns are checked against PayPal for status, product,
+cadence, introductory cycles and price, and indefinite regular renewal price.
+Commerce coupon limits remain authoritative; the module does not reserve a
+redemption before checkout completes.
+
 ## VIP live sessions
 
 VIP uses Recurring Events 3.x for event series, instances, registrants, and
@@ -136,7 +164,7 @@ workflow deliberately performs no proration.
 ## Staging checks
 
 Test monthly/quarterly/annual base and VIP plan selection, sandbox/live environment
-selection, live plan discovery and mismatch validation, lifetime PayPal
+selection, campaign coupons and disclosure, live plan discovery and mismatch validation, lifetime PayPal
 payment, invitation claim, multi-Class Course target validation, valid/invalid
 and duplicate webhooks, cancellation timing, failed payment/recovery, and
 Group `view`/`take` access. Also test PayPal revision approval/abandonment,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\commerce_lms_entitlements\Drush\Commands;
 
+use Drupal\commerce_lms_entitlements\Entity\LmsSubscriptionCampaign;
 use Drupal\commerce_lms_entitlements\PayPalPlanCatalog;
 use Drupal\commerce_lms_entitlements\PayPalSubscriptionOperations;
 use Drupal\Core\Database\Connection;
@@ -99,5 +100,22 @@ final class EntitlementCommands extends DrushCommands {
     }
     $this->output()->writeln('Unconfigured live PayPal mappings: ' . $unconfigured_plans);
     $this->output()->writeln('Invalid live PayPal mappings: ' . $invalid_plans);
+
+    $invalid_campaigns = 0;
+    foreach ($this->entityTypeManager->getStorage('commerce_lms_subscription_campaign')->loadMultiple() as $campaign) {
+      if (!$campaign instanceof LmsSubscriptionCampaign || !$campaign->status()) {
+        continue;
+      }
+      $errors = $this->planCatalog->validateCampaign($campaign);
+      if (!$errors) {
+        $this->output()->writeln(sprintf('Subscription campaign valid: %s', $campaign->id()));
+        continue;
+      }
+      $invalid_campaigns++;
+      foreach ($errors as $error) {
+        $this->output()->writeln(sprintf('Subscription campaign invalid [%s]: %s', $campaign->id(), $error));
+      }
+    }
+    $this->output()->writeln('Invalid subscription campaigns: ' . $invalid_campaigns);
   }
 }

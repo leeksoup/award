@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\commerce_lms_entitlements;
 
 use Drupal\commerce_lms_entitlements\Entity\LmsOffer;
+use Drupal\commerce_lms_entitlements\Entity\LmsSubscriptionCampaign;
 use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 use Drupal\commerce_price\Calculator;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -208,6 +209,151 @@ final class PayPalPlanCatalog {
       ];
     }
     return $results;
+  }
+
+  /**
+   * Validates all configured PayPal plans for one subscription campaign.
+   *
+   * @return string[]
+   *   Human-readable errors. An empty array means all mappings are valid.
+   */
+  public function validateCampaign(LmsSubscriptionCampaign $campaign): array {
+    $errors = [];
+    foreach ($campaign->getOfferMappings() as $offer_id => $mapping) {
+      $offer = $this->entityTypeManager->getStorage('commerce_lms_offer')->load($offer_id);
+      if (!$offer instanceof LmsOffer || $offer->getPurchaseType() !== 'recurring') {
+        $errors[] = sprintf('Offer %s is missing or is not recurring.', $offer_id);
+        continue;
+      }
+      $variation = $this->entityTypeManager->getStorage('commerce_product_variation')->load($offer->getVariationId());
+      $base_price = $variation?->getPrice();
+      if (!$base_price) {
+        $errors[] = sprintf('Offer %s has no Commerce variation price.', $offer_id);
+        continue;
+      }
+
+      foreach (['sandbox', 'live'] as $environment) {
+        $gateway_id = $environment === 'live'
+          ? $offer->getPayPalLiveGatewayId()
+          : $offer->getPayPalSandboxGatewayId();
+        $standard_plan_id = $environment === 'live'
+          ? $offer->getPayPalLivePlanId()
+          : $offer->getPayPalSandboxPlanId();
+        $tiers = $campaign->forcesVip() ? [TRUE] : [FALSE, TRUE];
+        $configured_campaign_plans = array_filter(array_map(
+          fn(bool $vip): string => $campaign->getPayPalPlanId($offer_id, $environment, $vip),
+          $tiers,
+        ));
+        if (!$configured_campaign_plans && $environment !== $offer->getPayPalEnvironment()) {
+          continue;
+        }
+        if ($gateway_id === '' || $standard_plan_id === '') {
+          $errors[] = sprintf('%s/%s requires the %s gateway and standard plan mapping.', $campaign->id(), $offer_id, $environment);
+          continue;
+        }
+        try {
+          $gateway = $this->loadGateway($gateway_id, $environment);
+          $standard_plan = $this->operations->fetchPlan($gateway, $standard_plan_id);
+        }
+        catch (\Throwable $e) {
+          $errors[] = sprintf('%s/%s %s standard plan could not be loaded: %s', $campaign->id(), $offer_id, $environment, $e->getMessage());
+          continue;
+        }
+
+        foreach ($tiers as $vip) {
+          if ($vip && !$offer->isVipEnabled()) {
+            if ($campaign->forcesVip()) {
+              $errors[] = sprintf('%s/%s forces VIP but the offer does not enable VIP.', $campaign->id(), $offer_id);
+            }
+            continue;
+          }
+          $tier = $vip ? 'VIP' : 'base';
+          $plan_id = $campaign->getPayPalPlanId($offer_id, $environment, $vip);
+          if ($plan_id === '') {
+            $errors[] = sprintf('%s/%s has no %s %s campaign plan.', $campaign->id(), $offer_id, $environment, $tier);
+            continue;
+          }
+          $intro_price = $campaign->getIntroPrice($offer_id, $vip);
+          if (!$intro_price) {
+            $errors[] = sprintf('%s/%s has no valid %s introductory price.', $campaign->id(), $offer_id, $tier);
+            continue;
+          }
+          if ($vip && $offer->getVipSurchargeCurrency() !== $base_price->getCurrencyCode()) {
+            $errors[] = sprintf('%s/%s VIP surcharge currency does not match the variation.', $campaign->id(), $offer_id);
+            continue;
+          }
+          $regular_price = $vip
+            ? $base_price->add(new \Drupal\commerce_price\Price($offer->getVipSurchargeNumber(), $offer->getVipSurchargeCurrency()))
+            : $base_price;
+          try {
+            $plan = $this->operations->fetchPlan($gateway, $plan_id);
+          }
+          catch (\Throwable $e) {
+            $errors[] = sprintf('%s/%s %s %s plan could not be loaded: %s', $campaign->id(), $offer_id, $environment, $tier, $e->getMessage());
+            continue;
+          }
+          foreach ($this->validateCampaignPlan($campaign, $offer, $plan, $standard_plan, $intro_price, $regular_price) as $error) {
+            $errors[] = sprintf('%s/%s %s %s: %s', $campaign->id(), $offer_id, $environment, $tier, $error);
+          }
+        }
+      }
+    }
+    return $errors;
+  }
+
+  /** Validates one remote campaign plan against its configured schedule. */
+  private function validateCampaignPlan(LmsSubscriptionCampaign $campaign, LmsOffer $offer, array $plan, array $standard_plan, \Drupal\commerce_price\Price $intro_price, \Drupal\commerce_price\Price $regular_price): array {
+    $errors = [];
+    if ($intro_price->getCurrencyCode() !== $regular_price->getCurrencyCode() || !$regular_price->greaterThan($intro_price)) {
+      $errors[] = 'the introductory price must be lower than the regular price in the same currency';
+    }
+    if (($plan['status'] ?? '') !== 'ACTIVE') {
+      $errors[] = 'the plan is not ACTIVE';
+    }
+    if (!empty($plan['quantity_supported'])) {
+      $errors[] = 'the plan supports variable quantities';
+    }
+    if (($plan['product_id'] ?? '') === '' || ($plan['product_id'] ?? '') !== ($standard_plan['product_id'] ?? '')) {
+      $errors[] = 'the plan does not use the offer’s standard PayPal product';
+    }
+    $trial_cycles = array_values(array_filter($plan['billing_cycles'] ?? [], static fn(array $cycle): bool => ($cycle['tenure_type'] ?? '') === 'TRIAL'));
+    $regular_cycles = array_values(array_filter($plan['billing_cycles'] ?? [], static fn(array $cycle): bool => ($cycle['tenure_type'] ?? '') === 'REGULAR'));
+    if (count($trial_cycles) !== 1 || count($regular_cycles) !== 1) {
+      $errors[] = 'the plan must contain exactly one TRIAL and one REGULAR billing cycle';
+      return $errors;
+    }
+    $trial = $trial_cycles[0];
+    $regular = $regular_cycles[0];
+    if ((int) ($trial['sequence'] ?? 0) >= (int) ($regular['sequence'] ?? 0)) {
+      $errors[] = 'the TRIAL cycle must precede the REGULAR cycle';
+    }
+    if ((int) ($trial['total_cycles'] ?? 0) !== $campaign->getIntroCycles($offer->id())) {
+      $errors[] = 'the TRIAL cycle count does not match the campaign';
+    }
+    if ((int) ($regular['total_cycles'] ?? -1) !== 0) {
+      $errors[] = 'the REGULAR cycle must continue indefinitely';
+    }
+    $expected_frequency = [
+      'monthly' => ['interval_unit' => 'MONTH', 'interval_count' => 1],
+      'quarterly' => ['interval_unit' => 'MONTH', 'interval_count' => 3],
+      'annual' => ['interval_unit' => 'YEAR', 'interval_count' => 1],
+    ][$offer->getBillingInterval()] ?? [];
+    foreach (['TRIAL' => $trial, 'REGULAR' => $regular] as $name => $cycle) {
+      $frequency = $cycle['frequency'] ?? [];
+      if (($frequency['interval_unit'] ?? '') !== ($expected_frequency['interval_unit'] ?? NULL) || (int) ($frequency['interval_count'] ?? 0) !== ($expected_frequency['interval_count'] ?? 0)) {
+        $errors[] = sprintf('the %s frequency does not match the offer cadence', $name);
+      }
+    }
+    foreach ([['TRIAL', $trial, $intro_price], ['REGULAR', $regular, $regular_price]] as [$name, $cycle, $expected_price]) {
+      $remote_price = $cycle['pricing_scheme']['fixed_price'] ?? [];
+      if (!isset($remote_price['value']) || empty($remote_price['currency_code'])) {
+        $errors[] = sprintf('the %s cycle has no fixed price', $name);
+      }
+      elseif ($remote_price['currency_code'] !== $expected_price->getCurrencyCode() || Calculator::compare((string) $remote_price['value'], $expected_price->getNumber()) !== 0) {
+        $errors[] = sprintf('the %s price does not match %s %s', $name, $expected_price->getNumber(), $expected_price->getCurrencyCode());
+      }
+    }
+    return $errors;
   }
 
   /** Loads and validates one environment-specific subscription gateway. */

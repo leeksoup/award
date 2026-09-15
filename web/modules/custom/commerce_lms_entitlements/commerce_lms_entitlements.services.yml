@@ -14,6 +14,9 @@ services:
   commerce_lms_entitlements.paypal_plan_catalog:
     class: Drupal\commerce_lms_entitlements\PayPalPlanCatalog
     arguments: ['@entity_type.manager', '@commerce_lms_entitlements.paypal_operations']
+  commerce_lms_entitlements.subscription_campaign_resolver:
+    class: Drupal\commerce_lms_entitlements\SubscriptionCampaignResolver
+    arguments: ['@entity_type.manager']
   commerce_lms_entitlements.plan_change_manager:
     class: Drupal\commerce_lms_entitlements\PlanChangeManager
     arguments: ['@database', '@entity_type.manager', '@datetime.time', '@commerce_lms_entitlements.manager', '@commerce_lms_entitlements.paypal_operations']
@@ -22,7 +25,7 @@ services:
     arguments: ['@database', '@entity_type.manager', '@config.factory', '@datetime.time', '@lock', '@recurring_events_registration.creation_service', '@plugin.manager.mail', '@language_manager']
   commerce_lms_entitlements.plan_subscriber:
     class: Drupal\commerce_lms_entitlements\EventSubscriber\PayPalPlanSubscriber
-    arguments: ['@commerce_lms_entitlements.manager']
+    arguments: ['@commerce_lms_entitlements.manager', '@commerce_lms_entitlements.subscription_campaign_resolver']
     tags:
       - { name: event_subscriber }
   commerce_lms_entitlements.payment_gateway_subscriber:
@@ -32,6 +35,6 @@ services:
       - { name: event_subscriber }
   commerce_lms_entitlements.vip_order_processor:
     class: Drupal\commerce_lms_entitlements\VipOrderProcessor
-    arguments: ['@commerce_lms_entitlements.manager']
+    arguments: ['@commerce_lms_entitlements.manager', '@commerce_lms_entitlements.subscription_campaign_resolver']
     tags:
-      - { name: commerce_order.order_processor, priority: 50, adjustment_type: fee }
+      - { name: commerce_order.order_processor, priority: 110, adjustment_type: fee }

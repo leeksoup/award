@@ -31,6 +31,27 @@ final class PlanChangeManager {
       throw new \DomainException('VIP tier changes are not configured for this offer.');
     }
     [$gateway, $remote] = $this->gatewayAndRemote($entitlement);
+    if (!empty($entitlement['subscription_campaign_id'])) {
+      $trial_execution = NULL;
+      foreach (($remote['billing_info']['cycle_executions'] ?? []) as $execution) {
+        if (($execution['tenure_type'] ?? '') === 'TRIAL') {
+          $trial_execution = $execution;
+          break;
+        }
+      }
+      if (!is_array($trial_execution) || !array_key_exists('cycles_remaining', $trial_execution)) {
+        $remote_plan_id = (string) ($remote['plan_id'] ?? '');
+        $standard_plan_ids = (string) $gateway->id() === $offer->getPayPalSandboxGatewayId()
+          ? [$offer->getPayPalSandboxPlanId(), $offer->getPayPalSandboxVipPlanId()]
+          : [$offer->getPayPalLivePlanId(), $offer->getPayPalLiveVipPlanId()];
+        if (!in_array($remote_plan_id, array_filter($standard_plan_ids), TRUE)) {
+          throw new \DomainException('The introductory billing period could not be verified with PayPal. Tier changes remain unavailable for safety.');
+        }
+      }
+      elseif ((int) $trial_execution['cycles_remaining'] > 0) {
+        throw new \DomainException('VIP tier changes are unavailable until the introductory billing period ends.');
+      }
+    }
     $to_tier = !empty($entitlement['vip_active']) ? 'base' : 'vip';
     if ((string) $gateway->id() === $offer->getPayPalSandboxGatewayId()) {
       $target_plan = $to_tier === 'vip' ? $offer->getPayPalSandboxVipPlanId() : $offer->getPayPalSandboxPlanId();

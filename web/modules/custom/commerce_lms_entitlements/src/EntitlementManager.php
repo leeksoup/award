@@ -61,15 +61,25 @@ final class EntitlementManager {
    * The unique `order_id` makes this idempotent. A retry returns the original
    * row rather than granting a second bundle or creating a second audit trail.
    */
-  public function ensureEntitlement(object $order, object $offer): array {
-    $vip_selected = $offer->getPurchaseType() === 'recurring' && $offer->isVipEnabled() && (bool) $order->getData('commerce_lms_vip_selected');
-    $plan_id = $offer->getPurchaseType() === 'recurring' ? ($vip_selected ? $offer->getActivePayPalVipPlanId() : $offer->getActivePayPalPlanId()) : NULL;
+  public function ensureEntitlement(object $order, object $offer, ?SubscriptionPlanSelection $selection = NULL): array {
+    $vip_selected = $selection?->vip
+      ?? ($offer->getPurchaseType() === 'recurring' && $offer->isVipEnabled() && (bool) $order->getData('commerce_lms_vip_selected'));
+    $plan_id = $selection?->planId
+      ?? ($offer->getPurchaseType() === 'recurring' ? ($vip_selected ? $offer->getActivePayPalVipPlanId() : $offer->getActivePayPalPlanId()) : NULL);
+    $campaign_values = [
+      'subscription_campaign_id' => $selection?->campaignId,
+      'promotion_uuid' => $selection?->promotionUuid,
+      'coupon_uuid' => $selection?->couponUuid,
+    ];
     if ($existing = $this->loadByOrder((int) $order->id())) {
       // A checkout rebuild may change the bump before PayPal approval. It is
       // safe to refresh only a still-unlinked pending row; billing-linked rows
       // can change tier only through the revision workflow.
       if ($existing['status'] === 'pending' && empty($existing['paypal_subscription_id'])) {
-        $this->update((int) $existing['eid'], ['paypal_plan_id' => $plan_id, 'vip_selected' => $vip_selected ? 1 : 0]);
+        $this->update((int) $existing['eid'], [
+          'paypal_plan_id' => $plan_id,
+          'vip_selected' => $vip_selected ? 1 : 0,
+        ] + $campaign_values);
         return $this->load((int) $existing['eid']);
       }
       return $existing;
@@ -84,6 +94,9 @@ final class EntitlementManager {
       'paypal_plan_id' => $plan_id,
       'vip_selected' => $vip_selected ? 1 : 0,
       'vip_active' => 0,
+      'subscription_campaign_id' => $campaign_values['subscription_campaign_id'],
+      'promotion_uuid' => $campaign_values['promotion_uuid'],
+      'coupon_uuid' => $campaign_values['coupon_uuid'],
       'created' => $now, 'changed' => $now,
     ])->execute();
     return $this->loadByOrder((int) $order->id());
@@ -326,6 +339,18 @@ final class EntitlementManager {
     $values = ['status' => $local, 'access_through' => $through];
     $remote_plan_id = (string) ($remote['plan_id'] ?? '');
     $pending_change = $this->pendingPlanChange((int) $entitlement['eid']);
+    $allowed_plan_ids = array_filter([(string) ($entitlement['paypal_plan_id'] ?? '')]);
+    if ($pending_change) {
+      $allowed_plan_ids[] = (string) $pending_change['target_plan_id'];
+    }
+    if ($remote_plan_id !== '' && !in_array($remote_plan_id, $allowed_plan_ids, TRUE)) {
+      $this->logger->error('PayPal plan mismatch for entitlement @eid: expected @expected, received @remote.', [
+        '@eid' => $entitlement['eid'],
+        '@expected' => implode(' or ', $allowed_plan_ids),
+        '@remote' => $remote_plan_id,
+      ]);
+      throw new \DomainException('PayPal returned a plan that is not authorized for this entitlement.');
+    }
     if ($pending_change && $pending_change['status'] === 'approval_pending' && $remote_plan_id === (string) $pending_change['target_plan_id']) {
       $this->database->update('commerce_lms_plan_change')
         ->fields(['status' => 'approved', 'changed' => $this->time->getRequestTime()])
@@ -428,6 +453,17 @@ final class EntitlementManager {
   private function vipPlanForEntitlement(array $entitlement, object $offer): string {
     $order = $this->entityTypeManager->getStorage('commerce_order')->load($entitlement['order_id']);
     $gateway_id = (string) ($order?->get('payment_gateway')->target_id ?? '');
+    if (!empty($entitlement['subscription_campaign_id'])) {
+      $campaign = $this->entityTypeManager->getStorage('commerce_lms_subscription_campaign')->load($entitlement['subscription_campaign_id']);
+      if ($campaign instanceof \Drupal\commerce_lms_entitlements\Entity\LmsSubscriptionCampaign) {
+        if ($gateway_id !== '' && $gateway_id === $offer->getPayPalSandboxGatewayId()) {
+          return $campaign->getPayPalPlanId($offer->id(), 'sandbox', TRUE);
+        }
+        if ($gateway_id !== '' && $gateway_id === $offer->getPayPalLiveGatewayId()) {
+          return $campaign->getPayPalPlanId($offer->id(), 'live', TRUE);
+        }
+      }
+    }
     if ($gateway_id !== '' && $gateway_id === $offer->getPayPalSandboxGatewayId()) {
       return $offer->getPayPalSandboxVipPlanId();
     }

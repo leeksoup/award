@@ -215,14 +215,16 @@ email. An invitation expires after 30 days.
 | File | Responsibility |
 | --- | --- |
 | `commerce_lms_entitlements.info.yml` | Declares dependencies on Commerce, the PayPal modules, Group, and LMS Classes. |
-| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings and `10012` adds VIP state. |
+| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings, `10012` adds VIP state, and `10013` adds campaign audit metadata. |
 | `commerce_lms_entitlements.module` | Bridges Commerce entity events to the manager, queues reconciliation from cron, and supplies invitation mail text. |
 | `services.yml` | Registers the manager, PayPal REST/catalog services, event subscribers, and log channel. |
 | `routing.yml`, `links.menu.yml`, `permissions.yml` | Define the webhook, invitation, purchaser and administrator routes; the admin menu entry; and authorization gates. |
 | `Entity/LmsOffer.php` | Config-entity definition for one variation-to-bundle mapping. |
+| `Entity/LmsSubscriptionCampaign.php`, campaign form/list builder | Define reusable campaign behavior and per-offer introductory prices, cycles, and sandbox/live plan mappings. |
 | `Form/OfferForm.php` | Administrator UI for dual PayPal mappings, live plan discovery/validation, active environment, expected cadence, and `COURSE_ID:CLASS_ID` parsing. |
 | `CheckoutPane/LearnerPane.php` | Stores the chosen existing learner or creates/sends an invitation before payment approval. |
 | `CheckoutPane/VipUpgradePane.php`, `VipOrderProcessor.php` | Store the order-bump choice and add its idempotent labeled recurring adjustment. |
+| `CheckoutPane/SubscriptionCampaignPane.php`, `PromotionOffer/LmsSubscriptionCampaignOffer.php` | Validate/disclose coupon terms and adjust the Commerce total to the curated PayPal introductory charge. |
 | `EventSubscriber/PaymentGatewaySubscriber.php` | Filters Commerce's available gateways so a valid LMS offer can use only its configured recurring or one-time gateway. |
 | `EventSubscriber/PayPalPlanSubscriber.php` | Intercepts the contributed module’s subscription creation event, validates the order/offer/gateway, creates the pending entitlement, and injects the PayPal plan ID. |
 | `Controller/PayPalWebhookController.php` | Public endpoint that verifies the PayPal transmission signature using the contributed SDK, deduplicates the event, queues work, and immediately responds. |
@@ -231,6 +233,7 @@ email. An invitation expires after 30 days.
 | `QueueWorker/LivePlanAuditWorker.php` | Re-fetches live PayPal mappings asynchronously from cron and logs invalid or missing mappings. |
 | `EntitlementManager.php` | Central state machine, data access, offer/target validation, invitation handling, and safe Group membership grant/revoke logic. |
 | `PayPalPlanCatalog.php` | Discovers live products/plans and validates status, quantity, trial, cadence, price, and currency against an offer. |
+| `SubscriptionCampaignResolver.php`, `SubscriptionPlanSelection.php` | Resolve one supported coupon to an immutable, environment- and tier-specific campaign plan selection. |
 | `PayPalSubscriptionOperations.php` | Direct PayPal REST adapter for catalog reads, plan details, revision, cancellation, and capture refunds using gateway-owned credentials. |
 | `PlanChangeManager.php` and tier form/controller | Own the revision state token, PayPal re-consent return, and next-renewal transition. |
 | `VipBookingManager.php` and VIP forms/controller | Enforce active learner access, capacity, cutoff, monthly quota, protected meeting display, and booking mail. |

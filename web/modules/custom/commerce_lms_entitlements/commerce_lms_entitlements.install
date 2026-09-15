@@ -24,6 +24,9 @@ function commerce_lms_entitlements_schema(): array {
       'payment_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
       'paypal_subscription_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
       'paypal_plan_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'subscription_campaign_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'promotion_uuid' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'coupon_uuid' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
       'vip_selected' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
       'vip_active' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
       'initial_capture_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
@@ -226,4 +229,21 @@ function commerce_lms_entitlements_update_10012(): string {
     }
   }
   return (string) t('Added VIP plan, access, revision, and booking storage.');
+}
+
+/**
+ * Adds subscription campaign audit metadata to entitlements.
+ */
+function commerce_lms_entitlements_update_10013(): string {
+  $schema = \Drupal::database()->schema();
+  $definition = commerce_lms_entitlements_schema()['commerce_lms_entitlement'];
+  $added = 0;
+  foreach (['subscription_campaign_id', 'promotion_uuid', 'coupon_uuid'] as $field) {
+    if (!$schema->fieldExists('commerce_lms_entitlement', $field)) {
+      $schema->addField('commerce_lms_entitlement', $field, $definition['fields'][$field]);
+      $added++;
+    }
+  }
+
+  return (string) t('Added @count subscription campaign audit fields.', ['@count' => $added]);
 }

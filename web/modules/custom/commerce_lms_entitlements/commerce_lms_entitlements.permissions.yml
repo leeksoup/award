@@ -1,5 +1,8 @@
 administer commerce lms offers:
   title: 'Administer Commerce LMS offers'
+administer commerce lms subscription campaigns:
+  title: 'Administer Commerce LMS subscription campaigns'
+  restrict access: true
 administer commerce lms entitlements:
   title: 'Administer Commerce LMS entitlements'
 view own commerce lms entitlements:
