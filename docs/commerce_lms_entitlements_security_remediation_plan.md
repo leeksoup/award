@@ -516,6 +516,42 @@ Consider:
 - Payment gateway filtering and offer validation fail closed in the normal
   checkout path.
 
+## Deferred follow-up: Commerce order deletion lifecycle
+
+Recorded 2026-09-15 for implementation after the current higher-priority
+deployment work.
+
+Deleting a Commerce order currently leaves its row in
+`commerce_lms_entitlement` and can also leave related membership-ledger,
+plan-change, invitation, and webhook-event data. Cron then repeatedly attempts
+to reconcile a recurring entitlement whose order or payment gateway can no
+longer be loaded. This was observed with deleted sandbox orders backing
+entitlements 10 through 14.
+
+Implement an order-deletion lifecycle policy rather than a blind database
+cascade:
+
+1. Add a `commerce_order` pre-delete guard that delegates to an injected
+   entitlement cleanup service.
+2. Refuse ordinary deletion while a nonterminal remote PayPal subscription is
+   attached. Remote cancellation and authoritative reconciliation must happen
+   first.
+3. Add an explicit administrative Drush purge command with dry-run output and
+   a confirmation flag for terminal, abandoned, or sandbox entitlements.
+4. Revoke entitlement-backed Group access through
+   `EntitlementMembershipManager` before deleting ledger records, preserving a
+   membership supported by another entitlement or created manually.
+5. Delete dependent plan-change and membership-ledger rows; delete an
+   invitation only when no other entitlement references it; and define a
+   deliberate retention rule for related webhook events.
+6. Add tests for active-subscription deletion refusal, sandbox/terminal purge,
+   shared membership preservation, manual membership preservation, and
+   idempotent cleanup.
+
+Until that lifecycle is implemented, orphan cleanup must be a reviewed,
+backup-protected administrative operation and must never be applied to an
+unverified live PayPal subscription.
+
 ## Test plan
 
 Add automated coverage before deployment:
