@@ -59,10 +59,15 @@ final class PayPalPlanCatalog {
   /**
    * Validates the live half of a recurring offer and returns remote details.
    *
+   * @param \Drupal\commerce_lms_entitlements\Entity\LmsOffer $offer
+   *   The offer whose live PayPal mapping should be validated.
+   * @param bool $require_vip
+   *   Whether an enabled offer must already have its live VIP plan mapped.
+   *
    * @return array{errors: string[], plan: array}
    *   Human-readable validation errors and the fetched PayPal plan.
    */
-  public function validateLiveOffer(LmsOffer $offer): array {
+  public function validateLiveOffer(LmsOffer $offer, bool $require_vip = TRUE): array {
     $errors = [];
     $plan = [];
     try {
@@ -133,7 +138,9 @@ final class PayPalPlanCatalog {
     if ($offer->isVipEnabled()) {
       $vip_plan_id = $offer->getPayPalLiveVipPlanId();
       if ($vip_plan_id === '') {
-        $errors[] = (string) $this->t('The live VIP-inclusive PayPal plan is not configured.');
+        if ($require_vip) {
+          $errors[] = (string) $this->t('The live VIP-inclusive PayPal plan is not configured.');
+        }
         return ['errors' => $errors, 'plan' => $plan];
       }
       try {

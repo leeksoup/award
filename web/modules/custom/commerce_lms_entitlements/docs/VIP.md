@@ -49,7 +49,11 @@ each active PayPal environment. Each pair must:
 Edit the LMS offer, enable VIP, enter the environment-specific VIP plan IDs and
 surcharge, then save. Live mappings are fetched and validated through the
 existing plan catalog. Sandbox mappings remain explicitly configured for test
-isolation. Run the audit command after any PayPal price or plan change.
+isolation. A sandbox-active offer may retain its existing live base mapping
+while its live VIP plan is still blank; switching the offer to live remains
+blocked until the VIP plan is configured, and the audit continues to report
+the incomplete live pair. Run the audit command after any PayPal price or plan
+change.
 
 ## Initial checkout flow
 

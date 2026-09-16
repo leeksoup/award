@@ -359,7 +359,7 @@ final class OfferForm extends EntityForm implements ContainerInjectionInterface 
         $form_state->setError($form['paypal']['live'], $this->t('A live mapping requires both its gateway and plan.'));
       }
       else {
-        $result = $this->planCatalog->validateLiveOffer($offer);
+        $result = $this->planCatalog->validateLiveOffer($offer, $active_environment === 'live');
         foreach ($result['errors'] as $error) {
           $form_state->setError($form['paypal']['live']['paypal_live_plan_id'], $error);
         }
