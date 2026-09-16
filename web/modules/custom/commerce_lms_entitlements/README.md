@@ -196,6 +196,32 @@ drush cex -y
 drush commerce-lms-entitlements:audit
 ```
 
+### Standard VIP PayPal plan generation
+
+VIP-enabled recurring offers also require a standard VIP-inclusive plan that
+has one infinite `REGULAR` cycle and no introductory `TRIAL` cycle. Preview
+missing sandbox mappings with:
+
+```bash
+drush commerce-lms-entitlements:create-vip-plans
+```
+
+Create, validate, and save missing live mappings only with explicit
+confirmation:
+
+```bash
+drush commerce-lms-entitlements:create-vip-plans \
+  --environment=live \
+  --apply \
+  --confirm-live=CREATE-LIVE-PAYPAL-PLANS
+```
+
+The command derives product, cadence, currency, and price from the standard
+base plan, Commerce variation, and configured VIP surcharge. It validates and
+preserves existing mappings, uses deterministic PayPal request IDs, and
+records recovery state after a partially successful run. After applying, run
+`drush cex -y` and `drush commerce-lms-entitlements:audit`.
+
 ## VIP live sessions
 
 VIP uses Recurring Events 3.x for event series, instances, registrants, and

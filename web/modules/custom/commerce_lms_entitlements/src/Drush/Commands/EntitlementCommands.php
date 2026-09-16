@@ -8,6 +8,7 @@ use Drupal\commerce_lms_entitlements\Entity\LmsSubscriptionCampaign;
 use Drupal\commerce_lms_entitlements\PayPalCampaignPlanManager;
 use Drupal\commerce_lms_entitlements\PayPalPlanCatalog;
 use Drupal\commerce_lms_entitlements\PayPalSubscriptionOperations;
+use Drupal\commerce_lms_entitlements\PayPalVipPlanManager;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drush\Attributes as CLI;
@@ -21,6 +22,7 @@ final class EntitlementCommands extends DrushCommands {
     private EntityTypeManagerInterface $entityTypeManager,
     private PayPalSubscriptionOperations $paypalOperations,
     private PayPalCampaignPlanManager $campaignPlanManager,
+    private PayPalVipPlanManager $vipPlanManager,
   ) {
     parent::__construct();
   }
@@ -174,6 +176,49 @@ final class EntitlementCommands extends DrushCommands {
     }
     else {
       $this->logger()->notice(sprintf('Dry run only. Re-run with --apply to create missing %s plans.', $environment));
+    }
+  }
+
+  /** Previews or creates standard VIP-inclusive PayPal plans. */
+  #[CLI\Command(name: 'commerce-lms-entitlements:create-vip-plans', aliases: ['clevp'])]
+  #[CLI\Option(name: 'environment', description: 'PayPal environment: sandbox (default) or live.')]
+  #[CLI\Option(name: 'apply', description: 'Create missing plans and save their IDs to LMS offer configuration.')]
+  #[CLI\Option(name: 'confirm-live', description: 'Required confirmation token for live creation.')]
+  #[CLI\Usage(name: 'drush commerce-lms-entitlements:create-vip-plans', description: 'Preview missing sandbox standard VIP plans without changing PayPal or Drupal.')]
+  #[CLI\Usage(name: 'drush commerce-lms-entitlements:create-vip-plans --environment=live --apply --confirm-live=CREATE-LIVE-PAYPAL-PLANS', description: 'Create, validate, and save missing live standard VIP plans.')]
+  public function createVipPlans(
+    array $options = [
+      'environment' => 'sandbox',
+      'apply' => FALSE,
+      'confirm-live' => NULL,
+    ],
+  ): void {
+    $environment = strtolower(trim((string) ($options['environment'] ?? 'sandbox')));
+    if (!in_array($environment, ['sandbox', 'live'], TRUE)) {
+      throw new \InvalidArgumentException('The --environment option must be sandbox or live.');
+    }
+    $apply = !empty($options['apply']);
+    if ($apply && $environment === 'live' && ($options['confirm-live'] ?? '') !== 'CREATE-LIVE-PAYPAL-PLANS') {
+      throw new \InvalidArgumentException('Live plan creation requires --confirm-live=CREATE-LIVE-PAYPAL-PLANS.');
+    }
+
+    $entries = $this->vipPlanManager->provision($environment, $apply);
+    $rows = [];
+    foreach ($entries as $entry) {
+      $rows[] = [
+        $entry['offer_id'],
+        $entry['price'],
+        $entry['product_id'],
+        $entry['status'],
+        $entry['plan_id'] ?: '(pending)',
+      ];
+    }
+    $this->io()->table(['Offer', 'VIP price', 'Product', 'Result', 'Plan ID'], $rows);
+    if ($apply) {
+      $this->logger()->success(sprintf('Saved the %s standard VIP PayPal plan mappings.', $environment));
+    }
+    else {
+      $this->logger()->notice(sprintf('Dry run only. Re-run with --apply to create missing %s standard VIP plans.', $environment));
     }
   }
 }

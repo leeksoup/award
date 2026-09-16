@@ -363,6 +363,46 @@ final class PayPalPlanCatalog {
     return $errors;
   }
 
+  /** Validates one standard VIP plan against its base plan and offer. */
+  public function validateStandardVipPlan(LmsOffer $offer, array $plan, array $standard_plan, \Drupal\commerce_price\Price $vip_price): array {
+    $errors = [];
+    if (($plan['status'] ?? '') !== 'ACTIVE') {
+      $errors[] = 'the plan is not ACTIVE';
+    }
+    if (!empty($plan['quantity_supported'])) {
+      $errors[] = 'the plan supports variable quantities';
+    }
+    if (($plan['product_id'] ?? '') === '' || ($plan['product_id'] ?? '') !== ($standard_plan['product_id'] ?? '')) {
+      $errors[] = 'the plan does not use the offer’s standard PayPal product';
+    }
+    $trials = array_filter($plan['billing_cycles'] ?? [], static fn(array $cycle): bool => ($cycle['tenure_type'] ?? '') === 'TRIAL');
+    $regular = array_values(array_filter($plan['billing_cycles'] ?? [], static fn(array $cycle): bool => ($cycle['tenure_type'] ?? '') === 'REGULAR'));
+    if ($trials || count($regular) !== 1) {
+      $errors[] = 'the plan must contain one REGULAR billing cycle and no TRIAL cycles';
+      return $errors;
+    }
+    if ((int) ($regular[0]['total_cycles'] ?? -1) !== 0) {
+      $errors[] = 'the REGULAR cycle must continue indefinitely';
+    }
+    $standard_regular = array_values(array_filter($standard_plan['billing_cycles'] ?? [], static fn(array $cycle): bool => ($cycle['tenure_type'] ?? '') === 'REGULAR'));
+    $expected_frequency = [
+      'monthly' => ['interval_unit' => 'MONTH', 'interval_count' => 1],
+      'quarterly' => ['interval_unit' => 'MONTH', 'interval_count' => 3],
+      'annual' => ['interval_unit' => 'YEAR', 'interval_count' => 1],
+    ][$offer->getBillingInterval()] ?? [];
+    if (count($standard_regular) !== 1 || ($regular[0]['frequency'] ?? []) !== $expected_frequency || ($standard_regular[0]['frequency'] ?? []) !== $expected_frequency) {
+      $errors[] = 'the plan frequency does not match the standard base plan';
+    }
+    $remote_price = $regular[0]['pricing_scheme']['fixed_price'] ?? [];
+    if (!isset($remote_price['value']) || empty($remote_price['currency_code'])) {
+      $errors[] = 'the REGULAR cycle has no fixed price';
+    }
+    elseif ($remote_price['currency_code'] !== $vip_price->getCurrencyCode() || Calculator::compare((string) $remote_price['value'], $vip_price->getNumber()) !== 0) {
+      $errors[] = sprintf('the REGULAR price does not match %s %s', $vip_price->getNumber(), $vip_price->getCurrencyCode());
+    }
+    return $errors;
+  }
+
   /** Loads and validates one environment-specific subscription gateway. */
   public function loadGateway(string $gateway_id, string $mode): PaymentGatewayInterface {
     $gateway = $gateway_id !== ''
