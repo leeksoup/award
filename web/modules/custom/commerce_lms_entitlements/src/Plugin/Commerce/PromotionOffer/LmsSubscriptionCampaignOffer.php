@@ -106,14 +106,15 @@ final class LmsSubscriptionCampaignOffer extends OrderPromotionOfferBase {
       return;
     }
 
-    $vip = $lms_offer->isVipEnabled() && (bool) $entity->getData('commerce_lms_vip_selected');
+    $force_vip = $context['campaign']->forcesVip();
+    $vip = $force_vip || ($lms_offer->isVipEnabled() && (bool) $entity->getData('commerce_lms_vip_selected'));
     $intro_price = $context['campaign']->getIntroPrice($lms_offer->id(), $vip);
     $variation = $this->entityTypeManager->getStorage('commerce_product_variation')->load($lms_offer->getVariationId());
     $regular_price = $variation?->getPrice();
     if (!$intro_price || !$regular_price || $intro_price->getCurrencyCode() !== $regular_price->getCurrencyCode()) {
       return;
     }
-    if ($vip) {
+    if ($vip && !$force_vip) {
       if ($lms_offer->getVipSurchargeCurrency() !== $regular_price->getCurrencyCode()) {
         return;
       }

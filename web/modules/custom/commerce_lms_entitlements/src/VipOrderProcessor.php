@@ -60,6 +60,9 @@ final class VipOrderProcessor implements OrderProcessorInterface {
     if (!$order->getData('commerce_lms_vip_selected')) {
       return;
     }
+    if ($context && $context['campaign']->forcesVip()) {
+      return;
+    }
     $order->addAdjustment(new Adjustment([
       'type' => 'fee',
       'label' => 'VIP upgrade',
