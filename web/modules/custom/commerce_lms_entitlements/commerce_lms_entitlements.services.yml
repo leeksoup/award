@@ -14,6 +14,9 @@ services:
   commerce_lms_entitlements.paypal_plan_catalog:
     class: Drupal\commerce_lms_entitlements\PayPalPlanCatalog
     arguments: ['@entity_type.manager', '@commerce_lms_entitlements.paypal_operations']
+  commerce_lms_entitlements.paypal_campaign_plan_manager:
+    class: Drupal\commerce_lms_entitlements\PayPalCampaignPlanManager
+    arguments: ['@entity_type.manager', '@commerce_lms_entitlements.paypal_operations', '@commerce_lms_entitlements.paypal_plan_catalog', '@state']
   commerce_lms_entitlements.subscription_campaign_resolver:
     class: Drupal\commerce_lms_entitlements\SubscriptionCampaignResolver
     arguments: ['@entity_type.manager']

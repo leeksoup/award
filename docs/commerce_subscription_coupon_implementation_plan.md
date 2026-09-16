@@ -144,18 +144,21 @@ Document campaign setup, PayPal plan construction, validation, rollout,
 rollback, and the accepted coupon-limit race in the module's operational
 documentation.
 
-## Deferred PayPal plan automation
+## PayPal plan automation
 
-Add a Drush command that previews and, only with an explicit apply option,
-creates the PayPal plan matrix needed by a subscription campaign. It should
-derive cadence, currency, introductory cycles, base/VIP renewal prices,
+The `commerce-lms-entitlements:create-campaign-plans` Drush command previews
+and, only with an explicit apply option, creates the PayPal plan matrix needed
+by a subscription campaign. It derives cadence, currency, introductory
+cycles, base/VIP renewal prices,
 product, and environment from the existing offer and campaign configuration;
-use stable idempotency keys; validate every returned plan; and populate plan
-IDs only after the full requested set succeeds. It must support base-only,
+uses stable idempotency keys; validates every returned plan; and populates plan
+IDs only after the full requested set succeeds. It supports base-only,
 optional-VIP, and forced-VIP campaigns without recreating the shared standard
-plans. Changing only coupon codes, dates, limits, or descriptions must not
+plans. Changing only coupon codes, dates, limits, or descriptions does not
 create new PayPal plans.
 
 Sandbox generation should remain the default testing workflow. Live creation
 must require a separate explicit confirmation and must never copy sandbox IDs
 or credentials into live configuration.
+
+Implemented usage and recovery details are maintained in the module README.

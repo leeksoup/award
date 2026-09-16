@@ -1,6 +1,6 @@
 services:
   commerce_lms_entitlements.commands:
     class: Drupal\commerce_lms_entitlements\Drush\Commands\EntitlementCommands
-    arguments: ['@database', '@commerce_lms_entitlements.paypal_plan_catalog', '@entity_type.manager', '@commerce_lms_entitlements.paypal_operations']
+    arguments: ['@database', '@commerce_lms_entitlements.paypal_plan_catalog', '@entity_type.manager', '@commerce_lms_entitlements.paypal_operations', '@commerce_lms_entitlements.paypal_campaign_plan_manager']
     tags:
       - { name: drush.command }

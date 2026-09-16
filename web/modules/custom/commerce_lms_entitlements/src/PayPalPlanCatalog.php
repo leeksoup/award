@@ -309,7 +309,7 @@ final class PayPalPlanCatalog {
   }
 
   /** Validates one remote campaign plan against its configured schedule. */
-  private function validateCampaignPlan(LmsSubscriptionCampaign $campaign, LmsOffer $offer, array $plan, array $standard_plan, \Drupal\commerce_price\Price $intro_price, \Drupal\commerce_price\Price $regular_price): array {
+  public function validateCampaignPlan(LmsSubscriptionCampaign $campaign, LmsOffer $offer, array $plan, array $standard_plan, \Drupal\commerce_price\Price $intro_price, \Drupal\commerce_price\Price $regular_price): array {
     $errors = [];
     if ($intro_price->getCurrencyCode() !== $regular_price->getCurrencyCode() || !$regular_price->greaterThan($intro_price)) {
       $errors[] = 'the introductory price must be lower than the regular price in the same currency';

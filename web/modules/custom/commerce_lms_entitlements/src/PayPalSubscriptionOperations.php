@@ -54,6 +54,26 @@ final class PayPalSubscriptionOperations {
     return json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR);
   }
 
+  /** Creates one fixed-price subscription plan with an idempotency key. */
+  public function createPlan(object $gateway, array $plan, string $request_id): array {
+    $config = $gateway->getPluginConfiguration();
+    $base = $this->baseUrl($config);
+    $response = $this->client->post($base . '/v1/billing/plans', [
+      'headers' => [
+        'Authorization' => 'Bearer ' . $this->accessToken($base, $config),
+        'Content-Type' => 'application/json',
+        'PayPal-Request-Id' => $request_id,
+        'Prefer' => 'return=representation',
+      ],
+      'json' => $plan,
+    ]);
+    $body = json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR);
+    if (empty($body['id'])) {
+      throw new \RuntimeException('PayPal did not return an ID for the created billing plan.');
+    }
+    return $body;
+  }
+
   /**
    * Cancels future billing and fetches the post-cancellation source of truth.
    *

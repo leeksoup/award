@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\commerce_lms_entitlements\Drush\Commands;
 
 use Drupal\commerce_lms_entitlements\Entity\LmsSubscriptionCampaign;
+use Drupal\commerce_lms_entitlements\PayPalCampaignPlanManager;
 use Drupal\commerce_lms_entitlements\PayPalPlanCatalog;
 use Drupal\commerce_lms_entitlements\PayPalSubscriptionOperations;
 use Drupal\Core\Database\Connection;
@@ -19,6 +20,7 @@ final class EntitlementCommands extends DrushCommands {
     private PayPalPlanCatalog $planCatalog,
     private EntityTypeManagerInterface $entityTypeManager,
     private PayPalSubscriptionOperations $paypalOperations,
+    private PayPalCampaignPlanManager $campaignPlanManager,
   ) {
     parent::__construct();
   }
@@ -117,5 +119,61 @@ final class EntitlementCommands extends DrushCommands {
       }
     }
     $this->output()->writeln('Invalid subscription campaigns: ' . $invalid_campaigns);
+  }
+
+  /** Previews or creates one subscription campaign's PayPal plan matrix. */
+  #[CLI\Command(name: 'commerce-lms-entitlements:create-campaign-plans', aliases: ['clecp'])]
+  #[CLI\Argument(name: 'campaign_id', description: 'Subscription campaign configuration ID.')]
+  #[CLI\Option(name: 'environment', description: 'PayPal environment: sandbox (default) or live.')]
+  #[CLI\Option(name: 'apply', description: 'Create missing plans and save their IDs to campaign configuration.')]
+  #[CLI\Option(name: 'confirm-live', description: 'Required confirmation token for live creation.')]
+  #[CLI\Usage(name: 'drush commerce-lms-entitlements:create-campaign-plans launch_free_vip', description: 'Preview the sandbox plan matrix without changing PayPal or Drupal.')]
+  #[CLI\Usage(name: 'drush commerce-lms-entitlements:create-campaign-plans launch_free_vip --apply', description: 'Create missing sandbox plans and save their IDs.')]
+  #[CLI\Usage(name: 'drush commerce-lms-entitlements:create-campaign-plans launch_free_vip --environment=live --apply --confirm-live=CREATE-LIVE-PAYPAL-PLANS', description: 'Create and save missing live plans after explicit confirmation.')]
+  public function createCampaignPlans(
+    string $campaign_id,
+    array $options = [
+      'environment' => 'sandbox',
+      'apply' => FALSE,
+      'confirm-live' => NULL,
+    ],
+  ): void {
+    $environment = strtolower(trim((string) ($options['environment'] ?? 'sandbox')));
+    if (!in_array($environment, ['sandbox', 'live'], TRUE)) {
+      throw new \InvalidArgumentException('The --environment option must be sandbox or live.');
+    }
+    $apply = !empty($options['apply']);
+    if ($apply && $environment === 'live' && ($options['confirm-live'] ?? '') !== 'CREATE-LIVE-PAYPAL-PLANS') {
+      throw new \InvalidArgumentException('Live plan creation requires --confirm-live=CREATE-LIVE-PAYPAL-PLANS.');
+    }
+
+    $campaign = $this->entityTypeManager->getStorage(LmsSubscriptionCampaign::ENTITY_TYPE_ID)->load($campaign_id);
+    if (!$campaign instanceof LmsSubscriptionCampaign) {
+      throw new \InvalidArgumentException(sprintf('Subscription campaign %s does not exist.', $campaign_id));
+    }
+    $entries = $this->campaignPlanManager->provision($campaign, $environment, $apply);
+    $rows = [];
+    foreach ($entries as $entry) {
+      $rows[] = [
+        $entry['offer_id'],
+        strtoupper($entry['tier']),
+        $entry['intro'],
+        $entry['regular'],
+        $entry['intro_cycles'],
+        $entry['product_id'],
+        $entry['status'],
+        $entry['plan_id'] ?: '(pending)',
+      ];
+    }
+    $this->io()->table(
+      ['Offer', 'Tier', 'Intro price', 'Renewal price', 'Intro cycles', 'Product', 'Result', 'Plan ID'],
+      $rows,
+    );
+    if ($apply) {
+      $this->logger()->success(sprintf('Saved the complete %s PayPal plan matrix for campaign %s.', $environment, $campaign_id));
+    }
+    else {
+      $this->logger()->notice(sprintf('Dry run only. Re-run with --apply to create missing %s plans.', $environment));
+    }
   }
 }

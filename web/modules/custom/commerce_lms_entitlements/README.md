@@ -149,6 +149,53 @@ cadence, introductory cycles and price, and indefinite regular renewal price.
 Commerce coupon limits remain authoritative; the module does not reserve a
 redemption before checkout completes.
 
+### Campaign PayPal plan generation
+
+The site must already have its shared standard base and, when enabled,
+VIP-inclusive PayPal plans configured on each LMS offer. The generator never
+recreates those shared plans. It derives each campaign plan's product, cadence,
+currency, introductory cycles, introductory price, and renewal price from the
+standard plan, Commerce variation, offer, and campaign configuration.
+
+Preview the missing sandbox matrix without changing PayPal or Drupal:
+
+```bash
+drush commerce-lms-entitlements:create-campaign-plans CAMPAIGN_ID
+```
+
+Create the missing sandbox plans, validate every returned plan, and save the
+complete set of IDs to the campaign only after all requested plans succeed:
+
+```bash
+drush commerce-lms-entitlements:create-campaign-plans CAMPAIGN_ID --apply
+```
+
+Live creation uses the offer's live gateway and standard plan. It requires a
+different environment option and an exact confirmation token:
+
+```bash
+drush commerce-lms-entitlements:create-campaign-plans CAMPAIGN_ID \
+  --environment=live \
+  --apply \
+  --confirm-live=CREATE-LIVE-PAYPAL-PLANS
+```
+
+The command uses deterministic `PayPal-Request-Id` values. It also records
+each successfully created plan temporarily in Drupal state, so rerunning after
+a partial failure validates and reuses that plan instead of creating another.
+The state record is removed after the complete matrix is saved. Existing
+configured plan IDs are validated and never overwritten. Changing Commerce
+coupon codes, dates, limits, promotion descriptions, or campaign terms does
+not affect the generated plan specification.
+
+After a successful apply, export the updated campaign configuration and run
+the remote audit:
+
+```bash
+drush cex -y
+drush commerce-lms-entitlements:audit
+```
+
 ## VIP live sessions
 
 VIP uses Recurring Events 3.x for event series, instances, registrants, and
