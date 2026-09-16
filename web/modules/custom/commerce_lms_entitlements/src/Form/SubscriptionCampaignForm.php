@@ -11,14 +11,11 @@ use Drupal\commerce_price\Calculator;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityForm;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /** Administrative form for curated subscription campaigns. */
 final class SubscriptionCampaignForm extends EntityForm implements ContainerInjectionInterface {
-
-  protected EntityTypeManagerInterface $entityTypeManager;
 
   protected PayPalPlanCatalog $planCatalog;
 
