@@ -59,6 +59,7 @@ final class PayPalSubscriptionOperations {
   public function createPlan(object $gateway, array $plan, string $request_id): array {
     $config = $gateway->getPluginConfiguration();
     $base = $this->baseUrl($config);
+    $plan = $this->normalizePlanAmounts($plan);
     try {
       $response = $this->client->post($base . '/v1/billing/plans', [
         'headers' => [
@@ -83,6 +84,38 @@ final class PayPalSubscriptionOperations {
       throw new \RuntimeException('PayPal did not return an ID for the created billing plan.');
     }
     return $body;
+  }
+
+  /**
+   * Removes insignificant decimal zeroes rejected by PayPal's money schema.
+   *
+   * Commerce Price numbers use a fixed six-decimal scale, while PayPal checks
+   * the number of decimal places against the currency. For example, USD
+   * "197.000000" is invalid even though it is numerically equal to "197".
+   */
+  private function normalizePlanAmounts(array $plan): array {
+    foreach ($plan['billing_cycles'] ?? [] as $delta => $cycle) {
+      if (isset($cycle['pricing_scheme']['fixed_price']['value'])) {
+        $plan['billing_cycles'][$delta]['pricing_scheme']['fixed_price']['value'] = $this->normalizeDecimal(
+          (string) $cycle['pricing_scheme']['fixed_price']['value'],
+        );
+      }
+    }
+    if (isset($plan['payment_preferences']['setup_fee']['value'])) {
+      $plan['payment_preferences']['setup_fee']['value'] = $this->normalizeDecimal(
+        (string) $plan['payment_preferences']['setup_fee']['value'],
+      );
+    }
+    return $plan;
+  }
+
+  /** Returns a plain decimal without insignificant trailing zeroes. */
+  private function normalizeDecimal(string $value): string {
+    if (!str_contains($value, '.')) {
+      return $value;
+    }
+    $value = rtrim(rtrim($value, '0'), '.');
+    return $value === '' || $value === '-0' ? '0' : $value;
   }
 
   /**

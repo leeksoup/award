@@ -36,7 +36,30 @@ final class PayPalSubscriptionOperationsTest extends UnitTestCase {
     $payload = [
       'product_id' => 'PROD-TEST',
       'name' => 'Test plan',
-      'billing_cycles' => [],
+      'billing_cycles' => [
+        [
+          'pricing_scheme' => [
+            'fixed_price' => [
+              'value' => '9.700000',
+              'currency_code' => 'USD',
+            ],
+          ],
+        ],
+        [
+          'pricing_scheme' => [
+            'fixed_price' => [
+              'value' => '197.000000',
+              'currency_code' => 'USD',
+            ],
+          ],
+        ],
+      ],
+      'payment_preferences' => [
+        'setup_fee' => [
+          'value' => '0.000000',
+          'currency_code' => 'USD',
+        ],
+      ],
     ];
 
     $result = $operations->createPlan($gateway, $payload, 'cle-request-id');
@@ -45,7 +68,10 @@ final class PayPalSubscriptionOperationsTest extends UnitTestCase {
     self::assertCount(2, $history);
     self::assertSame('https://api-m.paypal.com/v1/billing/plans', (string) $history[1]['request']->getUri());
     self::assertSame('cle-request-id', $history[1]['request']->getHeaderLine('PayPal-Request-Id'));
-    self::assertSame($payload, json_decode((string) $history[1]['request']->getBody(), TRUE, 512, JSON_THROW_ON_ERROR));
+    $sent_payload = json_decode((string) $history[1]['request']->getBody(), TRUE, 512, JSON_THROW_ON_ERROR);
+    self::assertSame('9.7', $sent_payload['billing_cycles'][0]['pricing_scheme']['fixed_price']['value']);
+    self::assertSame('197', $sent_payload['billing_cycles'][1]['pricing_scheme']['fixed_price']['value']);
+    self::assertSame('0', $sent_payload['payment_preferences']['setup_fee']['value']);
   }
 
   public function testCreatePlanReportsPayPalValidationDetails(): void {
