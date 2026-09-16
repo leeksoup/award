@@ -57,14 +57,21 @@ final class VipUpgradePane extends CheckoutPaneBase implements ContainerFactoryP
     catch (\DomainException) {
       // The campaign pane reports invalid coupon configuration.
     }
-    $pane_form['selected'] = [
-      '#type' => 'checkbox',
-      '#title' => $force_vip ? $this->t('VIP live-session upgrade included') : $this->t('Add the VIP live-session upgrade'),
-      '#description' => $this->t('Adds @amount @currency each @interval and includes one live group session per calendar month.', [
+    $description = $force_vip
+      ? $this->t('VIP is included at no additional cost during the introductory period. After that, the regular price includes the @amount @currency VIP surcharge per @interval billing period. Includes one live group session per calendar month.', [
         '@amount' => $offer->getVipSurchargeNumber(),
         '@currency' => $offer->getVipSurchargeCurrency(),
         '@interval' => $offer->getBillingInterval(),
-      ]),
+      ])
+      : $this->t('Adds @amount @currency per @interval billing period and includes one live group session per calendar month.', [
+        '@amount' => $offer->getVipSurchargeNumber(),
+        '@currency' => $offer->getVipSurchargeCurrency(),
+        '@interval' => $offer->getBillingInterval(),
+      ]);
+    $pane_form['selected'] = [
+      '#type' => 'checkbox',
+      '#title' => $force_vip ? $this->t('VIP live-session upgrade included') : $this->t('Add the VIP live-session upgrade'),
+      '#description' => $description,
       '#default_value' => $force_vip || (bool) $this->order->getData('commerce_lms_vip_selected'),
       '#disabled' => $force_vip,
     ];
