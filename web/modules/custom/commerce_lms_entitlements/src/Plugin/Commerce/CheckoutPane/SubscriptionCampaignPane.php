@@ -20,7 +20,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   id: 'commerce_lms_subscription_campaign',
   label: new TranslatableMarkup('Subscription offer'),
   default_step: 'order_information',
-  weight: 24,
 )]
 final class SubscriptionCampaignPane extends CheckoutPaneBase implements ContainerFactoryPluginInterface {
 
