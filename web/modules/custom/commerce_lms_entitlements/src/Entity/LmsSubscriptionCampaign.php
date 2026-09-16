@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\commerce_lms_entitlements\Entity;
 
+use Drupal\commerce_price\Calculator;
 use Drupal\commerce_price\Price;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 
@@ -77,6 +78,15 @@ final class LmsSubscriptionCampaign extends ConfigEntityBase {
 
   public function forcesVip(): bool {
     return $this->behavior === self::BEHAVIOR_FREE_VIP_LAUNCH;
+  }
+
+  /** Returns whether launch pricing discounts only the base subscription. */
+  public function hasValidLaunchIntroPrice(string $offer_id, Price $base_price): bool {
+    $intro_price = $this->getIntroPrice($offer_id, TRUE);
+    return $this->forcesVip()
+      && $intro_price !== NULL
+      && $intro_price->getCurrencyCode() === $base_price->getCurrencyCode()
+      && Calculator::compare($intro_price->getNumber(), $base_price->getNumber()) <= 0;
   }
 
   /**

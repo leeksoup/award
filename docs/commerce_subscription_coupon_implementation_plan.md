@@ -10,9 +10,9 @@ cycle followed by one infinite regular billing cycle.
 The first two campaigns are:
 
 - A launch campaign, globally limited to 12 coupon redemptions, that
-  automatically includes VIP. It charges the base-only price for the
-  configured introductory payments and then renews at the full base-plus-VIP
-  price.
+  automatically includes VIP. It can discount the base-only price while also
+  including VIP at no additional cost for the configured introductory
+  payments, then renews at the full base-plus-VIP price.
 - A later introductory-discount campaign that discounts the selected base or
   base-plus-VIP tier for the configured introductory payments and then renews
   at the normal price.
@@ -33,8 +33,10 @@ pages. Each campaign contains:
   applicable.
 
 The launch behavior requires a VIP campaign plan, forces VIP selection, and
-requires its introductory price to equal the normal base-only price. The
-normal discount behavior permits the configured base and VIP tiers.
+requires its introductory price to use the base-plan currency without
+exceeding the normal base-only price. This permits a base discount and free
+VIP during the same introductory period. The normal discount behavior permits
+the configured base and VIP tiers.
 
 ## Commerce promotion and checkout integration
 

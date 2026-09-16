@@ -224,9 +224,8 @@ final class SubscriptionCampaignForm extends EntityForm implements ContainerInje
         continue;
       }
       if ($campaign->forcesVip()) {
-        $intro_price = $campaign->getIntroPrice($offer_id, TRUE);
-        if ($intro_price && ($base_price->getCurrencyCode() !== $intro_price->getCurrencyCode() || Calculator::compare($base_price->getNumber(), $intro_price->getNumber()) !== 0)) {
-          $form_state->setErrorByName('offer_mappings', $this->t('Launch offer @offer must use its normal base price as the VIP introductory price.', ['@offer' => $offer_id]));
+        if (!$campaign->hasValidLaunchIntroPrice($offer_id, $base_price)) {
+          $form_state->setErrorByName('offer_mappings', $this->t('Launch offer @offer must use the variation currency and may not charge more than its normal base price during the VIP introductory period.', ['@offer' => $offer_id]));
         }
       }
       else {

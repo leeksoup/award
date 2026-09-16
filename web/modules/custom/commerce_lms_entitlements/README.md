@@ -138,7 +138,10 @@ Add the **Subscription offer** pane to the checkout flow's order-information
 step so buyers see the introductory payment count, normal renewal price, VIP
 treatment, and campaign terms. A launch campaign forces the existing VIP pane
 on while its coupon remains attached, then restores the buyer's previous VIP
-choice if the coupon is removed.
+choice if the coupon is removed. Its introductory amount may discount the
+base subscription while including VIP at no additional cost, but it cannot
+exceed the offer's normal base-only price; renewal uses the full
+base-plus-VIP price.
 
 Run `drush commerce-lms-entitlements:audit` after creating or changing a
 campaign. Enabled campaigns are checked against PayPal for status, product,
