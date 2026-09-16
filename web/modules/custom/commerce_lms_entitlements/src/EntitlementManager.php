@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\commerce_lms_entitlements;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\commerce_lms_entitlements\Entity\LmsSubscriptionCampaign;
 use Drupal\commerce_price\Calculator;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -454,8 +455,8 @@ final class EntitlementManager {
     $order = $this->entityTypeManager->getStorage('commerce_order')->load($entitlement['order_id']);
     $gateway_id = (string) ($order?->get('payment_gateway')->target_id ?? '');
     if (!empty($entitlement['subscription_campaign_id'])) {
-      $campaign = $this->entityTypeManager->getStorage('commerce_lms_subscription_campaign')->load($entitlement['subscription_campaign_id']);
-      if ($campaign instanceof \Drupal\commerce_lms_entitlements\Entity\LmsSubscriptionCampaign) {
+      $campaign = $this->entityTypeManager->getStorage(LmsSubscriptionCampaign::ENTITY_TYPE_ID)->load($entitlement['subscription_campaign_id']);
+      if ($campaign instanceof LmsSubscriptionCampaign) {
         if ($gateway_id !== '' && $gateway_id === $offer->getPayPalSandboxGatewayId()) {
           return $campaign->getPayPalPlanId($offer->id(), 'sandbox', TRUE);
         }

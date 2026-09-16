@@ -11,6 +11,7 @@ use Drupal\Tests\UnitTestCase;
 final class LmsSubscriptionCampaignTest extends UnitTestCase {
 
   public function testMultipleOfferMappings(): void {
+    self::assertLessThanOrEqual(32, strlen(LmsSubscriptionCampaign::ENTITY_TYPE_ID));
     $campaign = new LmsSubscriptionCampaign([
       'id' => 'launch',
       'label' => 'Launch',
@@ -41,7 +42,7 @@ final class LmsSubscriptionCampaignTest extends UnitTestCase {
           'paypal_live_vip_plan_id' => 'P-ANNUAL-LIVE',
         ],
       ],
-    ], 'commerce_lms_subscription_campaign');
+    ], LmsSubscriptionCampaign::ENTITY_TYPE_ID);
 
     self::assertTrue($campaign->forcesVip());
     self::assertSame(12, $campaign->getIntroCycles('monthly'));
@@ -69,7 +70,7 @@ final class LmsSubscriptionCampaignTest extends UnitTestCase {
           'paypal_live_vip_plan_id' => 'P-VIP',
         ],
       ],
-    ], 'commerce_lms_subscription_campaign');
+    ], LmsSubscriptionCampaign::ENTITY_TYPE_ID);
 
     self::assertFalse($campaign->forcesVip());
     self::assertSame('20.00', $campaign->getIntroPrice('monthly', FALSE)?->getNumber());

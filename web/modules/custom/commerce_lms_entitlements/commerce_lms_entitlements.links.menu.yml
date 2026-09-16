@@ -7,7 +7,7 @@ commerce_lms_entitlements.offers:
 commerce_lms_entitlements.subscription_campaigns:
   title: 'LMS subscription campaigns'
   description: 'Map Commerce coupons to curated introductory PayPal plans.'
-  route_name: entity.commerce_lms_subscription_campaign.collection
+  route_name: entity.commerce_lms_campaign.collection
   parent: commerce.configuration
 
 commerce_lms_entitlements.admin:

@@ -11,7 +11,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  * Defines a curated introductory campaign for PayPal subscriptions.
  *
  * @ConfigEntityType(
- *   id = "commerce_lms_subscription_campaign",
+ *   id = "commerce_lms_campaign",
  *   label = @Translation("Commerce LMS subscription campaign"),
  *   handlers = {
  *     "list_builder" = "Drupal\commerce_lms_entitlements\LmsSubscriptionCampaignListBuilder",
@@ -39,12 +39,14 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *   links = {
  *     "collection" = "/admin/commerce/config/lms-subscription-campaigns",
  *     "add-form" = "/admin/commerce/config/lms-subscription-campaigns/add",
- *     "edit-form" = "/admin/commerce/config/lms-subscription-campaigns/{commerce_lms_subscription_campaign}",
- *     "delete-form" = "/admin/commerce/config/lms-subscription-campaigns/{commerce_lms_subscription_campaign}/delete"
+ *     "edit-form" = "/admin/commerce/config/lms-subscription-campaigns/{commerce_lms_campaign}",
+ *     "delete-form" = "/admin/commerce/config/lms-subscription-campaigns/{commerce_lms_campaign}/delete"
  *   }
  * )
  */
 final class LmsSubscriptionCampaign extends ConfigEntityBase {
+
+  public const ENTITY_TYPE_ID = 'commerce_lms_campaign';
 
   public const BEHAVIOR_FREE_VIP_LAUNCH = 'free_vip_launch';
 

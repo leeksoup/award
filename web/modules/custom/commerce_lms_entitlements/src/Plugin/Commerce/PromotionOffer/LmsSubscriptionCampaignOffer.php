@@ -50,7 +50,7 @@ final class LmsSubscriptionCampaignOffer extends OrderPromotionOfferBase {
   public function buildConfigurationForm(array $form, FormStateInterface $form_state): array {
     $form = parent::buildConfigurationForm($form, $form_state);
     $options = [];
-    foreach ($this->entityTypeManager->getStorage('commerce_lms_subscription_campaign')->loadMultiple() as $campaign) {
+    foreach ($this->entityTypeManager->getStorage(LmsSubscriptionCampaign::ENTITY_TYPE_ID)->loadMultiple() as $campaign) {
       if ($campaign instanceof LmsSubscriptionCampaign && $campaign->status()) {
         $options[$campaign->id()] = $campaign->label();
       }
@@ -72,7 +72,7 @@ final class LmsSubscriptionCampaignOffer extends OrderPromotionOfferBase {
     $values = $form_state->getValue($form['#parents']);
     $campaign_id = trim((string) ($values['campaign_id'] ?? ''));
     $campaign = $campaign_id !== ''
-      ? $this->entityTypeManager->getStorage('commerce_lms_subscription_campaign')->load($campaign_id)
+      ? $this->entityTypeManager->getStorage(LmsSubscriptionCampaign::ENTITY_TYPE_ID)->load($campaign_id)
       : NULL;
     if (!$campaign instanceof LmsSubscriptionCampaign || !$campaign->status()) {
       $form_state->setErrorByName('campaign_id', $this->t('Select an enabled subscription campaign.'));

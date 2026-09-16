@@ -48,7 +48,7 @@ final class SubscriptionCampaignResolver {
 
     $campaign_id = trim((string) ($promotion_offer->getConfiguration()['campaign_id'] ?? ''));
     $campaign = $campaign_id !== ''
-      ? $this->entityTypeManager->getStorage('commerce_lms_subscription_campaign')->load($campaign_id)
+      ? $this->entityTypeManager->getStorage(LmsSubscriptionCampaign::ENTITY_TYPE_ID)->load($campaign_id)
       : NULL;
     if (!$campaign instanceof LmsSubscriptionCampaign || !$campaign->status()) {
       throw new \DomainException('The subscription campaign for this coupon is missing or disabled.');

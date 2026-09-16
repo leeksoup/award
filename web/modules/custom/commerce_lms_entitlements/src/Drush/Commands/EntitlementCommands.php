@@ -102,7 +102,7 @@ final class EntitlementCommands extends DrushCommands {
     $this->output()->writeln('Invalid live PayPal mappings: ' . $invalid_plans);
 
     $invalid_campaigns = 0;
-    foreach ($this->entityTypeManager->getStorage('commerce_lms_subscription_campaign')->loadMultiple() as $campaign) {
+    foreach ($this->entityTypeManager->getStorage(LmsSubscriptionCampaign::ENTITY_TYPE_ID)->loadMultiple() as $campaign) {
       if (!$campaign instanceof LmsSubscriptionCampaign || !$campaign->status()) {
         continue;
       }
