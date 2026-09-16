@@ -256,10 +256,11 @@ function commerce_lms_entitlements_update_10014(): string {
   if (!$database->schema()->tableExists('commerce_lms_entitlement_event')) {
     return (string) t('No PayPal entitlement event table exists.');
   }
-  $types = $database->orConditionGroup()
+  $query = $database->update('commerce_lms_entitlement_event');
+  $types = $query->orConditionGroup()
     ->condition('event_type', 'BILLING.PLAN.%', 'LIKE')
     ->condition('event_type', 'CATALOG.PRODUCT.%', 'LIKE');
-  $updated = $database->update('commerce_lms_entitlement_event')
+  $updated = $query
     ->fields([
       'status' => 'processed',
       'changed' => \Drupal::time()->getRequestTime(),
