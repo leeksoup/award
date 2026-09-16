@@ -76,7 +76,12 @@ can prove the entitlement owns it.
    `/commerce-lms-entitlements/paypal/GATEWAY_ID` (the exact route currently
    configured in `commerce_lms_entitlements.routing.yml` is
    `/commerce-lms-entitlements/paypal/webhook/GATEWAY_ID`).
-7. Assign the listed permissions. Enable cron and monitor the audit command.
+7. Grant the Authenticated role `view own commerce lms entitlements`, `cancel
+   own commerce lms entitlements`, `change own commerce lms tier`, and `book
+   own vip sessions`. The controllers additionally enforce record ownership
+   and active-entitlement checks. Grant the restricted administration
+   permissions only to trusted staff. Enable cron and monitor the audit
+   command.
 8. For VIP, install Recurring Events 3.x, configure paired VIP PayPal plans on
    each recurring offer, then configure the VIP hub and eligible event series
    at `/admin/commerce/config/lms-vip`. See `docs/VIP.md`.

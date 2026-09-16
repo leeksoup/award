@@ -119,6 +119,13 @@ The number and schedule of instances can change without changing PayPal plans
 or offers. The meeting URL is rendered only after the current account passes
 the active VIP entitlement check.
 
+Grant `book own vip sessions` to the site-wide Authenticated role. This
+permission only opens the `/vip-sessions` route; `VipBookingManager` separately
+requires the current account to be the learner on an active entitlement with
+`vip_active = 1`. Do not use a Group role for this permission because Drupal
+route permissions are account-role permissions, not Group membership
+permissions. Grant `administer vip sessions` only to trusted staff.
+
 ## Booking behavior
 
 At `/vip-sessions`, `VipBookingManager` loads only configured future instances
