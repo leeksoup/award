@@ -207,7 +207,9 @@ registrant entity remains authoritative for event capacity and administration.
 The PayPal event ID is the primary key, so a repeated verified delivery cannot
 create duplicate work or access grants. `queued`, `processed`, and `failed`
 describe local processing. The complete received JSON is retained for audit;
-it is never used as the source of truth for access.
+it is never used as the source of truth for access. Signature-verified catalog
+and billing-plan events are acknowledged without being queued because they do
+not identify a subscriber or change learner access.
 
 ### `commerce_lms_entitlement_invitation`
 
@@ -220,7 +222,7 @@ email. An invitation expires after 30 days.
 | File | Responsibility |
 | --- | --- |
 | `commerce_lms_entitlements.info.yml` | Declares dependencies on Commerce, the PayPal modules, Group, and LMS Classes. |
-| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings, `10012` adds VIP state, and `10013` adds campaign audit metadata. |
+| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings, `10012` adds VIP state, `10013` adds campaign audit metadata, and `10014` closes previously recorded non-subscription PayPal events. |
 | `commerce_lms_entitlements.module` | Bridges Commerce entity events to the manager, queues reconciliation from cron, and supplies invitation mail text. |
 | `services.yml` | Registers the manager, PayPal REST/catalog services, event subscribers, and log channel. |
 | `routing.yml`, `links.menu.yml`, `permissions.yml` | Define the webhook, invitation, purchaser and administrator routes; the admin menu entry; and authorization gates. |

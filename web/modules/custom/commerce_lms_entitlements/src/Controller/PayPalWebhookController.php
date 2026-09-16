@@ -24,6 +24,7 @@ final class PayPalWebhookController extends ControllerBase {
       $parameters = ['auth_algo' => $headers['paypal-auth-algo'] ?? '', 'cert_url' => $headers['paypal-cert-url'] ?? '', 'transmission_id' => $headers['paypal-transmission-id'] ?? '', 'transmission_sig' => $headers['paypal-transmission-sig'] ?? '', 'transmission_time' => $headers['paypal-transmission-time'] ?? '', 'webhook_id' => $config['webhook_id'] ?? '', 'webhook_event' => $event];
       $response = $this->sdkFactory->get($config)->verifyWebhookSignature($parameters); $verified = json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR);
       if (($verified['verification_status'] ?? '') !== 'SUCCESS') { return new JsonResponse(['error' => 'Invalid signature'], 400); }
+      if (!$this->manager->isSubscriptionEvent($event)) { return new JsonResponse(['received' => TRUE, 'ignored' => TRUE]); }
       return new JsonResponse(['received' => TRUE, 'duplicate' => !$this->manager->queueEvent($event)]);
     }
     catch (\Throwable $e) { $this->getLogger('commerce_lms_entitlements')->warning('Rejected PayPal subscription webhook: @message', ['@message' => $e->getMessage()]); return new JsonResponse(['error' => 'Invalid webhook'], 400); }

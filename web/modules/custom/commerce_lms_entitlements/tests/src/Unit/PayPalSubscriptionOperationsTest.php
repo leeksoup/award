@@ -48,4 +48,30 @@ final class PayPalSubscriptionOperationsTest extends UnitTestCase {
     self::assertSame($payload, json_decode((string) $history[1]['request']->getBody(), TRUE, 512, JSON_THROW_ON_ERROR));
   }
 
+  public function testCreatePlanReportsPayPalValidationDetails(): void {
+    $mock = new MockHandler([
+      new Response(200, [], json_encode(['access_token' => 'token'], JSON_THROW_ON_ERROR)),
+      new Response(400, [], json_encode([
+        'name' => 'INVALID_REQUEST',
+        'details' => [['field' => '/billing_cycles/0', 'issue' => 'Invalid cycle']],
+      ], JSON_THROW_ON_ERROR)),
+    ]);
+    $operations = new PayPalSubscriptionOperations(new Client([
+      'handler' => HandlerStack::create($mock),
+    ]));
+    $gateway = new class {
+      public function getPluginConfiguration(): array {
+        return [
+          'mode' => 'test',
+          'client_id' => 'client',
+          'client_secret' => 'secret',
+        ];
+      }
+    };
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('"field":"/billing_cycles/0"');
+    $operations->createPlan($gateway, ['name' => 'Invalid'], 'cle-request-id');
+  }
+
 }

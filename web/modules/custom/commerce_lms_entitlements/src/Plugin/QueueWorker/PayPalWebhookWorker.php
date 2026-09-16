@@ -18,6 +18,10 @@ final class PayPalWebhookWorker extends QueueWorkerBase implements ContainerFact
   public function processItem($data): void {
     $event = $this->manager->event($data['event_id']); if (!$event || $event['status'] === 'processed') { return; }
     try {
+      if (!$this->manager->isSubscriptionEvent($event)) {
+        $this->manager->markEvent($event['event_id'], 'processed');
+        return;
+      }
       // Re-extract the subscription ID from the saved payload so events
       // accepted by an older module version are repaired as they run.
       $subscription_id = $this->manager->resolveEventSubscriptionId($event);

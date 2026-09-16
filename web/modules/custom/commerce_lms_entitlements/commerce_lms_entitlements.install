@@ -247,3 +247,25 @@ function commerce_lms_entitlements_update_10013(): string {
 
   return (string) t('Added @count subscription campaign audit fields.', ['@count' => $added]);
 }
+
+/**
+ * Marks previously accepted PayPal catalog events as non-actionable.
+ */
+function commerce_lms_entitlements_update_10014(): string {
+  $database = \Drupal::database();
+  if (!$database->schema()->tableExists('commerce_lms_entitlement_event')) {
+    return (string) t('No PayPal entitlement event table exists.');
+  }
+  $types = $database->orConditionGroup()
+    ->condition('event_type', 'BILLING.PLAN.%', 'LIKE')
+    ->condition('event_type', 'CATALOG.PRODUCT.%', 'LIKE');
+  $updated = $database->update('commerce_lms_entitlement_event')
+    ->fields([
+      'status' => 'processed',
+      'changed' => \Drupal::time()->getRequestTime(),
+    ])
+    ->condition($types)
+    ->execute();
+
+  return (string) t('Marked @count PayPal catalog events as non-actionable.', ['@count' => $updated]);
+}

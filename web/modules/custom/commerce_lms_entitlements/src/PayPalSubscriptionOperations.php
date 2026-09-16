@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\commerce_lms_entitlements;
 
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\RequestException;
 
 /**
  * Performs PayPal API operations not exposed by the contributed checkout SDK.
@@ -58,15 +59,25 @@ final class PayPalSubscriptionOperations {
   public function createPlan(object $gateway, array $plan, string $request_id): array {
     $config = $gateway->getPluginConfiguration();
     $base = $this->baseUrl($config);
-    $response = $this->client->post($base . '/v1/billing/plans', [
-      'headers' => [
-        'Authorization' => 'Bearer ' . $this->accessToken($base, $config),
-        'Content-Type' => 'application/json',
-        'PayPal-Request-Id' => $request_id,
-        'Prefer' => 'return=representation',
-      ],
-      'json' => $plan,
-    ]);
+    try {
+      $response = $this->client->post($base . '/v1/billing/plans', [
+        'headers' => [
+          'Authorization' => 'Bearer ' . $this->accessToken($base, $config),
+          'Content-Type' => 'application/json',
+          'PayPal-Request-Id' => $request_id,
+          'Prefer' => 'return=representation',
+        ],
+        'json' => $plan,
+      ]);
+    }
+    catch (RequestException $e) {
+      $details = $e->hasResponse() ? trim((string) $e->getResponse()->getBody()) : '';
+      throw new \RuntimeException(
+        'PayPal rejected the billing plan request' . ($details !== '' ? ': ' . $details : '.'),
+        0,
+        $e,
+      );
+    }
     $body = json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR);
     if (empty($body['id'])) {
       throw new \RuntimeException('PayPal did not return an ID for the created billing plan.');

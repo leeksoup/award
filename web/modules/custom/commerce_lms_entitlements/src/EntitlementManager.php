@@ -278,6 +278,26 @@ final class EntitlementManager {
     $this->queue->get('commerce_lms_entitlements_webhook')->createItem(['event_id' => $event_id]);
     return TRUE;
   }
+
+  /** Returns whether a PayPal event identifies subscription state or payment. */
+  public function isSubscriptionEvent(array $event): bool {
+    $event_type = (string) ($event['event_type'] ?? '');
+    if (str_starts_with($event_type, 'BILLING.SUBSCRIPTION.')) {
+      return TRUE;
+    }
+    $resource = is_array($event['resource'] ?? NULL) ? $event['resource'] : [];
+    if (!empty($resource['billing_agreement_id']) || !empty($resource['subscription_id'])) {
+      return TRUE;
+    }
+    try {
+      $payload = json_decode((string) ($event['payload'] ?? ''), TRUE, 512, JSON_THROW_ON_ERROR);
+      return is_array($payload) && $this->isSubscriptionEvent($payload);
+    }
+    catch (\JsonException) {
+      return FALSE;
+    }
+  }
+
   public function event(string $event_id): ?array { $row = $this->database->select('commerce_lms_entitlement_event', 'e')->fields('e')->condition('event_id', $event_id)->execute()->fetchAssoc(); return $row ?: NULL; }
 
   /**
