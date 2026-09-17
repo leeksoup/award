@@ -485,6 +485,10 @@ activation or cron reconciliation can retry with a fresh one-time token. Kernel
 coverage verifies that pending payment sends no invitation and repeated
 activation sends exactly one.
 
+Validation status (2026-09-17): the site owner ran
+`LifetimePaymentTest.php` with Drupal's kernel-test database under PHPUnit
+9.6.36. All 6 tests passed with 37 assertions.
+
 ## Lower-priority Drupal hardening
 
 1. Mark these permissions with `restrict access: true`:
