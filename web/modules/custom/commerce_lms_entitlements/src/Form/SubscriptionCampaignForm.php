@@ -209,12 +209,14 @@ final class SubscriptionCampaignForm extends EntityForm implements ContainerInje
       if ($campaign->forcesVip() && !$offer->isVipEnabled()) {
         $form_state->setErrorByName('offer_mappings', $this->t('Launch campaign offer @offer must have VIP enabled.', ['@offer' => $offer_id]));
       }
-      $environment = $offer->getPayPalEnvironment();
-      if (($offer->isVipEnabled() || $campaign->forcesVip()) && $campaign->getPayPalPlanId($offer_id, $environment, TRUE) === '') {
-        $form_state->setErrorByName('offer_mappings', $this->t('Offer @offer requires an active-environment VIP campaign plan.', ['@offer' => $offer_id]));
-      }
-      if (!$campaign->forcesVip() && $campaign->getPayPalPlanId($offer_id, $environment, FALSE) === '') {
-        $form_state->setErrorByName('offer_mappings', $this->t('Offer @offer requires an active-environment base campaign plan.', ['@offer' => $offer_id]));
+      if ($campaign->status()) {
+        $environment = $offer->getPayPalEnvironment();
+        if (($offer->isVipEnabled() || $campaign->forcesVip()) && $campaign->getPayPalPlanId($offer_id, $environment, TRUE) === '') {
+          $form_state->setErrorByName('offer_mappings', $this->t('Offer @offer requires an active-environment VIP campaign plan.', ['@offer' => $offer_id]));
+        }
+        if (!$campaign->forcesVip() && $campaign->getPayPalPlanId($offer_id, $environment, FALSE) === '') {
+          $form_state->setErrorByName('offer_mappings', $this->t('Offer @offer requires an active-environment base campaign plan.', ['@offer' => $offer_id]));
+        }
       }
 
       $variation = $this->entityTypeManager->getStorage('commerce_product_variation')->load($offer->getVariationId());

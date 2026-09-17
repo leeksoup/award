@@ -127,6 +127,10 @@ campaign plan must have exactly one finite `TRIAL` cycle at the configured
 introductory price followed by one infinite `REGULAR` cycle at the offer's
 normal base or base-plus-VIP price.
 
+Create a new campaign as a disabled draft before generating its PayPal plans.
+Disabled drafts validate their offers and prices but do not require plan IDs;
+enabling a campaign requires valid plans for the active checkout environment.
+
 Create the campaign before its Commerce promotion. On the promotion, choose
 the **LMS subscription campaign** offer plugin and select the campaign. Create
 its coupon and configure Commerce's availability and usage limits normally.
