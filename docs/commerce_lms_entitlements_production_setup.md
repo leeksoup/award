@@ -121,9 +121,11 @@ If an appropriate event-series type does not exist, administer its type at:
 /admin/structure/events/series/types/eventseries_type
 ```
 
-Create at least one series with future instances. Enable instance
-registration, set its capacity, and disable its waitlist. After saving it,
-record the numeric series ID from its `/events/series/ID` URL.
+Create at least one series with future instances. Select **Individual Event
+Registration**, which is the module's label for registration on individual
+event instances. Enable registration, set its capacity, and leave **Enable
+Waiting List** unchecked. After saving it, record the numeric series ID from
+its `/events/series/ID` URL.
 
 Open:
 
