@@ -103,6 +103,28 @@ must also be related to its corresponding Course.
 
 ## 4. Configure the VIP hub and sessions
 
+Create and administer Recurring Events series at:
+
+```text
+/admin/content/events/series
+```
+
+The add-series page is:
+
+```text
+/events/add
+```
+
+If an appropriate event-series type does not exist, administer its type at:
+
+```text
+/admin/structure/events/series/types/eventseries_type
+```
+
+Create at least one series with future instances. Enable instance
+registration, set its capacity, and disable its waitlist. After saving it,
+record the numeric series ID from its `/events/series/ID` URL.
+
 Open:
 
 ```text
@@ -129,7 +151,19 @@ IDs.
 ## 5. Verify the VIP permission
 
 ```bash
-drush role:perm:list authenticated | rg 'book own vip sessions'
+drush config:get user.role.authenticated permissions \
+  | rg -F 'book own vip sessions'
+```
+
+Alternatively, use an explicit boolean check:
+
+```bash
+drush php:eval '
+$role = \Drupal\user\Entity\Role::load("authenticated");
+print "book own vip sessions: "
+  . ($role && $role->hasPermission("book own vip sessions") ? "yes" : "no")
+  . PHP_EOL;
+'
 ```
 
 If the permission is missing:
