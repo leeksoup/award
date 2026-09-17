@@ -127,6 +127,45 @@ event instances. Enable registration, set its capacity, and leave **Enable
 Waiting List** unchecked. After saving it, record the numeric series ID from
 its `/events/series/ID` URL.
 
+An event series is the recurrence rule or template. Event instances are the
+actual dated sessions generated from that rule. For example, a "Monthly VIP
+session" series might generate separate October, November, and December
+sessions. The VIP booking page displays and books these individual instances,
+not the series itself.
+
+After saving the series, open its **Event Instances** tab. This requirement is
+satisfied when the tab contains at least one session dated in the future. The
+instances can also be checked with Drush; replace `123` with the series ID:
+
+```bash
+drush php:eval '
+$series_id = 123;
+$storage = \Drupal::entityTypeManager()->getStorage("eventinstance");
+
+$ids = $storage->getQuery()
+  ->accessCheck(FALSE)
+  ->condition("eventseries_id", $series_id)
+  ->sort("date.value")
+  ->execute();
+
+printf("Instances: %d\n", count($ids));
+
+foreach ($storage->loadMultiple($ids) as $instance) {
+  $value = (string) $instance->get("date")->value;
+  printf(
+    "%s: %s%s\n",
+    $instance->id(),
+    $value,
+    strtotime($value . " UTC") > time() ? " (future)" : ""
+  );
+}
+'
+```
+
+If the **Event Instances** tab is empty, edit and resave the series with a
+valid recurrence schedule and future dates, run `drush cron`, and check the
+tab again.
+
 Open:
 
 ```text
