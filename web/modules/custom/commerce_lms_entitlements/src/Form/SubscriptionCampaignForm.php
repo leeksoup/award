@@ -185,6 +185,7 @@ final class SubscriptionCampaignForm extends EntityForm implements ContainerInje
     parent::validateForm($form, $form_state);
     assert($this->entity instanceof LmsSubscriptionCampaign);
     $campaign = $this->entity;
+    $enabled = !empty($form_state->getValue('status'));
     if (!$campaign->getOfferMappings()) {
       $form_state->setErrorByName('offer_mappings', $this->t('Select at least one recurring offer.'));
       return;
@@ -209,7 +210,7 @@ final class SubscriptionCampaignForm extends EntityForm implements ContainerInje
       if ($campaign->forcesVip() && !$offer->isVipEnabled()) {
         $form_state->setErrorByName('offer_mappings', $this->t('Launch campaign offer @offer must have VIP enabled.', ['@offer' => $offer_id]));
       }
-      if ($campaign->status()) {
+      if ($enabled) {
         $environment = $offer->getPayPalEnvironment();
         if (($offer->isVipEnabled() || $campaign->forcesVip()) && $campaign->getPayPalPlanId($offer_id, $environment, TRUE) === '') {
           $form_state->setErrorByName('offer_mappings', $this->t('Offer @offer requires an active-environment VIP campaign plan.', ['@offer' => $offer_id]));
@@ -255,7 +256,7 @@ final class SubscriptionCampaignForm extends EntityForm implements ContainerInje
         }
       }
     }
-    if ($campaign->status() && !$form_state->getErrors()) {
+    if ($enabled && !$form_state->getErrors()) {
       foreach ($this->planCatalog->validateCampaign($campaign) as $error) {
         $form_state->setErrorByName('offer_mappings', $error);
       }
