@@ -59,11 +59,13 @@ Class.
 
 ## Access lifecycle
 
-The learner checkout pane stores an existing user or a 30-day invitation on the
-order. The contributed subscription module dispatches a plan-selection event;
-this module validates the offer, creates a pending entitlement, and supplies
-the configured plan ID. After approval, the contributed module stores the
-PayPal subscription ID on the order.
+The learner checkout pane stores an existing user ID or an unregistered email
+address on the order. It does not send mail. The contributed subscription
+module dispatches a plan-selection event; this module validates the offer,
+creates a pending entitlement, and supplies the configured plan ID. After
+approval, the contributed module stores the PayPal subscription ID on the
+order. A 30-day invitation is created and sent only when PayPal reports the
+subscription active or a lifetime order becomes fully paid.
 
 An invitation can create a validated account only when its normalized email is
 not already registered. Existing accounts must authenticate through Drupal's

@@ -7,7 +7,7 @@ services:
     arguments: ['@database', '@entity_type.manager', '@datetime.time']
   commerce_lms_entitlements.manager:
     class: Drupal\commerce_lms_entitlements\EntitlementManager
-    arguments: ['@database', '@entity_type.manager', '@commerce_lms_entitlements.membership_manager', '@config.factory', '@queue', '@datetime.time', '@logger.channel.commerce_lms_entitlements', '@commerce_paypal_subscriptions.checkout_sdk_factory']
+    arguments: ['@database', '@entity_type.manager', '@commerce_lms_entitlements.membership_manager', '@config.factory', '@queue', '@datetime.time', '@logger.channel.commerce_lms_entitlements', '@commerce_paypal_subscriptions.checkout_sdk_factory', '@plugin.manager.mail', '@language_manager', '@url_generator']
   commerce_lms_entitlements.paypal_operations:
     class: Drupal\commerce_lms_entitlements\PayPalSubscriptionOperations
     arguments: ['@http_client']

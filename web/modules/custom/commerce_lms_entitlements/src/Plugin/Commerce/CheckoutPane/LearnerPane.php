@@ -10,19 +10,17 @@ use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
 use Drupal\commerce_lms_entitlements\EntitlementManager;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Language\LanguageManagerInterface;
-use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Records the purchaser-designated learner before payment approval.
  *
  * Existing Drupal users are stored directly by user ID. A new email address
- * receives a signed invitation and is stored by invitation ID until it is
- * claimed. The learner selection is order data so later subscription creation
- * and webhook processing can create the correct entitlement.
+ * remains order-scoped until successful payment activates the entitlement;
+ * only then is its signed invitation created and sent. The learner selection
+ * is order data so later subscription creation and webhook processing can
+ * create the correct entitlement.
  *
  * @CommerceCheckoutPane(
  *   id = "commerce_lms_learner",
@@ -41,8 +39,6 @@ final class LearnerPane extends CheckoutPaneBase implements ContainerFactoryPlug
     CheckoutFlowInterface $checkout_flow,
     EntityTypeManagerInterface $entity_type_manager,
     private EntitlementManager $manager,
-    private MailManagerInterface $mailManager,
-    private LanguageManagerInterface $languageManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $checkout_flow, $entity_type_manager);
   }
@@ -56,8 +52,6 @@ final class LearnerPane extends CheckoutPaneBase implements ContainerFactoryPlug
       $checkout_flow,
       $container->get('entity_type.manager'),
       $container->get('commerce_lms_entitlements.manager'),
-      $container->get('plugin.manager.mail'),
-      $container->get('language_manager'),
     );
   }
 
@@ -115,28 +109,14 @@ final class LearnerPane extends CheckoutPaneBase implements ContainerFactoryPlug
     else {
       $existing_choice = $this->order->getData('commerce_lms_learner') ?: [];
       if (($existing_choice['email'] ?? '') === $email && !empty($existing_choice['invitation_id'])) {
-        // Rebuilding or resubmitting checkout must not generate a new token or
-        // send another invitation for an unchanged learner selection.
+        // Preserve invitations issued by releases that sent them before
+        // payment. Activation recognizes these as already delivered and does
+        // not send a duplicate.
         $choice = $existing_choice;
       }
       else {
-        $invitation = $this->manager->createInvitation($email);
-        $choice = [
-          'email' => $email,
-          'invitation_id' => $invitation['id'],
-        ];
-        $url = Url::fromRoute(
-          'commerce_lms_entitlements.claim',
-          ['token' => $invitation['token']],
-          ['absolute' => TRUE],
-        )->toString();
-        $this->mailManager->mail(
-          'commerce_lms_entitlements',
-          'invitation',
-          $email,
-          $this->languageManager->getDefaultLanguage()->getId(),
-          ['url' => $url],
-        );
+        // Do not create or send an invitation for an abandoned checkout.
+        $choice = ['email' => $email];
       }
     }
 

@@ -11,7 +11,11 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\KernelTests\KernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use Psr\Log\LoggerInterface;
@@ -55,6 +59,20 @@ final class LifetimePaymentTest extends KernelTestBase {
   private array $completedPayments = [];
 
   /**
+   * Orders available to the activation-time learner resolver.
+   *
+   * @var object[]
+   */
+  private array $orders = [];
+
+  /**
+   * Invitation messages accepted by the test mail backend.
+   *
+   * @var array<int, array<string, mixed>>
+   */
+  private array $sentInvitations = [];
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
@@ -73,6 +91,9 @@ final class LifetimePaymentTest extends KernelTestBase {
         'payment_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
         'paypal_subscription_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
         'paypal_plan_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+        'subscription_campaign_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+        'promotion_uuid' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+        'coupon_uuid' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
         'vip_selected' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
         'vip_active' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
         'initial_capture_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
@@ -87,6 +108,18 @@ final class LifetimePaymentTest extends KernelTestBase {
       'primary key' => ['eid'],
       'unique keys' => ['order' => ['order_id']],
     ]);
+    $this->database->schema()->createTable('commerce_lms_entitlement_invitation', [
+      'fields' => [
+        'id' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+        'email' => ['type' => 'varchar', 'length' => 254, 'not null' => TRUE],
+        'token_hash' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+        'claimed_uid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
+        'created' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+        'expires' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => ['token_hash' => ['token_hash']],
+    ]);
 
     $this->offer = new LifetimeOfferDouble();
     $offer_storage = $this->createMock(EntityStorageInterface::class);
@@ -94,15 +127,22 @@ final class LifetimePaymentTest extends KernelTestBase {
     $payment_storage = $this->createMock(EntityStorageInterface::class);
     $payment_storage->method('loadByProperties')
       ->willReturnCallback(fn (array $properties): array => $this->completedPayments);
+    $order_storage = $this->createMock(EntityStorageInterface::class);
+    $order_storage->method('load')
+      ->willReturnCallback(fn (int $id): ?object => $this->orders[$id] ?? NULL);
+    $user_storage = $this->createMock(EntityStorageInterface::class);
+    $user_storage->method('loadByProperties')->willReturn([]);
 
     $entity_type_manager = $this->createMock(EntityTypeManagerInterface::class);
     $entity_type_manager->method('getStorage')
       ->willReturnCallback(static function (
         string $entity_type_id,
-      ) use ($offer_storage, $payment_storage): EntityStorageInterface {
+      ) use ($offer_storage, $payment_storage, $order_storage, $user_storage): EntityStorageInterface {
         return match ($entity_type_id) {
           'commerce_lms_offer' => $offer_storage,
           'commerce_payment' => $payment_storage,
+          'commerce_order' => $order_storage,
+          'user' => $user_storage,
           default => throw new \LogicException('Unexpected storage: ' . $entity_type_id),
         };
       });
@@ -114,6 +154,24 @@ final class LifetimePaymentTest extends KernelTestBase {
       $entity_type_manager,
       $time,
     );
+    $mail_manager = $this->createMock(MailManagerInterface::class);
+    $mail_manager->method('mail')->willReturnCallback(function (
+      string $module,
+      string $key,
+      string $to,
+      string $langcode,
+      array $params,
+    ): array {
+      $this->sentInvitations[] = compact('module', 'key', 'to', 'langcode', 'params');
+      return ['result' => TRUE];
+    });
+    $language = $this->createMock(LanguageInterface::class);
+    $language->method('getId')->willReturn('en');
+    $language_manager = $this->createMock(LanguageManagerInterface::class);
+    $language_manager->method('getDefaultLanguage')->willReturn($language);
+    $url_generator = $this->createMock(UrlGeneratorInterface::class);
+    $url_generator->method('generateFromRoute')
+      ->willReturn('https://example.com/commerce-lms-entitlements/invitation/token');
     $this->manager = new EntitlementManager(
       $this->database,
       $entity_type_manager,
@@ -123,6 +181,9 @@ final class LifetimePaymentTest extends KernelTestBase {
       $time,
       $this->createMock(LoggerInterface::class),
       new \stdClass(),
+      $mail_manager,
+      $language_manager,
+      $url_generator,
     );
   }
 
@@ -218,6 +279,42 @@ final class LifetimePaymentTest extends KernelTestBase {
   }
 
   /**
+   * A new learner is invited once, and only after completed payment.
+   */
+  public function testInvitationWaitsForActivation(): void {
+    $order = new LifetimeOrderDouble(
+      120,
+      FALSE,
+      ['email' => 'new.learner@example.com'],
+    );
+    $this->orders[120] = $order;
+    $payment = new LifetimePaymentDouble(220, $order, 'completed', 'CAPTURE-20');
+
+    $pending = $this->manager->ensureEntitlement($order, $this->offer);
+    self::assertSame('pending', $pending['status']);
+    self::assertNull($pending['invitation_id']);
+    self::assertSame(0, $this->invitationCount());
+    self::assertSame([], $this->sentInvitations);
+
+    $this->manager->syncCompletedPayment($payment);
+    self::assertSame(0, $this->invitationCount());
+    self::assertSame([], $this->sentInvitations);
+
+    $order->setPaid(TRUE);
+    $this->manager->syncCompletedPayment($payment);
+    $active = $this->entitlementForOrder(120);
+    self::assertSame('active', $active['status']);
+    self::assertNotEmpty($active['invitation_id']);
+    self::assertSame(1, $this->invitationCount());
+    self::assertCount(1, $this->sentInvitations);
+    self::assertSame('new.learner@example.com', $this->sentInvitations[0]['to']);
+
+    $this->manager->syncCompletedPayment($payment);
+    self::assertSame(1, $this->invitationCount());
+    self::assertCount(1, $this->sentInvitations);
+  }
+
+  /**
    * Returns the entitlement row for an order.
    */
   private function entitlementForOrder(int $order_id): array {
@@ -233,6 +330,17 @@ final class LifetimePaymentTest extends KernelTestBase {
     return (int) $this->database
       ->select('commerce_lms_entitlement', 'e')
       ->condition('order_id', $order_id)
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+  }
+
+  /**
+   * Counts generated learner invitations.
+   */
+  private function invitationCount(): int {
+    return (int) $this->database
+      ->select('commerce_lms_entitlement_invitation', 'i')
       ->countQuery()
       ->execute()
       ->fetchField();
@@ -271,6 +379,7 @@ final class LifetimeOrderDouble {
   public function __construct(
     private readonly int $orderId,
     private bool $paid,
+    private readonly ?array $learner = NULL,
   ) {}
 
   public function id(): int {
@@ -295,7 +404,7 @@ final class LifetimeOrderDouble {
 
   public function getData(string $key): mixed {
     return $key === 'commerce_lms_learner'
-      ? ['invitation_id' => 'invitation-' . $this->orderId]
+      ? ($this->learner ?? ['invitation_id' => 'invitation-' . $this->orderId])
       : NULL;
   }
 

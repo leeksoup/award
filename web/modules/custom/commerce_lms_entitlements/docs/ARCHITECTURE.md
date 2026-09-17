@@ -92,7 +92,7 @@ can prove the entitlement owns it.
 
 ```text
 checkout learner pane
-  -> order data: existing UID or invitation ID
+  -> order data: existing UID or unregistered email (no mail yet)
   -> PayPal subscription-create event
   -> PayPalPlanSubscriber validates offer + stores pending entitlement
   -> contributed checkout receives buyer approval
@@ -100,7 +100,7 @@ checkout learner pane
   -> order update links ID to entitlement
   -> verified webhook is persisted and queued
   -> worker GETs PayPal subscription detail
-  -> ACTIVE: Group membership grant
+  -> ACTIVE: create/send invitation if needed, then Group membership grant
      SUSPENDED/EXPIRED: safe membership revoke
      CANCELLED: retain until access_through, then revoke
 ```
@@ -108,17 +108,19 @@ checkout learner pane
 ### Lifetime purchase
 
 ```text
-checkout learner pane -> order data
+checkout learner pane -> existing UID or unregistered email (no mail yet)
   -> normal Commerce PayPal payment reaches completed state
   -> hook_entity_insert/update calls syncCompletedPayment()
   -> pending/active entitlement is created or reused
+  -> create/send invitation if needed
   -> Class memberships are granted
 ```
 
 ### New learner invitation
 
 ```text
-unknown email -> random token (only SHA-256 hash is stored) -> email claim URL
+active entitlement with unknown email
+  -> random token (only SHA-256 hash is stored) -> email claim URL
   -> claimant must use the invited email
   -> create a validated account, or authenticate an existing account normally
   -> claim pending entitlements for that invitation
@@ -127,9 +129,13 @@ unknown email -> random token (only SHA-256 hash is stored) -> email claim URL
 
 Checkout pane values are nested below the pane's form parents. The learner
 pane reads the submitted email from that nested value tree and refuses an
-empty recipient. Repeated checkout submissions reuse an existing invitation
-for an unchanged email instead of creating a new token and sending duplicate
-mail.
+empty recipient. It stores an unregistered address without creating an
+invitation. Activation atomically assigns the invitation ID before sending;
+repeated webhook, reconciliation, or payment events therefore do not send
+duplicate mail. If delivery fails, that attempt is removed so a later
+activation or cron reconciliation retry can generate a fresh one-time token.
+Invitations created by older releases before payment are preserved and are not
+sent again.
 
 ## Data model
 
@@ -146,7 +152,7 @@ One row per order (`order_id` is unique).
 | `eid` | Local entitlement identifier used in membership/audit tables. |
 | `offer_id`, `purchase_type` | Snapshot of the offer identity and recurring/lifetime model. |
 | `purchaser_uid` | Account allowed to view/cancel this entitlement. |
-| `learner_uid`, `invitation_id` | Current learner or unclaimed invitation. Exactly one is expected initially. |
+| `learner_uid`, `invitation_id` | Current learner or unclaimed invitation. Both may be empty while payment is pending for a new email. |
 | `order_id`, `payment_id` | Commerce audit links. `payment_id` is populated for lifetime payments. |
 | `paypal_subscription_id` | Recurring PayPal object used to match webhooks. |
 | `paypal_plan_id` | Last authoritative PayPal plan observed for the subscription. |
@@ -229,7 +235,7 @@ email. An invitation expires after 30 days.
 | `Entity/LmsOffer.php` | Config-entity definition for one variation-to-bundle mapping. |
 | `Entity/LmsSubscriptionCampaign.php`, campaign form/list builder | Define reusable campaign behavior and per-offer introductory prices, cycles, and sandbox/live plan mappings. |
 | `Form/OfferForm.php` | Administrator UI for dual PayPal mappings, live plan discovery/validation, active environment, expected cadence, and `COURSE_ID:CLASS_ID` parsing. |
-| `CheckoutPane/LearnerPane.php` | Stores the chosen existing learner or creates/sends an invitation before payment approval. |
+| `CheckoutPane/LearnerPane.php` | Stores the chosen existing learner or unregistered email without sending pre-payment mail. |
 | `CheckoutPane/VipUpgradePane.php`, `VipOrderProcessor.php` | Store the order-bump choice and add its idempotent labeled recurring adjustment. |
 | `CheckoutPane/SubscriptionCampaignPane.php`, `PromotionOffer/LmsSubscriptionCampaignOffer.php` | Validate/disclose coupon terms and adjust the Commerce total to the curated PayPal introductory charge. |
 | `EventSubscriber/PaymentGatewaySubscriber.php` | Filters Commerce's available gateways so a valid LMS offer can use only its configured recurring or one-time gateway. |
@@ -258,8 +264,10 @@ It throws a `DomainException`, letting checkout display a configuration/cart
 error rather than creating ambiguous access.
 
 `ensureEntitlement()` is idempotent because `order_id` is unique. It records a
-pending row only after the learner pane has stored either an existing UID or an
-invitation ID.
+pending row only after the learner pane has stored an existing UID, a legacy
+invitation ID, or an unregistered learner email. Activation resolves that
+email to an account or creates and sends a one-time invitation before granting
+access.
 
 `linkPayPalSubscriptionFromOrder()` handles the hand-off from contributed
 checkout. It also requeues matching stored webhook events to close the normal

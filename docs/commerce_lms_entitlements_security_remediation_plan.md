@@ -475,6 +475,16 @@ Consider:
 - ensuring a checkout rebuild cannot send additional mail for the same order and
   learner selection.
 
+Implementation status (2026-09-17): invitation creation and delivery are now
+deferred until an entitlement becomes active from an authoritative PayPal
+subscription response or a fully paid lifetime order. Pending and abandoned
+checkouts store only the normalized learner email. Activation uses a
+conditional entitlement update to elect one sender, preserves invitations
+already delivered by earlier releases, and removes failed delivery attempts so
+activation or cron reconciliation can retry with a fresh one-time token. Kernel
+coverage verifies that pending payment sends no invitation and repeated
+activation sends exactly one.
+
 ## Lower-priority Drupal hardening
 
 1. Mark these permissions with `restrict access: true`:

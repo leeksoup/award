@@ -10,7 +10,10 @@ use Drupal\commerce_price\Calculator;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Routing\UrlGeneratorInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -35,6 +38,9 @@ final class EntitlementManager {
     private TimeInterface $time,
     private LoggerInterface $logger,
     private object $sdkFactory,
+    private MailManagerInterface $mailManager,
+    private LanguageManagerInterface $languageManager,
+    private UrlGeneratorInterface $urlGenerator,
   ) {}
 
   /**
@@ -86,7 +92,11 @@ final class EntitlementManager {
       return $existing;
     }
     $learner = $order->getData('commerce_lms_learner') ?: [];
-    if (empty($learner['uid']) && empty($learner['invitation_id'])) { throw new \DomainException('A learner must be selected before payment approval.'); }
+    if (empty($learner['uid'])
+      && empty($learner['invitation_id'])
+      && empty($learner['email'])) {
+      throw new \DomainException('A learner must be selected before payment approval.');
+    }
     $now = $this->time->getRequestTime();
     $this->database->insert('commerce_lms_entitlement')->fields([
       'offer_id' => $offer->id(), 'purchase_type' => $offer->getPurchaseType(), 'purchaser_uid' => (int) $order->getCustomerId(),
@@ -242,6 +252,7 @@ final class EntitlementManager {
 
     $entitlement = $this->ensureEntitlement($order, $offer);
     if ($entitlement['status'] === 'active') {
+      $this->grant($this->prepareActiveLearner($entitlement));
       return;
     }
 
@@ -251,7 +262,10 @@ final class EntitlementManager {
       'status' => 'active',
       'activated' => $this->time->getRequestTime(),
     ]);
-    $this->grant($this->load((int) $entitlement['eid']));
+    $current = $this->load((int) $entitlement['eid']);
+    if ($current) {
+      $this->grant($this->prepareActiveLearner($current));
+    }
   }
 
   /**
@@ -396,7 +410,9 @@ final class EntitlementManager {
     $this->update((int) $entitlement['eid'], $values);
     $this->finalizeDuePlanChange((int) $entitlement['eid'], $remote);
     $current = $this->load((int) $entitlement['eid']);
-    if ($local === 'active') { $this->grant($current); }
+    if ($local === 'active' && $current) {
+      $this->grant($this->prepareActiveLearner($current));
+    }
     elseif (in_array($local, ['suspended', 'expired'], TRUE) || ($local === 'cancelled' && (!$through || $through <= $this->time->getRequestTime()))) { $this->revoke($current); }
   }
 
@@ -407,6 +423,31 @@ final class EntitlementManager {
    * gateway response cannot prevent unrelated expiry revocations.
    */
   public function reconcile(): void {
+    // Retry learner resolution or invitation delivery for any activation that
+    // outlived a transient mail/backend failure. This includes lifetime
+    // purchases, which have no remote subscription to refresh below.
+    $learner_ids = $this->database
+      ->select('commerce_lms_entitlement', 'e')
+      ->fields('e', ['eid'])
+      ->condition('status', 'active')
+      ->isNull('learner_uid')
+      ->isNull('invitation_id')
+      ->execute()
+      ->fetchCol();
+    foreach ($learner_ids as $id) {
+      try {
+        if ($entitlement = $this->load((int) $id)) {
+          $this->grant($this->prepareActiveLearner($entitlement));
+        }
+      }
+      catch (\Throwable $e) {
+        $this->logger->error('Learner invitation retry failed for entitlement @eid: @message', [
+          '@eid' => $id,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+
     $ids = $this->database->select('commerce_lms_entitlement', 'e')->fields('e', ['eid'])->condition('status', 'cancelled')->condition('access_through', $this->time->getRequestTime(), '<=')->execute()->fetchCol();
     foreach ($ids as $id) { if ($entitlement = $this->load((int) $id)) { $this->revoke($entitlement); } }
     // Reconcile current remote state too: webhook delivery is not assumed to be
@@ -511,9 +552,113 @@ final class EntitlementManager {
 
   /** Creates a 30-day invitation; only a hash of the token is persisted. */
   public function createInvitation(string $email): array {
-    $id = \Drupal::service('uuid')->generate(); $token = bin2hex(random_bytes(32)); $now = $this->time->getRequestTime();
-    $this->database->insert('commerce_lms_entitlement_invitation')->fields(['id' => $id, 'email' => mb_strtolower($email), 'token_hash' => hash('sha256', $token), 'created' => $now, 'expires' => $now + 30 * 86400])->execute();
+    $id = \Drupal::service('uuid')->generate();
+    $token = bin2hex(random_bytes(32));
+    $now = $this->time->getRequestTime();
+    $this->database->insert('commerce_lms_entitlement_invitation')->fields([
+      'id' => $id,
+      'email' => mb_strtolower(trim($email)),
+      'token_hash' => hash('sha256', $token),
+      'created' => $now,
+      'expires' => $now + 30 * 86400,
+    ])->execute();
     return ['id' => $id, 'token' => $token];
+  }
+
+  /**
+   * Resolves the learner and sends a new invitation only after activation.
+   *
+   * The conditional entitlement update elects one concurrent activation as
+   * the sender. A failed delivery removes that attempt so reconciliation can
+   * safely generate a fresh one-time token and retry later.
+   */
+  private function prepareActiveLearner(array $entitlement): array {
+    if ($entitlement['status'] !== 'active'
+      || !empty($entitlement['learner_uid'])
+      || !empty($entitlement['invitation_id'])) {
+      return $entitlement;
+    }
+
+    $order = $this->entityTypeManager
+      ->getStorage('commerce_order')
+      ->load((int) $entitlement['order_id']);
+    $learner = $order?->getData('commerce_lms_learner') ?: [];
+    $email = mb_strtolower(trim((string) ($learner['email'] ?? '')));
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+      $this->logger->error('Active entitlement @eid has no valid learner email or account.', [
+        '@eid' => $entitlement['eid'],
+      ]);
+      return $entitlement;
+    }
+
+    $accounts = $this->entityTypeManager
+      ->getStorage('user')
+      ->loadByProperties(['mail' => $email]);
+    if ($accounts) {
+      $account = reset($accounts);
+      $this->update((int) $entitlement['eid'], [
+        'learner_uid' => (int) $account->id(),
+      ]);
+      return $this->load((int) $entitlement['eid']) ?? $entitlement;
+    }
+
+    $invitation = $this->createInvitation($email);
+    $claimed = $this->database
+      ->update('commerce_lms_entitlement')
+      ->fields([
+        'invitation_id' => $invitation['id'],
+        'changed' => $this->time->getRequestTime(),
+      ])
+      ->condition('eid', $entitlement['eid'])
+      ->isNull('invitation_id')
+      ->isNull('learner_uid')
+      ->execute();
+    if ($claimed !== 1) {
+      $this->database
+        ->delete('commerce_lms_entitlement_invitation')
+        ->condition('id', $invitation['id'])
+        ->execute();
+      return $this->load((int) $entitlement['eid']) ?? $entitlement;
+    }
+
+    try {
+      $url = $this->urlGenerator->generateFromRoute(
+        'commerce_lms_entitlements.claim',
+        ['token' => $invitation['token']],
+        ['absolute' => TRUE],
+      );
+      $message = $this->mailManager->mail(
+        'commerce_lms_entitlements',
+        'invitation',
+        $email,
+        $this->languageManager->getDefaultLanguage()->getId(),
+        ['url' => $url],
+      );
+      if (empty($message['result'])) {
+        throw new \RuntimeException('The mail backend did not accept the invitation.');
+      }
+    }
+    catch (\Throwable $e) {
+      $this->database
+        ->update('commerce_lms_entitlement')
+        ->fields([
+          'invitation_id' => NULL,
+          'changed' => $this->time->getRequestTime(),
+        ])
+        ->condition('eid', $entitlement['eid'])
+        ->condition('invitation_id', $invitation['id'])
+        ->execute();
+      $this->database
+        ->delete('commerce_lms_entitlement_invitation')
+        ->condition('id', $invitation['id'])
+        ->execute();
+      $this->logger->error('Invitation delivery failed for active entitlement @eid: @message', [
+        '@eid' => $entitlement['eid'],
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    return $this->load((int) $entitlement['eid']) ?? $entitlement;
   }
   /**
    * Loads an unclaimed, unexpired invitation by a presented plaintext token.
