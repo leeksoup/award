@@ -27,6 +27,8 @@ function commerce_lms_entitlements_schema(): array {
       'subscription_campaign_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
       'promotion_uuid' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
       'coupon_uuid' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'checkout_token' => ['type' => 'varchar', 'length' => 80, 'not null' => FALSE],
+      'checkout_snapshot' => ['type' => 'blob', 'size' => 'big', 'not null' => FALSE],
       'vip_selected' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
       'vip_active' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
       'initial_capture_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
@@ -39,7 +41,7 @@ function commerce_lms_entitlements_schema(): array {
       'changed' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
     ],
     'primary key' => ['eid'],
-    'unique keys' => ['order' => ['order_id'], 'paypal_subscription' => ['paypal_subscription_id']],
+    'unique keys' => ['order' => ['order_id'], 'paypal_subscription' => ['paypal_subscription_id'], 'checkout_token' => ['checkout_token']],
     'indexes' => ['reconcile' => ['status', 'access_through'], 'purchaser' => ['purchaser_uid']],
   ];
   $schema['commerce_lms_entitlement_membership'] = [
@@ -63,6 +65,7 @@ function commerce_lms_entitlements_schema(): array {
     'fields' => [
       'event_id' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
       'paypal_subscription_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'gateway_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
       'event_type' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
       'payload' => ['type' => 'blob', 'size' => 'big', 'not null' => TRUE],
       'status' => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE, 'default' => 'queued'],
@@ -269,4 +272,29 @@ function commerce_lms_entitlements_update_10014(): string {
     ->execute();
 
   return (string) t('Marked @count PayPal catalog events as non-actionable.', ['@count' => $updated]);
+}
+
+/**
+ * Adds immutable subscription checkout correlation and recovery snapshots.
+ */
+function commerce_lms_entitlements_update_10015(): string {
+  $schema = \Drupal::database()->schema();
+  $definition = commerce_lms_entitlements_schema();
+  $added = 0;
+
+  foreach (['checkout_token', 'checkout_snapshot'] as $field) {
+    if (!$schema->fieldExists('commerce_lms_entitlement', $field)) {
+      $schema->addField('commerce_lms_entitlement', $field, $definition['commerce_lms_entitlement']['fields'][$field]);
+      $added++;
+    }
+  }
+  if (!$schema->indexExists('commerce_lms_entitlement', 'checkout_token')) {
+    $schema->addUniqueKey('commerce_lms_entitlement', 'checkout_token', ['checkout_token']);
+  }
+  if (!$schema->fieldExists('commerce_lms_entitlement_event', 'gateway_id')) {
+    $schema->addField('commerce_lms_entitlement_event', 'gateway_id', $definition['commerce_lms_entitlement_event']['fields']['gateway_id']);
+    $added++;
+  }
+
+  return (string) t('Added @count subscription checkout recovery fields.', ['@count' => $added]);
 }

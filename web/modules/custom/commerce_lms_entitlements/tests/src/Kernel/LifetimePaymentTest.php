@@ -6,6 +6,7 @@ namespace Drupal\Tests\commerce_lms_entitlements\Kernel;
 
 use Drupal\commerce_lms_entitlements\EntitlementManager;
 use Drupal\commerce_lms_entitlements\EntitlementMembershipManager;
+use Drupal\commerce_lms_entitlements\SubscriptionPlanSelection;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
@@ -94,6 +95,8 @@ final class LifetimePaymentTest extends KernelTestBase {
         'subscription_campaign_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
         'promotion_uuid' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
         'coupon_uuid' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+        'checkout_token' => ['type' => 'varchar', 'length' => 80, 'not null' => FALSE],
+        'checkout_snapshot' => ['type' => 'blob', 'size' => 'big', 'not null' => FALSE],
         'vip_selected' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
         'vip_active' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
         'initial_capture_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
@@ -106,7 +109,10 @@ final class LifetimePaymentTest extends KernelTestBase {
         'changed' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
       ],
       'primary key' => ['eid'],
-      'unique keys' => ['order' => ['order_id']],
+      'unique keys' => [
+        'order' => ['order_id'],
+        'checkout_token' => ['checkout_token'],
+      ],
     ]);
     $this->database->schema()->createTable('commerce_lms_entitlement_invitation', [
       'fields' => [
@@ -222,6 +228,48 @@ final class LifetimePaymentTest extends KernelTestBase {
     $entitlement = $this->entitlementForOrder(102);
     self::assertSame('active', $entitlement['status']);
     self::assertSame((string) self::REQUEST_TIME, $entitlement['activated']);
+  }
+
+  /**
+   * A retry cannot replace the immutable checkout token or cart snapshot.
+   */
+  public function testRecurringCheckoutSealIsImmutable(): void {
+    $order = new LifetimeOrderDouble(109, FALSE);
+    $selection = new SubscriptionPlanSelection('lifetime', 'P-SEALED', FALSE);
+    $this->manager->ensureEntitlement($order, $this->offer, $selection);
+    $this->database->update('commerce_lms_entitlement')
+      ->fields(['purchase_type' => 'recurring'])
+      ->condition('order_id', 109)
+      ->execute();
+
+    $entitlement = $this->manager->loadByOrder(109);
+    $first = $this->manager->sealRecurringCheckout($entitlement, [
+      'version' => 1,
+      'total' => ['number' => '97', 'currency_code' => 'USD'],
+    ]);
+    self::assertStringStartsWith('lms-', $first['checkout_token']);
+    self::assertSame($first['eid'], $this->manager->loadByCheckoutToken($first['checkout_token'])['eid']);
+
+    $second = $this->manager->sealRecurringCheckout($first, [
+      'version' => 1,
+      'total' => ['number' => '999', 'currency_code' => 'USD'],
+    ]);
+    self::assertSame($first['checkout_token'], $second['checkout_token']);
+    self::assertSame($first['checkout_snapshot'], $second['checkout_snapshot']);
+    self::assertStringContainsString('"97"', $second['checkout_snapshot']);
+    self::assertStringNotContainsString('"999"', $second['checkout_snapshot']);
+
+    self::assertSame(
+      $first['eid'],
+      $this->manager->ensureEntitlement($order, $this->offer, $selection)['eid'],
+    );
+    $this->expectException(\DomainException::class);
+    $this->expectExceptionMessage('The subscription selection changed after PayPal approval began.');
+    $this->manager->ensureEntitlement(
+      $order,
+      $this->offer,
+      new SubscriptionPlanSelection('lifetime', 'P-CHANGED', FALSE),
+    );
   }
 
   /**

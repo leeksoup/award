@@ -34,6 +34,19 @@ final class EntitlementCommands extends DrushCommands {
     $refunds = $this->database->select('commerce_lms_entitlement', 'e')->condition('guarantee_requested', 0, '>')->isNull('refund_id')->countQuery()->execute()->fetchField();
     $this->output()->writeln('Failed webhook events: ' . $failed_events);
     $this->output()->writeln('Guarantee refunds needing recovery: ' . $refunds);
+    if ($this->database->schema()->fieldExists('commerce_lms_entitlement', 'checkout_token')) {
+      $pending_query = $this->database->select('commerce_lms_entitlement', 'e')
+        ->condition('purchase_type', 'recurring')
+        ->condition('status', 'pending')
+        ->isNull('paypal_subscription_id');
+      $missing_seal = $pending_query->orConditionGroup()
+        ->isNull('checkout_token')
+        ->isNull('checkout_snapshot');
+      $unsealed = $pending_query
+        ->condition($missing_seal)
+        ->countQuery()->execute()->fetchField();
+      $this->output()->writeln('Legacy pending subscriptions without automatic return recovery: ' . $unsealed);
+    }
     if ($this->database->schema()->tableExists('commerce_lms_plan_change')) {
       $stalled = $this->database->select('commerce_lms_plan_change', 'p')
         ->condition('status', ['approval_pending', 'approved'], 'IN')

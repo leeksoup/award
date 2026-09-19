@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\commerce_lms_entitlements;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Component\Utility\Crypt;
 use Drupal\commerce_lms_entitlements\Entity\LmsSubscriptionCampaign;
 use Drupal\commerce_price\Calculator;
 use Drupal\Core\Database\Connection;
@@ -83,6 +84,26 @@ final class EntitlementManager {
       // safe to refresh only a still-unlinked pending row; billing-linked rows
       // can change tier only through the revision workflow.
       if ($existing['status'] === 'pending' && empty($existing['paypal_subscription_id'])) {
+        if (!empty($existing['checkout_token']) || !empty($existing['checkout_snapshot'])) {
+          $sealed_selection = [
+            'paypal_plan_id' => (string) ($existing['paypal_plan_id'] ?? ''),
+            'vip_selected' => (int) ($existing['vip_selected'] ?? 0),
+            'subscription_campaign_id' => (string) ($existing['subscription_campaign_id'] ?? ''),
+            'promotion_uuid' => (string) ($existing['promotion_uuid'] ?? ''),
+            'coupon_uuid' => (string) ($existing['coupon_uuid'] ?? ''),
+          ];
+          $requested_selection = [
+            'paypal_plan_id' => (string) $plan_id,
+            'vip_selected' => $vip_selected ? 1 : 0,
+            'subscription_campaign_id' => (string) ($campaign_values['subscription_campaign_id'] ?? ''),
+            'promotion_uuid' => (string) ($campaign_values['promotion_uuid'] ?? ''),
+            'coupon_uuid' => (string) ($campaign_values['coupon_uuid'] ?? ''),
+          ];
+          if ($sealed_selection !== $requested_selection) {
+            throw new \DomainException('The subscription selection changed after PayPal approval began. Start a new checkout.');
+          }
+          return $existing;
+        }
         $this->update((int) $existing['eid'], [
           'paypal_plan_id' => $plan_id,
           'vip_selected' => $vip_selected ? 1 : 0,
@@ -116,7 +137,43 @@ final class EntitlementManager {
   public function load(int $eid): ?array { $row = $this->database->select('commerce_lms_entitlement', 'e')->fields('e')->condition('eid', $eid)->execute()->fetchAssoc(); return $row ?: NULL; }
   public function loadByOrder(int $order_id): ?array { $row = $this->database->select('commerce_lms_entitlement', 'e')->fields('e')->condition('order_id', $order_id)->execute()->fetchAssoc(); return $row ?: NULL; }
   public function loadByPayPalSubscription(string $id): ?array { $row = $this->database->select('commerce_lms_entitlement', 'e')->fields('e')->condition('paypal_subscription_id', $id)->execute()->fetchAssoc(); return $row ?: NULL; }
+  public function loadByCheckoutToken(string $id): ?array { $row = $this->database->select('commerce_lms_entitlement', 'e')->fields('e')->condition('checkout_token', $id)->execute()->fetchAssoc(); return $row ?: NULL; }
   public function update(int $eid, array $values): void { $values['changed'] = $this->time->getRequestTime(); $this->database->update('commerce_lms_entitlement')->fields($values)->condition('eid', $eid)->execute(); }
+
+  /** Seals the approved cart state behind an unguessable PayPal custom ID. */
+  public function sealRecurringCheckout(array $entitlement, array $snapshot): array {
+    if ($entitlement['purchase_type'] !== 'recurring' || $entitlement['status'] !== 'pending' || !empty($entitlement['paypal_subscription_id'])) {
+      throw new \DomainException('Only an unlinked pending subscription can be sealed for checkout.');
+    }
+    if (!empty($entitlement['checkout_token']) && !empty($entitlement['checkout_snapshot'])) {
+      return $entitlement;
+    }
+    if (!empty($entitlement['checkout_token']) || !empty($entitlement['checkout_snapshot'])) {
+      throw new \DomainException('The subscription checkout seal is incomplete.');
+    }
+    $token = 'lms-' . Crypt::randomBytesBase64(32);
+    $updated = $this->database->update('commerce_lms_entitlement')
+      ->fields([
+        'checkout_token' => $token,
+        'checkout_snapshot' => json_encode($snapshot, JSON_THROW_ON_ERROR),
+        'changed' => $this->time->getRequestTime(),
+      ])
+      ->condition('eid', (int) $entitlement['eid'])
+      ->isNull('checkout_token')
+      ->isNull('checkout_snapshot')
+      ->execute();
+    $sealed = $this->load((int) $entitlement['eid']);
+    if (!$sealed || (!$updated && (empty($sealed['checkout_token']) || empty($sealed['checkout_snapshot'])))) {
+      throw new \RuntimeException('The subscription checkout could not be sealed.');
+    }
+    return $sealed;
+  }
+
+  /** Returns the custom ID supplied to PayPal for this pending order. */
+  public function checkoutCustomIdForOrder(int $order_id): string {
+    $entitlement = $this->loadByOrder($order_id);
+    return (string) ($entitlement['checkout_token'] ?? '');
+  }
 
   /**
    * Copies contributed checkout's PayPal subscription ID onto the local row.
@@ -282,12 +339,12 @@ final class EntitlementManager {
    * A database uniqueness exception means the event ID has already been
    * accepted, which is a normal duplicate delivery rather than an error.
    */
-  public function queueEvent(array $event): bool {
+  public function queueEvent(array $event, string $gateway_id): bool {
     $event_id = (string) ($event['id'] ?? '');
     if ($event_id === '') { throw new \InvalidArgumentException('PayPal event is missing its ID.'); }
     $subscription_id = $this->extractPayPalSubscriptionId($event);
     $now = $this->time->getRequestTime();
-    try { $this->database->insert('commerce_lms_entitlement_event')->fields(['event_id' => $event_id, 'paypal_subscription_id' => $subscription_id ?: NULL, 'event_type' => (string) ($event['event_type'] ?? ''), 'payload' => json_encode($event, JSON_THROW_ON_ERROR), 'created' => $now, 'changed' => $now])->execute(); }
+    try { $this->database->insert('commerce_lms_entitlement_event')->fields(['event_id' => $event_id, 'paypal_subscription_id' => $subscription_id ?: NULL, 'gateway_id' => $gateway_id, 'event_type' => (string) ($event['event_type'] ?? ''), 'payload' => json_encode($event, JSON_THROW_ON_ERROR), 'created' => $now, 'changed' => $now])->execute(); }
     catch (\Exception) { return FALSE; }
     $this->queue->get('commerce_lms_entitlements_webhook')->createItem(['event_id' => $event_id]);
     return TRUE;

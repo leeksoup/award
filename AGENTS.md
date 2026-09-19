@@ -48,6 +48,12 @@ before assuming that a previous chat or patch is present.
 
 ## Drupal implementation conventions
 
+- Before implementing or recommending Drupal, Drupal Commerce, Group, LMS,
+  Drush, or contributed-module APIs, consult the Drupal MCP at
+  `https://mcp.tresbien.tech/mcp`. Use its `search_code` results to confirm the
+  relevant API and service names against the applicable upstream repository.
+  Treat local vendored source as additional version-specific evidence, not as
+  a substitute for this MCP check.
 - Follow Drupal coding standards and use `declare(strict_types=1);` in PHP.
 - Never wrap imports in `try/catch` blocks.
 - Prefer dependency injection for services in reusable runtime classes. The
@@ -89,4 +95,3 @@ passing test. Use the runbook for staging `drush` validation.
 - Commit completed changes on the current branch with a focused message.
 - Do not overwrite unrelated user changes. If the worktree is dirty, inspect
   and preserve those changes.
-

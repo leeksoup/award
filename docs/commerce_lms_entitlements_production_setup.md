@@ -314,6 +314,27 @@ Enable only the coupon being tested and complete one real transaction. Verify:
 
 After the controlled transaction succeeds, enable the public promotion.
 
+## Checkout-return recovery update
+
+Module update `10015` adds the immutable subscription-checkout seal and records
+the gateway that accepted each verified webhook. Deploy the code and database
+schema together:
+
+```bash
+drush updb -y
+drush cr
+drush commerce-lms-entitlements:audit
+```
+
+The audit should report zero legacy pending subscriptions without automatic
+return recovery. Existing completed subscriptions do not need a snapshot.
+Before relying on the fallback, complete a sandbox checkout normally, then run
+a second one while intentionally preventing the approval response from
+reaching Drupal. Deliver/run its verified webhooks and cron. Confirm that the
+second order becomes completed with one completed payment at the PayPal-paid
+amount, the entitlement becomes active, and rerunning the event creates no
+duplicate payment, invitation, or membership.
+
 ## Database warning
 
 Do not replace the production database merely to transfer this setup. A

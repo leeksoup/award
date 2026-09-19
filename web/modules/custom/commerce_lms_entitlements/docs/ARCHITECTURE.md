@@ -45,6 +45,10 @@ can prove the entitlement owns it.
     and a successful payment reaches the stored billing boundary.
 11. Recurring Events owns session capacity and registrants. The module's
     booking ledger adds only active-VIP authorization and a one-per-month quota.
+12. Subscription approval is bound to an immutable quantity-one checkout
+    snapshot and an unguessable PayPal `custom_id`. Browser approval and
+    verified-webhook recovery share one locked, idempotent finalizer and must
+    produce exactly one completed Commerce payment for that exact total.
 
 ## Setup sequence
 
@@ -156,6 +160,7 @@ One row per order (`order_id` is unique).
 | `order_id`, `payment_id` | Commerce audit links. `payment_id` is populated for lifetime payments. |
 | `paypal_subscription_id` | Recurring PayPal object used to match webhooks. |
 | `paypal_plan_id` | Last authoritative PayPal plan observed for the subscription. |
+| `checkout_token`, `checkout_snapshot` | Random PayPal `custom_id` and immutable order state used to finish or recover an approved subscription without trusting a later-mutated cart. |
 | `vip_selected`, `vip_active` | Requested checkout tier and currently paid/active VIP benefit. |
 | `initial_capture_id`, `refund_id` | PayPal transaction IDs for the guarantee path. |
 | `status` | Current local access state; see below. |
@@ -215,7 +220,9 @@ create duplicate work or access grants. `queued`, `processed`, and `failed`
 describe local processing. The complete received JSON is retained for audit;
 it is never used as the source of truth for access. Signature-verified catalog
 and billing-plan events are acknowledged without being queued because they do
-not identify a subscriber or change learner access.
+not identify a subscriber or change learner access. `gateway_id` records which
+verified webhook endpoint accepted the event, allowing recovery to query the
+same PayPal environment before an order has been linked.
 
 ### `commerce_lms_entitlement_invitation`
 
@@ -228,7 +235,7 @@ email. An invitation expires after 30 days.
 | File | Responsibility |
 | --- | --- |
 | `commerce_lms_entitlements.info.yml` | Declares dependencies on Commerce, the PayPal modules, Group, and LMS Classes. |
-| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings, `10012` adds VIP state, `10013` adds campaign audit metadata, and `10014` closes previously recorded non-subscription PayPal events. |
+| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings, `10012` adds VIP state, `10013` adds campaign audit metadata, `10014` closes previously recorded non-subscription PayPal events, and `10015` adds checkout correlation/recovery fields. |
 | `commerce_lms_entitlements.module` | Bridges Commerce entity events to the manager, queues reconciliation from cron, and supplies invitation mail text. |
 | `services.yml` | Registers the manager, PayPal REST/catalog services, event subscribers, and log channel. |
 | `routing.yml`, `links.menu.yml`, `permissions.yml` | Define the webhook, invitation, purchaser and administrator routes; the admin menu entry; and authorization gates. |
@@ -239,7 +246,9 @@ email. An invitation expires after 30 days.
 | `CheckoutPane/VipUpgradePane.php`, `VipOrderProcessor.php` | Store the order-bump choice and add its idempotent labeled recurring adjustment. |
 | `CheckoutPane/SubscriptionCampaignPane.php`, `PromotionOffer/LmsSubscriptionCampaignOffer.php` | Validate/disclose coupon terms and adjust the Commerce total to the curated PayPal introductory charge. |
 | `EventSubscriber/PaymentGatewaySubscriber.php` | Filters Commerce's available gateways so a valid LMS offer can use only its configured recurring or one-time gateway. |
-| `EventSubscriber/PayPalPlanSubscriber.php` | Intercepts the contributed module’s subscription creation event, validates the order/offer/gateway, creates the pending entitlement, and injects the PayPal plan ID. |
+| `EventSubscriber/PayPalPlanSubscriber.php` | Intercepts subscription creation, validates the order/offer/gateway, creates the pending entitlement, seals its checkout snapshot, and injects the PayPal plan ID. |
+| `Controller/SubscriptionCheckoutController.php`, `Routing/RouteSubscriber.php` | Add the sealed `custom_id` to PayPal creation and route browser approval through the idempotent server-side finalizer. |
+| `SubscriptionCheckoutSnapshot.php`, `SubscriptionCheckoutRecovery.php` | Capture/restore the approved cart and finalize exactly one matching payment/order from either browser approval or a verified webhook. |
 | `Controller/PayPalWebhookController.php` | Public endpoint that verifies the PayPal transmission signature using the contributed SDK, deduplicates the event, queues work, and immediately responds. |
 | `QueueWorker/PayPalWebhookWorker.php` | Loads a verified event, obtains the current subscription detail from PayPal, and applies it. Events that race ahead of the order link are requeued rather than lost. |
 | `QueueWorker/ReconcileWorker.php` | Runs the manager’s expiry and remote-state reconciliation from cron. |
@@ -360,12 +369,13 @@ Payment-sale resources instead identify the subscription in
 not be used for entitlement lookup. The worker re-extracts this value from the
 saved payload, allowing it to repair events accepted by older module versions.
 
-If PayPal delivers a verified lifecycle event before contributed checkout code
-has copied the subscription ID to the entitlement, the worker leaves the event
-in the module's event table with status `queued` and finishes its queue item.
-The order-link hook enqueues the saved event after the link exists. It must not
-immediately release the queue item, because a CLI queue runner can reclaim the
-same item repeatedly until the command times out.
+For newly sealed checkouts, a verified event that arrives before the browser
+return fetches the authoritative subscription, resolves its random
+`custom_id`, requires an active subscription and matching initial payment, and
+invokes the same locked finalizer. Legacy unsealed rows remain queued for
+manual review or for the ordinary browser return to link them. A queued item
+must not be immediately released because a CLI runner can reclaim it in a
+tight loop until the command times out.
 
 ## Purchaser cancellation and guarantee details
 

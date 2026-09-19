@@ -23,6 +23,16 @@ services:
   commerce_lms_entitlements.subscription_campaign_resolver:
     class: Drupal\commerce_lms_entitlements\SubscriptionCampaignResolver
     arguments: ['@entity_type.manager']
+  commerce_lms_entitlements.subscription_checkout_snapshot:
+    class: Drupal\commerce_lms_entitlements\SubscriptionCheckoutSnapshot
+    arguments: ['@entity_type.manager']
+  commerce_lms_entitlements.subscription_checkout_recovery:
+    class: Drupal\commerce_lms_entitlements\SubscriptionCheckoutRecovery
+    arguments: ['@entity_type.manager', '@commerce_lms_entitlements.manager', '@commerce_lms_entitlements.subscription_checkout_snapshot', '@commerce_lms_entitlements.paypal_operations', '@lock', '@commerce_payment.order_updater']
+  commerce_lms_entitlements.route_subscriber:
+    class: Drupal\commerce_lms_entitlements\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }
   commerce_lms_entitlements.plan_change_manager:
     class: Drupal\commerce_lms_entitlements\PlanChangeManager
     arguments: ['@database', '@entity_type.manager', '@datetime.time', '@commerce_lms_entitlements.manager', '@commerce_lms_entitlements.paypal_operations']
@@ -31,7 +41,7 @@ services:
     arguments: ['@database', '@entity_type.manager', '@config.factory', '@datetime.time', '@lock', '@recurring_events_registration.creation_service', '@plugin.manager.mail', '@language_manager']
   commerce_lms_entitlements.plan_subscriber:
     class: Drupal\commerce_lms_entitlements\EventSubscriber\PayPalPlanSubscriber
-    arguments: ['@commerce_lms_entitlements.manager', '@commerce_lms_entitlements.subscription_campaign_resolver']
+    arguments: ['@commerce_lms_entitlements.manager', '@commerce_lms_entitlements.subscription_campaign_resolver', '@commerce_lms_entitlements.subscription_checkout_snapshot']
     tags:
       - { name: event_subscriber }
   commerce_lms_entitlements.payment_gateway_subscriber:

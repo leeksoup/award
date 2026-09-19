@@ -566,6 +566,31 @@ Until that lifecycle is implemented, orphan cleanup must be a reviewed,
 backup-protected administrative operation and must never be applied to an
 unverified live PayPal subscription.
 
+## 2026-09-18 subscription-return incident and remediation
+
+A live PayPal subscription became active after the browser return failed. The
+Commerce order remained draft and its entitlement remained pending while
+verified webhook events waited for a subscription link that only the missing
+browser request would create. The cart was later mutated to quantity two, so a
+manual repair based on its current total incorrectly recorded USD 394 even
+though PayPal's authoritative initial payment was USD 97.
+
+Update `10015` and the accompanying runtime changes prevent this failure mode:
+
+- checkout stores an immutable quantity-one snapshot and random PayPal
+  `custom_id` before approval;
+- browser approval finalizes payment/order/linkage synchronously;
+- a verified webhook can recover a lost browser return using the same locked,
+  idempotent finalizer;
+- recovery verifies subscription ID, plan, token, gateway, order, payment
+  ownership, completed state, and exact approved amount; and
+- legacy pending rows lacking the new seal are reported by the audit command
+  rather than repaired from mutable order totals.
+
+Deploy with a database backup, run `drush updb -y` and `drush cr`, then run the
+audit and a complete sandbox purchase whose browser return is intentionally
+interrupted. Cron must finish the order and entitlement exactly once.
+
 ## Test plan
 
 Add automated coverage before deployment:

@@ -62,10 +62,15 @@ Class.
 The learner checkout pane stores an existing user ID or an unregistered email
 address on the order. It does not send mail. The contributed subscription
 module dispatches a plan-selection event; this module validates the offer,
-creates a pending entitlement, and supplies the configured plan ID. After
-approval, the contributed module stores the PayPal subscription ID on the
-order. A 30-day invitation is created and sent only when PayPal reports the
-subscription active or a lifetime order becomes fully paid.
+creates a pending entitlement, and supplies the configured plan ID. At that
+boundary it seals the exact quantity-one cart, adjustments, coupons, gateway,
+and total behind a random PayPal `custom_id`. Approval is finalized on the
+server before the browser redirect. If that request is lost, a verified
+webhook can correlate the remote subscription to the sealed entitlement and
+finish the same idempotent operation. It never derives the payment from a cart
+that changed after PayPal approval began. A 30-day invitation is created and
+sent only when PayPal reports the subscription active or a lifetime order
+becomes fully paid.
 
 An invitation can create a validated account only when its normalized email is
 not already registered. Existing accounts must authenticate through Drupal's
