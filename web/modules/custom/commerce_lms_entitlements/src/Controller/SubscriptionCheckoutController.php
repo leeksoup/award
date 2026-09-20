@@ -37,7 +37,13 @@ final class SubscriptionCheckoutController extends CheckoutController {
     if ($custom_id === '') {
       throw new \RuntimeException('Subscription checkout did not create a correlation token.');
     }
-    $data = $response->getData(TRUE);
+    $content = $response->getContent();
+    $data = is_string($content)
+      ? json_decode($content, TRUE, 512, JSON_THROW_ON_ERROR)
+      : NULL;
+    if (!is_array($data)) {
+      throw new \RuntimeException('Subscription checkout returned an invalid response.');
+    }
     $data['custom_id'] = $custom_id;
     $response->setData($data);
     return $response;
