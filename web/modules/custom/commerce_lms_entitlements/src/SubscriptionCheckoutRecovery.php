@@ -177,10 +177,13 @@ final class SubscriptionCheckoutRecovery {
   /** Requires PayPal to show a payment equal to the immutable initial total. */
   private function validateLastPayment(array $remote, Price $expected): void {
     $amount = $remote['billing_info']['last_payment']['amount'] ?? NULL;
-    if (!is_array($amount)) {
+    if (!is_array($amount)
+      || !isset($amount['value'], $amount['currency_code'])
+      || !is_scalar($amount['value'])
+      || !is_string($amount['currency_code'])) {
       throw new \DomainException('The active PayPal subscription does not yet show a completed payment.');
     }
-    $paid = Price::fromArray($amount);
+    $paid = new Price((string) $amount['value'], $amount['currency_code']);
     if (!$paid->equals($expected)) {
       throw new \DomainException(sprintf(
         'PayPal payment amount %s does not match approved checkout amount %s.',
