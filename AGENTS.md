@@ -54,6 +54,13 @@ before assuming that a previous chat or patch is present.
   relevant API and service names against the applicable upstream repository.
   Treat local vendored source as additional version-specific evidence, not as
   a substitute for this MCP check.
+- Before implementing or recommending PayPal API, subscription, payment,
+  webhook, catalog, product, or billing-plan behavior, consult the PayPal MCP
+  for the environment being worked on: `https://mcp.sandbox.paypal.com` for
+  sandbox and `https://mcp.paypal.com` for production/live. Use it together
+  with the Drupal MCP when code crosses the PayPal and Drupal Commerce
+  boundary. Never include credentials, secrets, or customer data in MCP
+  requests.
 - Follow Drupal coding standards and use `declare(strict_types=1);` in PHP.
 - Never wrap imports in `try/catch` blocks.
 - Prefer dependency injection for services in reusable runtime classes. The
