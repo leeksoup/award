@@ -356,7 +356,6 @@ final class LifetimePaymentTest extends KernelTestBase {
     self::assertSame(1, $this->invitationCount());
     self::assertCount(1, $this->sentInvitations);
     self::assertSame('new.learner@example.com', $this->sentInvitations[0]['to']);
-    self::assertTrue($this->sentInvitations[0]['params']['__email']);
 
     $this->manager->syncCompletedPayment($payment);
     self::assertSame(1, $this->invitationCount());

@@ -344,14 +344,12 @@ never changes purchaser ownership.
 `revoke()` is the inverse, including the cross-entitlement support check.
 
 Invitation and VIP messages are built with Drupal's traditional `hook_mail()`
-API and pass Mailer Override's `__email` delegation parameter so its global
-replacement mail manager calls Drupal core's parent mail manager. Update
-`10017` disables the module-level Mailer Override state created by update
-`10016`. Without explicit delegation, the override's legacy conversion emitted
-a Sender header without the matching From and Return-Path headers normally
-supplied by Drupal core, which could lead to silent filtering. Symfony Mailer
-remains available to other mailers, including the imported Commerce order
-policy.
+API. The hook supplies aligned From, Sender, and Return-Path headers because
+Mailer Override 2.0.x globally converts legacy messages without initializing
+the originator defaults normally supplied by Drupal core. Update `10017`
+disables the module-level Mailer Override state created by update `10016`;
+Symfony Mailer remains available to other mailers, including the imported
+Commerce order policy.
 
 ## Webhook contract
 

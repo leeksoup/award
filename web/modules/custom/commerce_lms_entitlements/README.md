@@ -73,11 +73,10 @@ sent only when PayPal reports the subscription active or a lifetime order
 becomes fully paid.
 
 Invitation and VIP messages use Drupal's traditional `hook_mail()` API and the
-site's core mail backend. They include Mailer Override's `__email` delegation
-parameter because that module otherwise converts all legacy mail, even without
-an enabled module-specific override. Update `10017` disables the short-lived
-module-level override introduced by update `10016`; the conversion produced a
-Sender-only message that some receiving systems silently filtered.
+site's configured mail transport. The mail hook supplies aligned From, Sender,
+and Return-Path headers because Mailer Override 2.0.x does not initialize the
+originator defaults that Drupal core normally supplies. Update `10017` disables
+the short-lived module-level override introduced by update `10016`.
 This does not disable Symfony Mailer or change imported policies such as the
 styled Commerce order confirmation emails.
 

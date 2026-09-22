@@ -230,9 +230,6 @@ final class VipBookingManager {
     $this->mail->mail('commerce_lms_entitlements', $key, $email, $this->languageManager->getDefaultLanguage()->getId(), [
       'session' => $instance->label(),
       'start' => date(DATE_RFC2822, $start),
-      // Bypass Mailer Override's global legacy converter and retain Drupal
-      // core's From, Sender, and Return-Path headers.
-      '__email' => TRUE,
     ]);
   }
 

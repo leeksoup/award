@@ -338,10 +338,10 @@ drush cex -y
 The value may be `3` (disabled) or `NULL` (no module-specific override); it must
 not be `1` or `2`. If configuration changed, include the resulting
 `mailer_override.settings.yml` in the authoritative configuration deployed to
-other environments. Runtime invitation and VIP calls also use Mailer
-Override's `__email` delegation parameter to reach Drupal core's mail manager.
-This does not disable Symfony Mailer or the imported Commerce order
-confirmation policy.
+other environments. Invitation and VIP mail explicitly supplies the aligned
+originator headers missing from Mailer Override 2.0.x legacy conversion. This
+does not disable Symfony Mailer or the imported Commerce order confirmation
+policy.
 
 The audit should report zero legacy pending subscriptions without automatic
 return recovery. Existing completed subscriptions do not need a snapshot.

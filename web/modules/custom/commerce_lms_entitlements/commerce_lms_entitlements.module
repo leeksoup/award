@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Header\MailboxHeader;
+
 /**
  * @file
  * Lifecycle hooks for Commerce LMS Entitlements.
@@ -42,6 +45,22 @@ function commerce_lms_entitlements_cron(): void {
  * Implements hook_mail().
  */
 function commerce_lms_entitlements_mail(string $key, array &$message, array $params): void {
+  $site_config = \Drupal::config('system.site');
+  $site_mail = (string) ($site_config->get('mail') ?: ini_get('sendmail_from'));
+  if ($site_mail !== '') {
+    // Mailer Override 2.0.x builds legacy messages without the originator
+    // defaults normally supplied by Drupal core. Supply the same aligned
+    // headers here so receiving systems do not silently filter the message.
+    $from = new MailboxHeader('From', new Address(
+      $site_mail,
+      (string) ($site_config->get('name') ?: ''),
+    ));
+    $message['from'] = $site_mail;
+    $message['headers']['From'] = $from->getBodyAsString();
+    $message['headers']['Sender'] = $site_mail;
+    $message['headers']['Return-Path'] = $site_mail;
+  }
+
   if ($key === 'invitation') {
     $message['subject'] = t('Your course invitation');
     $message['body'][] = t('Claim your course invitation: @url', ['@url' => $params['url']]);
