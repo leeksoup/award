@@ -7,30 +7,26 @@ declare(strict_types=1);
  * Database schema for Commerce LMS Entitlements.
  */
 
-use Drupal\mailer_override\OverrideManagerInterface;
-
-/**
- * Implements hook_install().
- */
-function commerce_lms_entitlements_install(): void {
-  _commerce_lms_entitlements_enable_mailer_override();
-}
-
 /**
  * Routes this module's traditional Drupal mail through Symfony Mailer.
+ *
+ * @deprecated Retained only so update 10016 remains runnable for sites
+ *   upgrading through the short-lived Mailer Override integration. Update
+ *   10017 immediately disables the override again.
  */
 function _commerce_lms_entitlements_enable_mailer_override(): bool {
+  if (!\Drupal::moduleHandler()->moduleExists('mailer_override')) {
+    return FALSE;
+  }
+
   $config = \Drupal::configFactory()->getEditable('mailer_override.settings');
   $state = (int) $config->get('override.commerce_lms_entitlements');
-  if (in_array($state, [
-    OverrideManagerInterface::STATE_IMPORTED,
-    OverrideManagerInterface::STATE_ENABLED,
-  ], TRUE)) {
+  if (in_array($state, [1, 2], TRUE)) {
     return FALSE;
   }
 
   $config
-    ->set('override.commerce_lms_entitlements', OverrideManagerInterface::STATE_ENABLED)
+    ->set('override.commerce_lms_entitlements', 2)
     ->save(TRUE);
   return TRUE;
 }
@@ -335,4 +331,26 @@ function commerce_lms_entitlements_update_10016(): string {
   return $changed
     ? (string) t('Enabled Mailer Override for Commerce LMS Entitlements mail.')
     : (string) t('Commerce LMS Entitlements mail was already enabled in Mailer Override.');
+}
+
+/**
+ * Restores core mail handling for invitation and VIP messages.
+ */
+function commerce_lms_entitlements_update_10017(): string {
+  if (!\Drupal::moduleHandler()->moduleExists('mailer_override')) {
+    return (string) t('Mailer Override is not installed; core mail handling is already active.');
+  }
+
+  $config = \Drupal::configFactory()->getEditable('mailer_override.settings');
+  $state = (int) $config->get('override.commerce_lms_entitlements');
+  if (!in_array($state, [1, 2], TRUE)) {
+    return (string) t('Core mail handling was already active for Commerce LMS Entitlements.');
+  }
+
+  // Mailer Override state 3 is disabled. Setting it explicitly prevents the
+  // replacement mail manager from converting these legacy hook_mail messages.
+  $config
+    ->set('override.commerce_lms_entitlements', 3)
+    ->save(TRUE);
+  return (string) t('Restored core mail handling for Commerce LMS Entitlements.');
 }

@@ -235,7 +235,7 @@ email. An invitation expires after 30 days.
 | File | Responsibility |
 | --- | --- |
 | `commerce_lms_entitlements.info.yml` | Declares dependencies on Commerce, the PayPal modules, Group, and LMS Classes. |
-| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings, `10012` adds VIP state, `10013` adds campaign audit metadata, `10014` closes previously recorded non-subscription PayPal events, `10015` adds checkout correlation/recovery fields, and `10016` enables Mailer Override for module mail. |
+| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings, `10012` adds VIP state, `10013` adds campaign audit metadata, `10014` closes previously recorded non-subscription PayPal events, `10015` adds checkout correlation/recovery fields, `10016` briefly enabled Mailer Override for module mail, and `10017` restores core mail handling. |
 | `commerce_lms_entitlements.module` | Bridges Commerce entity events to the manager, queues reconciliation from cron, and supplies invitation mail text. |
 | `services.yml` | Registers the manager, PayPal REST/catalog services, event subscribers, and log channel. |
 | `routing.yml`, `links.menu.yml`, `permissions.yml` | Define the webhook, invitation, purchaser and administrator routes; the admin menu entry; and authorization gates. |
@@ -344,11 +344,12 @@ never changes purchaser ownership.
 `revoke()` is the inverse, including the cross-entitlement support check.
 
 Invitation and VIP messages are built with Drupal's traditional `hook_mail()`
-API. Mailer Override is a declared dependency, and installation/update `10016`
-sets `override.commerce_lms_entitlements` to its enabled state unless the site
-already has an enabled-and-imported policy. This sends the messages through
-the configured Symfony Mailer transport while preserving a site's imported
-policy. The setting is configuration and must be exported after the update.
+API and sent through the core mail backend. Update `10017` disables the
+module-level Mailer Override state created by update `10016`. The override's
+legacy conversion emitted a Sender header without the matching From and
+Return-Path headers normally supplied by Drupal core, which could lead to
+silent filtering. Symfony Mailer remains available to other mailers, including
+the imported Commerce order policy.
 
 ## Webhook contract
 
