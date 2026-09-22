@@ -85,8 +85,7 @@ final class InvitationClaimTest extends KernelTestBase {
       $time,
       $this->createMock(LoggerInterface::class),
       new \stdClass(),
-      $this->createMock(\Drupal\Core\Mail\MailManagerInterface::class),
-      $this->createMock(\Drupal\Core\Language\LanguageManagerInterface::class),
+      $this->createMock(\Drupal\commerce_lms_entitlements\Mailer\EntitlementMailerInterface::class),
       $this->createMock(\Drupal\Core\Routing\UrlGeneratorInterface::class),
     );
   }

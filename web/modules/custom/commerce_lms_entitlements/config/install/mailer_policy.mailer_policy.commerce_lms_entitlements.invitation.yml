@@ -1,0 +1,15 @@
+langcode: en
+status: true
+dependencies: {  }
+id: commerce_lms_entitlements.invitation
+configuration:
+  email_body:
+    content:
+      value: |-
+        <h2>Your course access is ready</h2>
+        <p>You have been invited to access a course at <a href="[site:url]">[site:name]</a>.</p>
+        <p><a href="{{ invitation_url }}">Create or sign in to your learner account</a> using this secure, one-time link.</p>
+        <p>This invitation expires in 30 days. If you were not expecting it, you can safely ignore this message.</p>
+      format: email_html
+  email_subject:
+    value: 'Your course access at [site:name] is ready'

@@ -7,12 +7,11 @@ namespace Drupal\commerce_lms_entitlements;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Utility\Crypt;
 use Drupal\commerce_lms_entitlements\Entity\LmsSubscriptionCampaign;
+use Drupal\commerce_lms_entitlements\Mailer\EntitlementMailerInterface;
 use Drupal\commerce_price\Calculator;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Language\LanguageManagerInterface;
-use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Psr\Log\LoggerInterface;
@@ -39,8 +38,7 @@ final class EntitlementManager {
     private TimeInterface $time,
     private LoggerInterface $logger,
     private object $sdkFactory,
-    private MailManagerInterface $mailManager,
-    private LanguageManagerInterface $languageManager,
+    private EntitlementMailerInterface $mailer,
     private UrlGeneratorInterface $urlGenerator,
   ) {}
 
@@ -684,14 +682,7 @@ final class EntitlementManager {
         ['token' => $invitation['token']],
         ['absolute' => TRUE],
       );
-      $message = $this->mailManager->mail(
-        'commerce_lms_entitlements',
-        'invitation',
-        $email,
-        $this->languageManager->getDefaultLanguage()->getId(),
-        ['url' => $url],
-      );
-      if (empty($message['result'])) {
+      if (!$this->mailer->sendInvitation($email, $url)) {
         throw new \RuntimeException('The mail backend did not accept the invitation.');
       }
     }

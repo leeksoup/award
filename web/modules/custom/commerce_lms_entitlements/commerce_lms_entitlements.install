@@ -354,3 +354,15 @@ function commerce_lms_entitlements_update_10017(): string {
     ->save(TRUE);
   return (string) t('Restored core mail handling for Commerce LMS Entitlements.');
 }
+
+/**
+ * Installs native Mailer Plus policies for entitlement messages.
+ */
+function commerce_lms_entitlements_update_10018(): string {
+  \Drupal::service('config.installer')->installDefaultConfig(
+    'module',
+    'commerce_lms_entitlements',
+  );
+
+  return (string) t('Installed native Mailer Plus policies for entitlement messages.');
+}

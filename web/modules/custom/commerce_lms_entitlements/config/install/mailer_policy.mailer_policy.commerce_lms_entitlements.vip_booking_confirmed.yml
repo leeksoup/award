@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies: {  }
+id: commerce_lms_entitlements.vip_booking_confirmed
+configuration:
+  email_body:
+    content:
+      value: '<p>Your booking for {{ session }} on {{ start }} was confirmed.</p>'
+      format: email_html
+  email_subject:
+    value: 'Your VIP session booking was confirmed'

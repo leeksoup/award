@@ -7,7 +7,11 @@ services:
     arguments: ['@database', '@entity_type.manager', '@datetime.time']
   commerce_lms_entitlements.manager:
     class: Drupal\commerce_lms_entitlements\EntitlementManager
-    arguments: ['@database', '@entity_type.manager', '@commerce_lms_entitlements.membership_manager', '@config.factory', '@queue', '@datetime.time', '@logger.channel.commerce_lms_entitlements', '@commerce_paypal_subscriptions.checkout_sdk_factory', '@plugin.manager.mail', '@language_manager', '@url_generator']
+    arguments: ['@database', '@entity_type.manager', '@commerce_lms_entitlements.membership_manager', '@config.factory', '@queue', '@datetime.time', '@logger.channel.commerce_lms_entitlements', '@commerce_paypal_subscriptions.checkout_sdk_factory', '@Drupal\commerce_lms_entitlements\Mailer\EntitlementMailerInterface', '@url_generator']
+  Drupal\commerce_lms_entitlements\Mailer\EntitlementMailerInterface:
+    class: Drupal\commerce_lms_entitlements\Mailer\EntitlementMailer
+    autowire: true
+    autoconfigure: true
   commerce_lms_entitlements.paypal_operations:
     class: Drupal\commerce_lms_entitlements\PayPalSubscriptionOperations
     arguments: ['@http_client']
@@ -38,7 +42,7 @@ services:
     arguments: ['@database', '@entity_type.manager', '@datetime.time', '@commerce_lms_entitlements.manager', '@commerce_lms_entitlements.paypal_operations']
   commerce_lms_entitlements.vip_booking_manager:
     class: Drupal\commerce_lms_entitlements\VipBookingManager
-    arguments: ['@database', '@entity_type.manager', '@config.factory', '@datetime.time', '@lock', '@recurring_events_registration.creation_service', '@plugin.manager.mail', '@language_manager']
+    arguments: ['@database', '@entity_type.manager', '@config.factory', '@datetime.time', '@lock', '@recurring_events_registration.creation_service', '@Drupal\commerce_lms_entitlements\Mailer\EntitlementMailerInterface']
   commerce_lms_entitlements.plan_subscriber:
     class: Drupal\commerce_lms_entitlements\EventSubscriber\PayPalPlanSubscriber
     arguments: ['@commerce_lms_entitlements.manager', '@commerce_lms_entitlements.subscription_campaign_resolver', '@commerce_lms_entitlements.subscription_checkout_snapshot']

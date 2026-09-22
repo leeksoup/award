@@ -5,18 +5,17 @@ declare(strict_types=1);
 namespace Drupal\commerce_lms_entitlements;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\commerce_lms_entitlements\Mailer\EntitlementMailerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
-use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\recurring_events_registration\RegistrationCreationService;
 
 /** Enforces VIP eligibility and one Recurring Events booking per month. */
 final class VipBookingManager {
 
-  public function __construct(private Connection $database, private EntityTypeManagerInterface $entityTypeManager, private ConfigFactoryInterface $configFactory, private TimeInterface $time, private LockBackendInterface $lock, private RegistrationCreationService $registration, private MailManagerInterface $mail, private LanguageManagerInterface $languageManager) {}
+  public function __construct(private Connection $database, private EntityTypeManagerInterface $entityTypeManager, private ConfigFactoryInterface $configFactory, private TimeInterface $time, private LockBackendInterface $lock, private RegistrationCreationService $registration, private EntitlementMailerInterface $mailer) {}
 
   public function hasAccess(int $uid): bool {
     return $uid > 0 && (bool) $this->database->select('commerce_lms_entitlement', 'e')
@@ -227,10 +226,12 @@ final class VipBookingManager {
     if ($email === '') {
       return;
     }
-    $this->mail->mail('commerce_lms_entitlements', $key, $email, $this->languageManager->getDefaultLanguage()->getId(), [
-      'session' => $instance->label(),
-      'start' => date(DATE_RFC2822, $start),
-    ]);
+    $this->mailer->sendVipBookingNotification(
+      $key,
+      $email,
+      (string) $instance->label(),
+      date(DATE_RFC2822, $start),
+    );
   }
 
 }

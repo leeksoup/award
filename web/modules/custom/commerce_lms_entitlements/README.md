@@ -72,13 +72,12 @@ that changed after PayPal approval began. A 30-day invitation is created and
 sent only when PayPal reports the subscription active or a lifetime order
 becomes fully paid.
 
-Invitation and VIP messages use Drupal's traditional `hook_mail()` API and the
-site's configured mail transport. The mail hook supplies aligned From, Sender,
-and Return-Path headers because Mailer Override 2.0.x does not initialize the
-originator defaults that Drupal core normally supplies. Update `10017` disables
-the short-lived module-level override introduced by update `10016`.
-This does not disable Symfony Mailer or change imported policies such as the
-styled Commerce order confirmation emails.
+Invitation and VIP messages use a native Mailer Plus component and configurable
+Mailer Policy entities. This is the same component/policy/transport pipeline as
+Mailer Plus's verification message, rather than its legacy `hook_mail()`
+converter. Update `10018` installs the policies on existing sites; export them
+after running database updates so later policy edits remain configuration
+managed.
 Invitation mail includes site identity, the purpose and one-time nature of the
 claim link, its 30-day lifetime, and safe-ignore guidance rather than sending a
 bare URL without context.

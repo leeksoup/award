@@ -6,15 +6,13 @@ namespace Drupal\Tests\commerce_lms_entitlements\Kernel;
 
 use Drupal\commerce_lms_entitlements\EntitlementManager;
 use Drupal\commerce_lms_entitlements\EntitlementMembershipManager;
+use Drupal\commerce_lms_entitlements\Mailer\EntitlementMailerInterface;
 use Drupal\commerce_lms_entitlements\SubscriptionPlanSelection;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Language\LanguageInterface;
-use Drupal\Core\Language\LanguageManagerInterface;
-use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\KernelTests\KernelTestBase;
@@ -160,21 +158,14 @@ final class LifetimePaymentTest extends KernelTestBase {
       $entity_type_manager,
       $time,
     );
-    $mail_manager = $this->createMock(MailManagerInterface::class);
-    $mail_manager->method('mail')->willReturnCallback(function (
-      string $module,
-      string $key,
+    $mailer = $this->createMock(EntitlementMailerInterface::class);
+    $mailer->method('sendInvitation')->willReturnCallback(function (
       string $to,
-      string $langcode,
-      array $params,
-    ): array {
-      $this->sentInvitations[] = compact('module', 'key', 'to', 'langcode', 'params');
-      return ['result' => TRUE];
+      string $invitation_url,
+    ): bool {
+      $this->sentInvitations[] = compact('to', 'invitation_url');
+      return TRUE;
     });
-    $language = $this->createMock(LanguageInterface::class);
-    $language->method('getId')->willReturn('en');
-    $language_manager = $this->createMock(LanguageManagerInterface::class);
-    $language_manager->method('getDefaultLanguage')->willReturn($language);
     $url_generator = $this->createMock(UrlGeneratorInterface::class);
     $url_generator->method('generateFromRoute')
       ->willReturn('https://example.com/commerce-lms-entitlements/invitation/token');
@@ -187,8 +178,7 @@ final class LifetimePaymentTest extends KernelTestBase {
       $time,
       $this->createMock(LoggerInterface::class),
       new \stdClass(),
-      $mail_manager,
-      $language_manager,
+      $mailer,
       $url_generator,
     );
   }
@@ -356,6 +346,10 @@ final class LifetimePaymentTest extends KernelTestBase {
     self::assertSame(1, $this->invitationCount());
     self::assertCount(1, $this->sentInvitations);
     self::assertSame('new.learner@example.com', $this->sentInvitations[0]['to']);
+    self::assertSame(
+      'https://example.com/commerce-lms-entitlements/invitation/token',
+      $this->sentInvitations[0]['invitation_url'],
+    );
 
     $this->manager->syncCompletedPayment($payment);
     self::assertSame(1, $this->invitationCount());

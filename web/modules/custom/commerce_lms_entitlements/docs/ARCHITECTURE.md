@@ -235,8 +235,9 @@ email. An invitation expires after 30 days.
 | File | Responsibility |
 | --- | --- |
 | `commerce_lms_entitlements.info.yml` | Declares dependencies on Commerce, the PayPal modules, Group, and LMS Classes. |
-| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings, `10012` adds VIP state, `10013` adds campaign audit metadata, `10014` closes previously recorded non-subscription PayPal events, `10015` adds checkout correlation/recovery fields, `10016` briefly enabled Mailer Override for module mail, and `10017` restores core mail handling. |
-| `commerce_lms_entitlements.module` | Bridges Commerce entity events to the manager, queues reconciliation from cron, and supplies invitation mail text. |
+| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings, `10012` adds VIP state, `10013` adds campaign audit metadata, `10014` closes previously recorded non-subscription PayPal events, `10015` adds checkout correlation/recovery fields, `10016` briefly enabled Mailer Override for module mail, `10017` restores core mail handling, and `10018` installs native Mailer Plus policies. |
+| `commerce_lms_entitlements.module` | Bridges Commerce entity events to the manager and queues reconciliation from cron. |
+| `Mailer/EntitlementMailer.php`, `config/install/mailer_policy.*.yml` | Send invitation and VIP messages through the native Mailer Plus component/policy pipeline. |
 | `services.yml` | Registers the manager, PayPal REST/catalog services, event subscribers, and log channel. |
 | `routing.yml`, `links.menu.yml`, `permissions.yml` | Define the webhook, invitation, purchaser and administrator routes; the admin menu entry; and authorization gates. |
 | `Entity/LmsOffer.php` | Config-entity definition for one variation-to-bundle mapping. |
@@ -343,13 +344,11 @@ to that account while also assigning it as learner. A different learner email
 never changes purchaser ownership.
 `revoke()` is the inverse, including the cross-entitlement support check.
 
-Invitation and VIP messages are built with Drupal's traditional `hook_mail()`
-API. The hook supplies aligned From, Sender, and Return-Path headers because
-Mailer Override 2.0.x globally converts legacy messages without initializing
-the originator defaults normally supplied by Drupal core. Update `10017`
-disables the module-level Mailer Override state created by update `10016`;
-Symfony Mailer remains available to other mailers, including the imported
-Commerce order policy.
+Invitation and VIP messages are sent by the module's native Mailer Plus
+component. Mailer Policy entities provide their subjects and HTML bodies, so
+these messages traverse the same component/policy/transport pipeline as the
+Mailer Plus verification message. Update `10018` installs those policies for
+existing sites. Updates `10016` and `10017` remain as historical upgrade steps.
 Invitation content identifies the site and explains the secure one-time claim
 link, 30-day expiry, and safe-ignore behavior so it is recognizable as a
 transactional access message rather than a context-free URL.
