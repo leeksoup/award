@@ -689,7 +689,14 @@ final class EntitlementManager {
         'invitation',
         $email,
         $this->languageManager->getDefaultLanguage()->getId(),
-        ['url' => $url],
+        [
+          'url' => $url,
+          // Mailer Override otherwise converts every legacy hook_mail message,
+          // even when this module has no enabled override. Delegate this
+          // message to Drupal core so it receives core's complete originator
+          // headers.
+          '__email' => TRUE,
+        ],
       );
       if (empty($message['result'])) {
         throw new \RuntimeException('The mail backend did not accept the invitation.');
