@@ -235,7 +235,7 @@ email. An invitation expires after 30 days.
 | File | Responsibility |
 | --- | --- |
 | `commerce_lms_entitlements.info.yml` | Declares dependencies on Commerce, the PayPal modules, Group, and LMS Classes. |
-| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings, `10012` adds VIP state, `10013` adds campaign audit metadata, `10014` closes previously recorded non-subscription PayPal events, `10015` adds checkout correlation/recovery fields, `10016` briefly enabled Mailer Override for module mail, `10017` restores core mail handling, and `10018` installs native Mailer Plus policies. |
+| `commerce_lms_entitlements.install` | Defines audit/access/tier/booking tables; update `10011` adds dual PayPal mappings, `10012` adds VIP state, `10013` adds campaign audit metadata, `10014` closes previously recorded non-subscription PayPal events, `10015` adds checkout correlation/recovery fields, `10016` briefly enabled Mailer Override for module mail, `10017` restores core mail handling, `10018` installs native Mailer Plus policies, and `10019` registers the campaign config entity definition on existing sites. |
 | `commerce_lms_entitlements.module` | Bridges Commerce entity events to the manager and queues reconciliation from cron. |
 | `Mailer/EntitlementMailer.php`, `config/install/mailer_policy.*.yml` | Send invitation and VIP messages through the native Mailer Plus component/policy pipeline. |
 | `services.yml` | Registers the manager, PayPal REST/catalog services, event subscribers, and log channel. |

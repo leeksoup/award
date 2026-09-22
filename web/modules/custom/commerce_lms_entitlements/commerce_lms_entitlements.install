@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
+
 /**
  * @file
  * Database schema for Commerce LMS Entitlements.
@@ -365,4 +367,23 @@ function commerce_lms_entitlements_update_10018(): string {
   );
 
   return (string) t('Installed native Mailer Plus policies for entitlement messages.');
+}
+
+/**
+ * Registers the subscription campaign config entity type definition.
+ */
+function commerce_lms_entitlements_update_10019(): string {
+  $entity_type_id = 'commerce_lms_campaign';
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $change_list = $update_manager->getChangeList();
+
+  if (($change_list[$entity_type_id]['entity_type'] ?? NULL)
+    !== EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED) {
+    return (string) t('The subscription campaign entity type was already registered.');
+  }
+
+  $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+  $update_manager->installEntityType($entity_type);
+
+  return (string) t('Registered the subscription campaign config entity type.');
 }
