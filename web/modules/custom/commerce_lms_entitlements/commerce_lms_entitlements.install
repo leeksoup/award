@@ -7,6 +7,34 @@ declare(strict_types=1);
  * Database schema for Commerce LMS Entitlements.
  */
 
+use Drupal\mailer_override\OverrideManagerInterface;
+
+/**
+ * Implements hook_install().
+ */
+function commerce_lms_entitlements_install(): void {
+  _commerce_lms_entitlements_enable_mailer_override();
+}
+
+/**
+ * Routes this module's traditional Drupal mail through Symfony Mailer.
+ */
+function _commerce_lms_entitlements_enable_mailer_override(): bool {
+  $config = \Drupal::configFactory()->getEditable('mailer_override.settings');
+  $state = (int) $config->get('override.commerce_lms_entitlements');
+  if (in_array($state, [
+    OverrideManagerInterface::STATE_IMPORTED,
+    OverrideManagerInterface::STATE_ENABLED,
+  ], TRUE)) {
+    return FALSE;
+  }
+
+  $config
+    ->set('override.commerce_lms_entitlements', OverrideManagerInterface::STATE_ENABLED)
+    ->save(TRUE);
+  return TRUE;
+}
+
 /**
  * Implements hook_schema().
  */
@@ -297,4 +325,14 @@ function commerce_lms_entitlements_update_10015(): string {
   }
 
   return (string) t('Added @count subscription checkout recovery fields.', ['@count' => $added]);
+}
+
+/**
+ * Routes entitlement and VIP mail through the configured Symfony transport.
+ */
+function commerce_lms_entitlements_update_10016(): string {
+  $changed = _commerce_lms_entitlements_enable_mailer_override();
+  return $changed
+    ? (string) t('Enabled Mailer Override for Commerce LMS Entitlements mail.')
+    : (string) t('Commerce LMS Entitlements mail was already enabled in Mailer Override.');
 }

@@ -326,6 +326,19 @@ drush cr
 drush commerce-lms-entitlements:audit
 ```
 
+Update `10016` also enables Mailer Override for invitation and VIP messages.
+Verify and export that configuration after running updates:
+
+```bash
+drush config:get mailer_override.settings override.commerce_lms_entitlements
+drush cex -y
+```
+
+The value should be `2` (enabled), or `1` when the site already uses an
+enabled-and-imported custom policy. Ensure the resulting
+`mailer_override.settings.yml` is included in the authoritative configuration
+deployed to other environments.
+
 The audit should report zero legacy pending subscriptions without automatic
 return recovery. Existing completed subscriptions do not need a snapshot.
 Before relying on the fallback, complete a sandbox checkout normally, then run

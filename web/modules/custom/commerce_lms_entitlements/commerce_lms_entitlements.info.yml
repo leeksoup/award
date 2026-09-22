@@ -13,5 +13,6 @@ dependencies:
   - commerce_paypal_subscriptions:commerce_paypal_subscriptions
   - group:group
   - lms:lms_classes
+  - symfony_mailer:mailer_override
   - recurring_events:recurring_events
   - recurring_events:recurring_events_registration

@@ -72,6 +72,12 @@ that changed after PayPal approval began. A 30-day invitation is created and
 sent only when PayPal reports the subscription active or a lifetime order
 becomes fully paid.
 
+Invitation and VIP messages use Drupal's traditional `hook_mail()` API. The
+module requires Mailer Override and enables its module-level override so these
+messages use the site's configured Symfony Mailer transport instead of falling
+back to PHP `mail()`. Export `mailer_override.settings` after update `10016` so
+a later configuration import cannot disable this routing.
+
 An invitation can create a validated account only when its normalized email is
 not already registered. Existing accounts must authenticate through Drupal's
 normal login form and return to the invitation URL before claiming access.
