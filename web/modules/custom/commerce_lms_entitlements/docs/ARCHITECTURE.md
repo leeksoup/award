@@ -350,6 +350,9 @@ the originator defaults normally supplied by Drupal core. Update `10017`
 disables the module-level Mailer Override state created by update `10016`;
 Symfony Mailer remains available to other mailers, including the imported
 Commerce order policy.
+Invitation content identifies the site and explains the secure one-time claim
+link, 30-day expiry, and safe-ignore behavior so it is recognizable as a
+transactional access message rather than a context-free URL.
 
 ## Webhook contract
 

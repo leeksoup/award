@@ -59,6 +59,18 @@ final class InvitationMailTest extends KernelTestBase {
       'webmaster@example.com',
       $message['headers']['Return-Path'],
     );
+    self::assertSame(
+      'Your course access at Example Site is ready',
+      (string) $message['subject'],
+    );
+    self::assertCount(4, $message['body']);
+    self::assertStringContainsString('Example Site', (string) $message['body'][0]);
+    self::assertStringContainsString('secure, one-time link', (string) $message['body'][1]);
+    self::assertSame(
+      'https://example.com/invitation/test',
+      $message['body'][2],
+    );
+    self::assertStringContainsString('expires in 30 days', (string) $message['body'][3]);
   }
 
 }

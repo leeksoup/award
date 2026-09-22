@@ -62,8 +62,16 @@ function commerce_lms_entitlements_mail(string $key, array &$message, array $par
   }
 
   if ($key === 'invitation') {
-    $message['subject'] = t('Your course invitation');
-    $message['body'][] = t('Claim your course invitation: @url', ['@url' => $params['url']]);
+    $site_name = (string) ($site_config->get('name') ?: t('our learning site'));
+    $message['subject'] = t('Your course access at @site is ready', [
+      '@site' => $site_name,
+    ]);
+    $message['body'][] = t('You have been invited to access a course at @site.', [
+      '@site' => $site_name,
+    ]);
+    $message['body'][] = t('Use this secure, one-time link to create or sign in to your learner account:');
+    $message['body'][] = $params['url'];
+    $message['body'][] = t('This invitation expires in 30 days. If you were not expecting it, you can safely ignore this message.');
   }
   elseif (in_array($key, ['vip_booking_confirmed', 'vip_booking_changed', 'vip_booking_cancelled'], TRUE)) {
     $actions = [

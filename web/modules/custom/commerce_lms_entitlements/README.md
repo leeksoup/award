@@ -79,6 +79,9 @@ originator defaults that Drupal core normally supplies. Update `10017` disables
 the short-lived module-level override introduced by update `10016`.
 This does not disable Symfony Mailer or change imported policies such as the
 styled Commerce order confirmation emails.
+Invitation mail includes site identity, the purpose and one-time nature of the
+claim link, its 30-day lifetime, and safe-ignore guidance rather than sending a
+bare URL without context.
 
 An invitation can create a validated account only when its normalized email is
 not already registered. Existing accounts must authenticate through Drupal's
