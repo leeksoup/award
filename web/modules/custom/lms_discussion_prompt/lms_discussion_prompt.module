@@ -156,7 +156,12 @@ function lms_discussion_prompt_form_alter(
 function _lms_discussion_prompt_add_return_link(array &$build, NodeInterface $discussion): void {
   $request = \Drupal::request();
   $return = $request->query->get('return');
-  if (\is_string($return) && \str_starts_with($return, '/course/')) {
+  $allowed_return_pattern =
+    '@^/(?:course/\d+/(?:start|\d+/\d+)|group/\d+)$@';
+  if (
+    \is_string($return)
+    && \preg_match($allowed_return_pattern, $return) === 1
+  ) {
     $url = Url::fromUserInput($return);
   }
   else {

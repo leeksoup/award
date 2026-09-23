@@ -16,8 +16,9 @@ sends learners to a linked `discussion` node attached to the LMS Course group.
   cause unrelated prompts to share a discussion.
 - Learners use the activity's `Go to discussion` link. Opening that link marks
   the activity complete and redirects to the discussion node.
-- The discussion URL receives a safe `return` query parameter pointing back to
-  the course.
+- The discussion URL receives a safe `return` query parameter pointing to the
+  exact next LMS activity. When the prompt finishes the course, it points to
+  the course page instead of starting a new course attempt.
 - Linked discussion pages render a return-to-course link directly. The optional
   `Discussion Prompt return link` block can also display the return link.
 - The module installs a course-level Discussions tab at

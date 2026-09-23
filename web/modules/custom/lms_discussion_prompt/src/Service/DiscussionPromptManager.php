@@ -12,6 +12,7 @@ use Drupal\lms\Entity\Bundle\Course;
 use Drupal\lms\Entity\LessonInterface;
 use Drupal\lms\Exception\TrainingException;
 use Drupal\lms\TrainingManager;
+use Drupal\lms_discussion_prompt\Value\DiscussionPromptCompletion;
 use Drupal\node\NodeInterface;
 
 /**
@@ -27,14 +28,14 @@ final class DiscussionPromptManager {
   ) {}
 
   /**
-   * Completes a Discussion Prompt activity and returns its discussion.
+   * Completes a Discussion Prompt activity and determines where to resume.
    */
   public function completeActivity(
     Course $course,
     int $lesson_delta,
     int $activity_delta,
     AccountInterface $account,
-  ): NodeInterface {
+  ): DiscussionPromptCompletion {
     $lesson_status = $this->trainingManager->getRequestedLessonStatus($course, $account, [
       'lesson' => $lesson_delta,
       'activity' => $activity_delta,
@@ -84,9 +85,11 @@ final class DiscussionPromptManager {
       }
 
       if ($next_lesson_status !== NULL) {
-        $next_lesson_status->setCurrentActivityDelta(0);
+        $next_activity_delta = 0;
+        $next_lesson_status->setCurrentActivityDelta($next_activity_delta);
         $next_lesson_status->save();
         $course_status->set('current_lesson_status', $next_lesson_status);
+        $lesson_status = $next_lesson_status;
       }
 
       $this->trainingManager->updateCourseStatus($course_status, $next_lesson_status === NULL);
@@ -97,7 +100,20 @@ final class DiscussionPromptManager {
       $course_status->save();
     }
 
-    return $discussion;
+    if ($next_activity_delta === NULL) {
+      $return_url = Url::fromRoute('entity.group.canonical', [
+        'group' => $course_status->getCourseId(),
+      ]);
+    }
+    else {
+      $return_url = Url::fromRoute('lms.group.answer_form', [
+        'group' => $course_status->getCourseId(),
+        'lesson_delta' => $lesson_status->getCurrentLessonDelta(),
+        'activity_delta' => $lesson_status->getCurrentActivityDelta(),
+      ]);
+    }
+
+    return new DiscussionPromptCompletion($discussion, $return_url);
   }
 
   /**

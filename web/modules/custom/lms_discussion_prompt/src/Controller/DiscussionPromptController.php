@@ -6,7 +6,6 @@ namespace Drupal\lms_discussion_prompt\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Url;
 use Drupal\lms\Controller\CourseControllerTrait;
 use Drupal\lms\Entity\Bundle\Course;
 use Drupal\lms\Exception\TrainingException;
@@ -43,7 +42,7 @@ final class DiscussionPromptController extends ControllerBase implements
    */
   public function open(Course $group, int $lesson_delta, int $activity_delta): RedirectResponse {
     try {
-      $discussion = $this->discussionPromptManager->completeActivity(
+      $completion = $this->discussionPromptManager->completeActivity(
         $group,
         $lesson_delta,
         $activity_delta,
@@ -65,9 +64,9 @@ final class DiscussionPromptController extends ControllerBase implements
       ]);
     }
 
-    $url = $discussion->toUrl();
+    $url = $completion->discussion->toUrl();
     $url->setOption('query', [
-      'return' => Url::fromRoute('lms.course.start', ['group' => $group->id()])->toString(),
+      'return' => $completion->returnUrl->toString(),
     ]);
 
     return new RedirectResponse($url->toString());
