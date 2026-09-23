@@ -175,6 +175,16 @@ relationship to the containing course. Without that relationship, both
 `/group/{group}/nodes` and `/group/{group}/course-discussions` can load but
 show no rows.
 
+The optional `lms_course_discussions` module adds the Discussions tab and the
+group-scoped **Start a discussion** action. Its update `10001` repairs access
+for learners enrolled through LMS Classes: it aligns each eligible Class
+role's discussion relationship permissions with its existing entity
+permissions, then merges the view/create permissions into
+`lms_classes.settings:course_permission_mappings`. This is required because
+LMS otherwise inherits only `view group` and `take course` from Class
+membership to the parent Course. Run `drush updb -y` and `drush cr` after
+deploying the update.
+
 If the tab is still empty after updates, compare raw relationships with access
 checks:
 

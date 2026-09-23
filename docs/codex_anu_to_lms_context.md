@@ -246,6 +246,13 @@ that relationship plus the generated Group permissions
 `Entity: View any node entities` or similar depending on Group's provider, not
 necessarily `Entity: View any content item entities`.
 
+`lms_course_discussions` update `10001` closes the corresponding LMS Classes
+permission gap. It aligns relationship access for Class roles that already
+have discussion entity access and maps the Class view/create permissions onto
+the parent Course. Without this mapping, a Class-enrolled learner can view an
+individual discussion node while the Course Discussions View returns access
+denied and its local-task tab remains hidden.
+
 ## LMS Classes student management
 
 The LMS `Students` tab is not part of the base Group members page. It is

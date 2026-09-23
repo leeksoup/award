@@ -12,6 +12,7 @@ declare(strict_types=1);
  */
 function lms_course_discussions_install(): void {
   _lms_course_discussions_grant_learner_creation_permissions();
+  _lms_course_discussions_configure_class_inheritance();
 }
 
 /**
@@ -48,4 +49,79 @@ function _lms_course_discussions_grant_learner_creation_permissions(): void {
       $role->save();
     }
   }
+}
+
+/**
+ * Inherits Class discussion permissions on each parent LMS Course.
+ *
+ * LMS Class members receive only `view group` and `take course` on the parent
+ * Course by default. The discussions View checks a Course relationship
+ * permission, so map the Class permissions explicitly. Relationship access is
+ * aligned with existing entity access to repair roles configured through an
+ * earlier version of the UI without broadening access to additional roles.
+ */
+function _lms_course_discussions_configure_class_inheritance(): void {
+  $permission_pairs = [
+    'view group_node:discussion relationship' =>
+      'view group_node:discussion entity',
+    'create group_node:discussion relationship' =>
+      'create group_node:discussion entity',
+  ];
+
+  $role_storage = \Drupal::entityTypeManager()->getStorage('group_role');
+  $roles = $role_storage->loadByProperties([
+    'group_type' => 'lms_class',
+  ]);
+  foreach ($roles as $role) {
+    if ($role->getGlobalRoleId() === 'anonymous') {
+      continue;
+    }
+
+    $changed = FALSE;
+    foreach (
+      $permission_pairs as $relationship_permission => $entity_permission
+    ) {
+      if (
+        $role->hasPermission($entity_permission)
+        && !$role->hasPermission($relationship_permission)
+      ) {
+        $role->grantPermission($relationship_permission);
+        $changed = TRUE;
+      }
+    }
+    if ($changed) {
+      $role->save();
+    }
+  }
+
+  $permissions = array_merge(
+    array_keys($permission_pairs),
+    array_values($permission_pairs),
+  );
+  $config = \Drupal::configFactory()->getEditable('lms_classes.settings');
+  $mappings = $config->get('course_permission_mappings') ?: [];
+  $changed = FALSE;
+  foreach ($permissions as $permission) {
+    if (($mappings[$permission] ?? NULL) !== $permission) {
+      $mappings[$permission] = $permission;
+      $changed = TRUE;
+    }
+  }
+  if ($changed) {
+    $config
+      ->set('course_permission_mappings', $mappings)
+      ->save(TRUE);
+  }
+}
+
+/**
+ * Makes Class discussion permissions effective on parent Courses.
+ */
+function lms_course_discussions_update_10001(): string {
+  _lms_course_discussions_grant_learner_creation_permissions();
+  _lms_course_discussions_configure_class_inheritance();
+
+  return (string) t(
+    'Configured LMS Class discussion permissions on parent Courses.',
+  );
 }
