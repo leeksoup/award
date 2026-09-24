@@ -66,6 +66,11 @@ videos.
 Update `10015` deletes unreferenced migrated activities from older
 lesson-section test runs only when their source paragraph bundle is no longer
 supported by the current migration.
+The lesson-section activity source traverses current `module_lesson` and
+`module_assessment` paragraph references. It intentionally ignores orphaned
+paragraphs and paragraphs retained only by deleted parent content, so stale
+parent metadata cannot block migration discovery with an unsupported media
+error.
 Question activity migration supports single/multiple-choice wrappers as LMS
 `select` activities and short/long-answer wrappers as manually evaluated LMS
 `free_text` activities. Scale and Likert questions remain deferred.
@@ -248,15 +253,45 @@ non-migrated LMS Course with `--course-id=ID`, or all LMS Courses with
 
 Some staging databases may have needed a manual Group 2 to Group 3 repair
 before Group's own update hooks ran cleanly. The read-only
-`drush anu-to-lms:audit-group3 [USER_ID]` command reports likely leftovers:
+`drush group3-schema-repair:audit [USER_ID]` command reports likely leftovers:
 stale `group_content` config/View references, malformed `group.role.*` config,
 missing `group_relationship.group_roles` field storage or membership field
 instances, orphan rows in `group_relationship__group_roles`, and migrated LMS
 course owner/user membership access. Use it to identify exact drift before
 adding any repair command or update hook. If stale View references are the only
-reported issue, `drush anu-to-lms:repair-group3-views` rewrites Views config
+reported issue, `drush group3-schema-repair:repair-views` rewrites Views config
 from Group 2 `group_content` references to Group 3 `group_relationship`
 references using the same replacement pattern as Group's update hook.
+
+On staging, Group update `10305` also aborted with
+`Attempt to create a field without a field_name`. Diagnostics showed
+`group_update_10300_detected_legacy_version = 1`, no old
+`group_update_10300_detected_version` value, and Drupal's last-installed
+schema repository still had `group_content fields=14` with
+`group_relationship fields=0`. That means `10305` was running as if the Group
+2 to 3 legacy path had completed, but the installed field-storage definitions
+had not been copied to `group_relationship`. The standalone
+`group3_schema_repair` module has no Anu or LMS dependency and provides
+`drush group3-schema-repair:repair-repository`, which copies only those
+missing installed definitions and refuses to overwrite existing
+`group_relationship` definitions. Run it only in that exact
+old-present/new-empty state, then run `drush updb -y`, `drush cr`, and
+`drush group3-schema-repair:repair-group-roles-storage` if enabling LMS fails
+because `field.storage.group_relationship.group_roles` is missing. Once
+`anu_to_lms_migrate` is available, `drush group3-schema-repair:audit USER_ID` may
+still report active-config/data drift. Use
+`drush group3-schema-repair:repair-group-roles-instances` for missing
+membership `group_roles` field instances and
+`drush group3-schema-repair:repair-group-roles-table` for role-reference rows
+attached to non-membership relationships.
+`drush group3-schema-repair:repair-stale-config` handles the known remaining
+Group 2 config names from Group update `10300`: `group.content_type.*`,
+`field.storage.group_content.*`, `field.field.group_content.*`, and
+`core.entity_*_display.group_content.*`.
+It also repairs `dependencies.config` entries in other active configuration,
+such as Pathauto patterns that still depend on a renamed
+`group.content_type.*` object. The audit reports those dependencies before a
+config import is attempted.
 
 ## Known documentation debt
 

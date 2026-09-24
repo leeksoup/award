@@ -28,6 +28,11 @@ before production use.
 The source and destination are in the same active Drupal database. Always take
 a restorable backup before running database updates or migrations.
 
+Lesson-section activity discovery follows current lesson and assessment
+paragraph references rather than paragraph parent metadata. Deleting a lesson
+can retain its paragraphs in Drupal; those orphaned paragraphs are not
+migration source rows and cannot block the import because of unsupported media.
+
 ## Preconditions
 
 - Deploy the current repository revision.
@@ -107,8 +112,8 @@ If the site needed manual intervention during the Group 2 to Group 3 upgrade,
 run the read-only audit before repairing course access or memberships:
 
 ```bash
-drush anu-to-lms:audit-group3
-drush anu-to-lms:audit-group3 USER_ID
+drush group3-schema-repair:audit
+drush group3-schema-repair:audit USER_ID
 ```
 
 The optional `USER_ID` form also reports that user's membership, explicit
@@ -121,10 +126,51 @@ If the only reported issue is stale `group_content` references in Views, repair
 those Views with:
 
 ```bash
-drush anu-to-lms:repair-group3-views
+drush group3-schema-repair:repair-views
 drush cr
-drush anu-to-lms:audit-group3 USER_ID
+drush group3-schema-repair:audit USER_ID
 ```
+
+If the Group 2 to Group 3 update is stuck at `group_update_10305` with
+`Attempt to create a field without a field_name`, first confirm the installed
+field definition repository is in the failed middle state:
+
+```bash
+drush php:eval '$repo = \Drupal::service("entity.last_installed_schema.repository"); echo "group_content fields=", count($repo->getLastInstalledFieldStorageDefinitions("group_content")), PHP_EOL; echo "group_relationship fields=", count($repo->getLastInstalledFieldStorageDefinitions("group_relationship")), PHP_EOL;'
+```
+
+If that prints old `group_content` definitions and zero `group_relationship`
+definitions, repair the missing installed Group 3 definitions before rerunning
+updates:
+
+```bash
+drush en group3_schema_repair -y
+drush cr
+drush group3-schema-repair:repair-repository
+drush updb -y
+drush cr
+drush group3-schema-repair:repair-group-roles-storage
+drush en anu_to_lms_migrate -y
+drush cr
+drush group3-schema-repair:repair-views
+drush group3-schema-repair:repair-stale-config
+drush group3-schema-repair:repair-group-roles-instances
+drush group3-schema-repair:repair-group-roles-table
+drush cr
+drush group3-schema-repair:audit USER_ID
+```
+
+Do not run this repair when `group_relationship` installed definitions already
+exist; the command refuses that state to avoid overwriting a partially repaired
+schema repository. The `group3_schema_repair` module intentionally has no Anu
+or LMS dependency, so it can be enabled on a restored pre-migration database
+before `anu_to_lms_migrate` is available.
+
+If the audit still reports stale non-View Group 2 config names after
+`repair-stale-config`, inspect the exact config names before deleting them. Do
+not delete broad `group_content` config blindly; confirm whether each object
+has a valid Group 3 replacement or belongs to a module that should be upgraded
+or disabled.
 
 ### Optional: enable LMS student management
 
@@ -295,7 +341,7 @@ Spot-check at least three activities at `/admin/lms/activity`. Confirm that:
 - paragraph markup is not wrapped in invalid `<strong><p>…</p></strong>`
   markup;
 - advancing the activity provides the intended v1 whole-activity completion
-  behavior.
+  behavior. LOL, you can't advance an activity until it's inside a lesson!
 
 ## 9. Import section activities and lessons
 

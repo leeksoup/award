@@ -19,6 +19,15 @@ use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
 final class AnuLessonSectionActivity extends SourcePluginBase {
 
   /**
+   * Anu block bundles supported by this activity migration.
+   */
+  private const SUPPORTED_BUNDLES = [
+    'lesson_text',
+    'lesson_embedded_video',
+    'lesson_audio',
+  ];
+
+  /**
    * {@inheritdoc}
    */
   public function fields(): array {
@@ -51,28 +60,57 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
    * {@inheritdoc}
    */
   protected function initializeIterator(): \Iterator {
-    $storage = \Drupal::entityTypeManager()->getStorage('paragraph');
-    $query = $storage->getQuery()->accessCheck(FALSE);
-    $lesson_parent = $query->andConditionGroup()
-      ->condition('parent_type', 'paragraph')
-      ->condition('parent_field_name', 'field_lesson_section_content');
-    $assessment_parent = $query->andConditionGroup()
-      ->condition('parent_type', 'node')
-      ->condition('parent_field_name', 'field_module_assessment_items');
-    $parent = $query->orConditionGroup()
-      ->condition($lesson_parent)
-      ->condition($assessment_parent);
+    $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+    $rows = [];
 
-    $ids = $query->condition('type', [
-        'lesson_text',
-        'lesson_embedded_video',
-        'lesson_audio',
-      ], 'IN')
-      ->condition($parent)
-      ->sort('id')
+    $lesson_ids = $node_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'module_lesson')
+      ->sort('nid')
       ->execute();
+    foreach ($node_storage->loadMultiple($lesson_ids) as $lesson) {
+      if (!$lesson->hasField('field_module_lesson_content')) {
+        continue;
+      }
+      foreach ($lesson->get('field_module_lesson_content')->referencedEntities() as $section) {
+        if (!$section->hasField('field_lesson_section_content')) {
+          continue;
+        }
+        $rows += $this->rowsFromSequence(
+          $section->get('field_lesson_section_content')->referencedEntities(),
+        );
+      }
+    }
 
-    foreach ($storage->loadMultiple($ids) as $block) {
+    $assessment_ids = $node_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'module_assessment')
+      ->sort('nid')
+      ->execute();
+    foreach ($node_storage->loadMultiple($assessment_ids) as $assessment) {
+      if (!$assessment->hasField('field_module_assessment_items')) {
+        continue;
+      }
+      $rows += $this->rowsFromSequence(
+        $assessment->get('field_module_assessment_items')->referencedEntities(),
+      );
+    }
+
+    foreach ($rows as $row) {
+      yield $row;
+    }
+  }
+
+  /**
+   * Builds migration rows from a current paragraph reference sequence.
+   */
+  private function rowsFromSequence(array $blocks): array {
+    $rows = [];
+    foreach ($blocks as $block) {
+      if (!in_array($block->bundle(), self::SUPPORTED_BUNDLES, TRUE)) {
+        continue;
+      }
+
       $row = [
         'paragraph_id' => (int) $block->id(),
         'activity_type' => 'content',
@@ -143,8 +181,10 @@ final class AnuLessonSectionActivity extends SourcePluginBase {
           break;
       }
 
-      yield $row;
+      $rows[(int) $block->id()] = $row;
     }
+
+    return $rows;
   }
 
 }

@@ -1,0 +1,13 @@
+services:
+  group3_schema_repair.commands:
+    class: Drupal\group3_schema_repair\Drush\Commands\Group3SchemaRepairCommands
+    arguments:
+      - '@entity.last_installed_schema.repository'
+      - '@keyvalue'
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@database'
+      - '@module_handler'
+      - '@cache_tags.invalidator'
+    tags:
+      - { name: drush.command }
