@@ -368,6 +368,11 @@ inspect its migrations. Do not uninstall the migration module until
 `lms_runtime` has been enabled and browser UAT has confirmed video playback,
 activity editing, and course-owner access.
 
+`lms_runtime` also contains a narrow compatibility override for LMS 1.1.18's
+backwards-navigation calculation. Without it, opening a first activity in a
+later lesson can emit an undefined `activity` delta warning when the prior
+lesson status is initialized on demand.
+
 The early `anu_checklist` target bundle is retired. Update `10013` converts any
 unexpected remaining activities to the reusable `checklist` bundle, preserving
 their IDs and lesson references, then removes the old bundle, field, and view

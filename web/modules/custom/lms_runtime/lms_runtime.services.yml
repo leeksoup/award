@@ -1,0 +1,6 @@
+services:
+  _defaults:
+    autowire: true
+
+  lms.training_manager:
+    class: Drupal\lms_runtime\LmsRuntimeTrainingManager

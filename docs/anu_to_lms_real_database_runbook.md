@@ -327,6 +327,10 @@ bundle, and create a new LMS course with a non-administrator owner. Confirm the
 owner has a Group membership, `lms_teacher`, and course `view`, `take`, and
 `update` access.
 
+Also open the first activity of a later lesson before its preceding lesson has
+been started. `lms_runtime` fixes the LMS 1.1.18 backwards-navigation warning
+that otherwise occurs while that preceding lesson status is initialized.
+
 Export and commit the resulting configuration before retiring the migration
 module. Only after those checks pass may an operator run:
 
