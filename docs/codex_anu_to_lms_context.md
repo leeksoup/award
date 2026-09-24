@@ -43,9 +43,10 @@ anu_to_lms_node_courses
 ```
 
 The lesson-section activity migration currently supports text, approved
-YouTube/Vimeo Remote Video media references, audio files, and checklist references. Anu heading blocks
-are not standalone LMS activities; the nearest immediately preceding heading is
-used as the migrated activity name/title for the following supported activity.
+YouTube/Vimeo Remote Video media references, audio files, and checklist
+references. Anu heading blocks are not standalone LMS activities; the nearest
+immediately preceding heading is used as the migrated activity name/title for
+the following supported activity.
 Divider and currently unsupported image blocks are ignored for this heading
 association, so a heading can still name the next text/checklist activity when
 one of those blocks appears between them.
@@ -249,8 +250,9 @@ attached to that course, or creates one and links it back to the activity.
 
 Student activity pages show a `Go to discussion` link. The link records an LMS
 answer with full score, advances lesson/course status, and redirects to the
-discussion node with a safe `/course/{group}/start` return URL. Discussion node
-pages also show a return-to-lesson link after the prompt body and again near
+discussion node with a safe return URL for the exact next LMS activity. If the
+prompt finishes the course, the return URL points to the course page instead.
+Discussion node pages show the return link after the prompt body and again near
 the bottom of the page.
 
 The module also owns a `course_discussions` View for
@@ -373,10 +375,10 @@ backwards-navigation calculation. Without it, opening a first activity in a
 later lesson can emit an undefined `activity` delta warning when the prior
 lesson status is initialized on demand.
 
-The early `anu_checklist` target bundle is retired. Update `10013` converts any
-unexpected remaining activities to the reusable `checklist` bundle, preserving
-their IDs and lesson references, then removes the old bundle, field, and view
-display configuration. The obsolete defaults are no longer shipped, so a fresh
+The early `anu_checklist` target bundle is retired. Update `10003` converted
+existing activities to the reusable `checklist` bundle while preserving their
+IDs and lesson references, then removed the old bundle, field, and display
+configuration. The obsolete defaults are no longer shipped, so a fresh
 installation cannot recreate that bundle.
 
 The decommission helper preserves the generic Document media type, its file

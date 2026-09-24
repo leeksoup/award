@@ -129,7 +129,7 @@ Use Quiz module later only if needed for features like:
 | `lesson_text` | rich text | content block | Copy formatted text safely; use preceding heading as the activity name or compact the first source words when no heading exists | P0 |
 | `lesson_heading` | heading | following activity name/title | Do not migrate as a standalone activity; use the nearest immediately preceding heading as the following migrated activity name/title, ignoring divider and currently unsupported image blocks between them | P1 |
 | `lesson_image`, `lesson_image_wide`, `lesson_image_thumbnail` | image blocks | image/media block | Copy media + caption/alt | P1 |
-| `lesson_embedded_video` | YouTube/Vimeo URL | dedicated `video` `no_answer` activity | Normalize and validate `field_lesson_embedded_video_url.uri`; render through a provider-safe embed formatter; use `Video` for a lesson's only video or `Video N` per lesson when multiple videos exist | P0 |
+| `lesson_embedded_video` | YouTube/Vimeo URL | dedicated `video` `no_answer` activity referencing core Remote Video media | Normalize and validate `field_lesson_embedded_video_url.uri`; migrate it to a core `remote_video` media entity referenced by `field_remote_video`; use `Video` for a lesson's only video or `Video N` per lesson when multiple videos exist | P0 |
 | `lesson_audio` | named audio file | dedicated `audio` `no_answer` activity | Preserve `field_audio_name`; resolve `field_audio_file` through the file migration; render with an accessible audio player | P0 |
 | `lesson_divider` | visual divider | no destination | Ignore for migration and for heading adjacency | P3 |
 | `lesson_footnotes` | footnotes | text block | Flatten if no native footnote type | P3 |
@@ -308,7 +308,7 @@ Deliverable: production-ready migration package.
 ## Decision log (current)
 - checklists should be implemented as LMS `no_answer` activities in v1
 - embedded video and audio are P0 lesson content and must ship in the next runnable slice
-- use dedicated display-oriented `no_answer` activity bundles for video/audio unless LMS gains a suitable native media activity type
+- use dedicated display-oriented `no_answer` activity bundles for video/audio; video activities reference Drupal core Remote Video media rather than a custom URL formatter
 - accept only normalized provider URLs for embeds; do not migrate arbitrary iframe markup
 - LMS Activity plugins are preferred over Quiz module for current scope
 - historical progress migration is intentionally excluded
