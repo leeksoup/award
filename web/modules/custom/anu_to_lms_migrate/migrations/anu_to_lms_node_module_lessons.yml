@@ -47,5 +47,6 @@ destination:
 migration_dependencies:
   required:
     - anu_to_lms_paragraph_lesson_checklists
+    - anu_to_lms_media_remote_videos
     - anu_to_lms_paragraph_lesson_sections
     - anu_to_lms_paragraph_assessment_questions

@@ -11,6 +11,15 @@ Migration definitions in `migrations/` are discovered only while this module
 is enabled. After installing or updating the module, rebuild Drupal's caches
 before querying migration status.
 
+## Runtime handoff
+
+After migration acceptance, learner-facing LMS configuration and site-specific
+runtime behavior are provided by `lms_runtime`. Enable and validate that module
+before uninstalling this migration module. Video activities use Drupal core's
+Remote Video media entities; the runtime module does not provide a custom video
+formatter. The runtime module ships its configuration as optional so it can be
+enabled on an already-migrated site without a default-config collision.
+
 ```bash
 drush pm:list --type=module --field=name --status=enabled | grep '^anu_to_lms_migrate$'
 drush en anu_to_lms_migrate -y
@@ -23,7 +32,8 @@ drush migrate:status | grep 'anu_to_lms'
 
 The first executable slice migrates every current `lesson_checklist` paragraph
 to an LMS `checklist` activity backed by the LMS 1.1.18 `no_answer`
-plugin. Text, approved YouTube/Vimeo, and audio blocks become reusable
+plugin. Approved YouTube/Vimeo blocks first become core Remote Video media
+entities; text, video references, and audio blocks then become reusable
 `content`, `video`, and `audio` display activities. Resource document blocks
 are appended inside the immediately preceding checklist activity body as
 linked resource names followed by their descriptions.
@@ -67,6 +77,7 @@ drush updb -y
 drush cr
 drush config:get lms.lms_activity_type.free_text
 drush migrate:import anu_to_lms_paragraph_lesson_checklists -y
+drush migrate:import anu_to_lms_media_remote_videos -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 drush migrate:import anu_to_lms_paragraph_assessment_questions -y
 drush migrate:import anu_to_lms_node_module_lessons -y
@@ -80,6 +91,7 @@ migrations with `--update` after `drush updb -y` and `drush cr`:
 
 ```bash
 drush migrate:import anu_to_lms_paragraph_lesson_checklists --update -y
+drush migrate:import anu_to_lms_media_remote_videos --update -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections --update -y
 drush migrate:import anu_to_lms_paragraph_assessment_questions --update -y
 drush migrate:import anu_to_lms_node_module_lessons --update -y

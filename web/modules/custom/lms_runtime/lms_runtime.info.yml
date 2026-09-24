@@ -1,0 +1,10 @@
+name: 'LMS Runtime'
+type: module
+description: 'Site runtime support for custom Drupal LMS activity bundles.'
+package: Custom
+core_version_requirement: ^10 || ^11
+dependencies:
+  - drupal:media
+  - drupal:media_library
+  - group:group
+  - lms:lms

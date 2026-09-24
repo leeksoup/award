@@ -23,10 +23,11 @@ process:
     plugin: skip_on_empty
     method: process
     source: body
-  field_video_url/uri:
-    plugin: skip_on_empty
-    method: process
-    source: video_url
+  field_remote_video/target_id:
+    plugin: migration_lookup
+    migration: anu_to_lms_media_remote_videos
+    source: remote_video_paragraph_id
+    no_stub: true
   field_audio_name:
     plugin: skip_on_empty
     method: process
@@ -39,4 +40,6 @@ process:
 destination:
   plugin: 'entity:lms_activity'
 
-migration_dependencies: { }
+migration_dependencies:
+  required:
+    - anu_to_lms_media_remote_videos

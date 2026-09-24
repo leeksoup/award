@@ -1,15 +1,14 @@
 langcode: en
 status: true
 dependencies:
-  module:
-    - lms
-    - text
-id: lms_activity.field_anu_checklist_body
-field_name: field_anu_checklist_body
+  module: [lms, media]
+id: lms_activity.field_remote_video
+field_name: field_remote_video
 entity_type: lms_activity
-type: text_long
-settings: { }
-module: text
+type: entity_reference
+settings:
+  target_type: media
+module: core
 locked: false
 cardinality: 1
 translatable: true

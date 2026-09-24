@@ -8,7 +8,8 @@ also covers the media/resource lesson-content slice:
 1. Anu `lesson_checklist` paragraphs become Drupal LMS `checklist` activities.
 2. Anu `module_lesson` nodes containing those checklists become Drupal LMS
    lessons with ordered activity references.
-3. Text, approved YouTube/Vimeo, and audio section blocks become `content`,
+3. Approved YouTube/Vimeo section blocks become core Remote Video media
+   entities, then text, video references, and audio blocks become `content`,
    `video`, and `audio` display activities. Resource document blocks are
    appended as links inside the immediately preceding checklist activity body.
    Heading blocks are used as names/titles for the immediately following
@@ -305,6 +306,39 @@ drush config:get field.field.lms_activity.checklist.field_checklist_body
 The activity type must use `pluginId: no_answer`. The field must be a
 single-value `text_long` field attached to the `checklist` activity bundle.
 
+## Runtime handoff after migration acceptance
+
+The completed migration's learner-facing configuration and custom runtime code
+are owned by `lms_runtime`, not `anu_to_lms_migrate`. The latter contains only
+migration definitions and historical update hooks after this handoff.
+
+On staging, before disabling the migration module:
+
+```bash
+drush en lms_runtime -y
+drush cr
+drush config:get core.entity_view_display.lms_activity.video.default
+```
+
+Video activities must reference Drupal core Remote Video media entities and
+render through the referenced media display. In the learner-facing course flow,
+test at least one YouTube and one Vimeo video, edit/save each LMS activity
+bundle, and create a new LMS course with a non-administrator owner. Confirm the
+owner has a Group membership, `lms_teacher`, and course `view`, `take`, and
+`update` access.
+
+Export and commit the resulting configuration before retiring the migration
+module. Only after those checks pass may an operator run:
+
+```bash
+drush pm:uninstall anu_to_lms_migrate -y
+drush cr
+```
+
+Run the video and course-owner checks again after uninstall. Migration map
+tables remain as historical database provenance, but the Migrate definitions
+and commands are no longer available.
+
 If this database contains activities imported under an earlier test revision,
 verify the bundle rename:
 
@@ -315,7 +349,14 @@ echo "anu_checklist: ", \Drupal::entityQuery("lms_activity")->accessCheck(FALSE)
 '
 ```
 
-`anu_checklist` must be zero after update `10003` completes.
+`anu_checklist` must be zero and `lms_activity_type.anu_checklist` must be
+absent after updates `10003` and `10013` complete:
+
+```bash
+drush config:get lms.lms_activity_type.anu_checklist
+```
+
+The last command should report that the configuration does not exist.
 
 ## 5. Verify active migration definitions
 
@@ -339,6 +380,7 @@ importing anything.
 
 ```bash
 drush migrate:status anu_to_lms_paragraph_lesson_checklists
+drush migrate:status anu_to_lms_media_remote_videos
 drush migrate:status anu_to_lms_paragraph_lesson_sections
 drush migrate:status anu_to_lms_node_module_lessons
 ```
@@ -401,6 +443,7 @@ Spot-check at least three activities at `/admin/lms/activity`. Confirm that:
 Import supported non-checklist section activities first:
 
 ```bash
+drush migrate:import anu_to_lms_media_remote_videos -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 ```
 
@@ -410,6 +453,7 @@ changing existing destination IDs and text Content bodies switch to
 `filtered_html`:
 
 ```bash
+drush migrate:import anu_to_lms_media_remote_videos --update -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections --update -y
 ```
 
@@ -446,8 +490,8 @@ $issues = [];
 foreach (["video", "audio"] as $bundle) {
   $ids = \Drupal::entityQuery("lms_activity")->accessCheck(FALSE)->condition("type", $bundle)->execute();
   foreach ($storage->loadMultiple($ids) as $activity) {
-    if ($bundle === "video" && $activity->get("field_video_url")->isEmpty()) {
-      $issues[] = ["video", $activity->id(), "missing URL"];
+    if ($bundle === "video" && $activity->get("field_remote_video")->isEmpty()) {
+      $issues[] = ["video", $activity->id(), "missing Remote Video media reference"];
     }
     if ($bundle === "audio" && ($activity->get("field_audio_name")->isEmpty() || $activity->get("field_audio_file")->isEmpty())) {
       $issues[] = ["audio", $activity->id(), "missing name or file"];
@@ -550,9 +594,11 @@ or currently unsupported image block appears between the heading and activity.
 
 ```bash
 drush migrate:status anu_to_lms_paragraph_lesson_checklists
+drush migrate:status anu_to_lms_media_remote_videos
 drush migrate:status anu_to_lms_paragraph_lesson_sections
 drush migrate:status anu_to_lms_node_module_lessons
 drush migrate:messages anu_to_lms_paragraph_lesson_checklists
+drush migrate:messages anu_to_lms_media_remote_videos
 drush migrate:messages anu_to_lms_paragraph_lesson_sections
 drush migrate:messages anu_to_lms_node_module_lessons
 drush watchdog:show --severity=Error --count=100
@@ -570,6 +616,88 @@ drush cr
 
 Confirm the site is reachable before ending the maintenance window.
 
+## Anu LMS decommission
+
+Only begin this procedure after target LMS migration acceptance, browser UAT,
+and a current staging rehearsal. Do not run `drush pmu anu_lms` directly: Anu
+LMS 2.11.2 removes only part of its configuration and its uninstall hook also
+deletes source Course nodes.
+
+Keep `anu_to_lms_migrate` enabled during this procedure. It owns active LMS
+activity configuration and migration-map provenance; moving that configuration
+to a neutral runtime module is a separate follow-up.
+
+Enable the standalone decommission helper and inspect the complete inventory:
+
+```bash
+drush en anu_lms_decommission -y
+drush cr
+drush anu-lms-decommission:audit
+```
+
+The audit must show no migration-map rows with missing destinations. It also
+reports Anu Assessment Question and Question result entities; those historical
+source entities are intentionally purged because attempts/results are out of
+scope. Review all reported external configuration dependencies and shared config
+candidates before continuing. Create a database/files backup and a JSON
+inventory outside the web root:
+
+```bash
+mkdir -p ../backups/anu-lms-decommission
+drush sql:dump --gzip --result-file=../backups/anu-lms-decommission/pre-purge-$(date +%Y%m%d-%H%M%S).sql
+drush anu-lms-decommission:archive --directory=../backups/anu-lms-decommission
+```
+
+Copy the protected files directory using the site's normal backup process. The
+inventory records source file IDs, but `purge-content` deliberately retains all
+managed files because migrated LMS audio and unrelated content can share them.
+
+With maintenance mode enabled and the archive verified, run each destructive
+phase separately:
+
+```bash
+drush anu-lms-decommission:purge-content --confirm=PURGE-ANU-SOURCE
+drush anu-lms-decommission:remove-config --confirm=REMOVE-ANU-CONFIG
+drush anu-lms-decommission:uninstall --confirm=UNINSTALL-ANU-LMS
+drush cr
+drush cron
+drush anu-lms-decommission:verify
+```
+
+`remove-config` preserves generic image styles, the embedded node form mode,
+and Document media configuration by default. Document media can predate Anu
+LMS and can still be used by migrated resources or unrelated site content.
+Remove shared candidates only after checking they have no unrelated consumers:
+
+```bash
+drush anu-lms-decommission:remove-config --confirm=REMOVE-ANU-CONFIG --include-shared
+```
+
+Some legacy Anu Assessment field-storage config records can lack the Field API
+metadata required to load them as field-storage entities. The helper derives
+their identity from the canonical config name and removes them only after it
+confirms no active field instance uses that identity. It does not delete field
+tables directly.
+
+If a prior failed uninstall removed an optional Anu ECK entity table, the
+helper treats a temporarily restored entity definition with no base table as
+empty during recovery. It removes only stale field config records for that
+missing storage and never queries or recreates the table. Before the guarded
+uninstall runs, it also clears only deleted Field API definitions whose entity
+type has no base table, preventing cron-purge metadata from blocking the Anu
+uninstall hook. Static Anu content-entity types can also lose their tables
+during a failed uninstall before Core's content validator runs. The guarded
+command restores empty schema for every missing static content-entity table
+provided by an anu_lms module through Drupal's entity-definition update API;
+Core then validates the tables as empty and removes them during uninstall.
+
+After verification, export and validate active configuration using the site's
+normal configuration-management workflow. Re-run target LMS course, lesson,
+file, teacher, and learner-access smoke tests before disabling maintenance
+mode. If any phase reports an unexpected dependency or shared resource, stop
+and restore the pre-purge database/files backup rather than deleting database
+tables manually.
+
 ## Rollback and recovery
 
 ### Migration rollback
@@ -579,6 +707,7 @@ Rollback dependent lessons before activities:
 ```bash
 drush migrate:rollback anu_to_lms_node_module_lessons -y
 drush migrate:rollback anu_to_lms_paragraph_lesson_sections -y
+drush migrate:rollback anu_to_lms_media_remote_videos -y
 drush migrate:rollback anu_to_lms_paragraph_lesson_checklists -y
 drush cr
 ```
@@ -620,6 +749,7 @@ drush en lms_answer_plugins -y
 drush updb -y
 drush cr
 drush config:get lms.lms_activity_type.free_text
+drush migrate:import anu_to_lms_media_remote_videos -y
 drush migrate:import anu_to_lms_paragraph_lesson_sections -y
 drush migrate:status anu_to_lms_paragraph_assessment_questions
 drush migrate:status anu_to_lms_node_module_assessments

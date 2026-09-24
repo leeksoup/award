@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config: [field.field.lms_activity.video.field_remote_video, lms.lms_activity_type.video]
+  module: [media_library]
+id: lms_activity.video.default
+targetEntityType: lms_activity
+bundle: video
+mode: default
+content:
+  field_remote_video:
+    type: media_library_widget
+    weight: 0
+    region: content
+    settings:
+      media_types: { }
+    third_party_settings: { }
+hidden: { }

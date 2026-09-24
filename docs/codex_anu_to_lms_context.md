@@ -34,6 +34,7 @@ Do not put redacted course or lesson titles into committed documentation.
 
 ```text
 anu_to_lms_paragraph_lesson_checklists
+anu_to_lms_media_remote_videos
 anu_to_lms_paragraph_lesson_sections
 anu_to_lms_paragraph_assessment_questions
 anu_to_lms_node_module_lessons
@@ -42,7 +43,7 @@ anu_to_lms_node_courses
 ```
 
 The lesson-section activity migration currently supports text, approved
-YouTube/Vimeo URLs, audio files, and checklist references. Anu heading blocks
+YouTube/Vimeo Remote Video media references, audio files, and checklist references. Anu heading blocks
 are not standalone LMS activities; the nearest immediately preceding heading is
 used as the migrated activity name/title for the following supported activity.
 Divider and currently unsupported image blocks are ignored for this heading
@@ -345,3 +346,55 @@ Some older milestone/next-action prose in
 assessment, and course slices. Treat this handoff and the real-database runbook
 as the current operational status, and correct the plan when the access gate is
 validated.
+
+## Anu LMS decommission
+
+`anu_lms_decommission` is a standalone maintenance module for post-acceptance
+removal of Anu LMS. Its commands inventory source nodes, paragraphs, terms,
+ECK checklist results, Anu-owned config, external config dependencies,
+source-referenced files, and target migration-map health before any destructive
+action. `purge-content`, `remove-config`, and `uninstall` each require a
+different literal confirmation token. The source purge retains every managed
+file; file deletion must be a separately audited decision because target LMS
+audio can still refer to the original file entity.
+
+`lms_runtime` owns the live LMS activity bundles, fields, displays, roles, and
+future LMS-course owner setup. Video activities reference Drupal core Remote
+Video media entities; no custom video formatter is required. Its configuration
+is optional so it can be enabled alongside the active migrated configuration
+without recreating it. It is the runtime replacement for
+`anu_to_lms_migrate`; the migration module is now only needed to operate or
+inspect its migrations. Do not uninstall the migration module until
+`lms_runtime` has been enabled and browser UAT has confirmed video playback,
+activity editing, and course-owner access.
+
+The early `anu_checklist` target bundle is retired. Update `10013` converts any
+unexpected remaining activities to the reusable `checklist` bundle, preserving
+their IDs and lesson references, then removes the old bundle, field, and view
+display configuration. The obsolete defaults are no longer shipped, so a fresh
+installation cannot recreate that bundle.
+
+The decommission helper preserves the generic Document media type, its file
+field, and its form/view displays. Although Anu LMS ships default definitions
+for those objects, an existing site may own them and migrated resource links or
+other content can still depend on them.
+
+Malformed legacy Anu Assessment field-storage config is removed only after the
+helper derives its identity from the config name and verifies that no active
+field instance still uses it.
+
+The decommission inventory and purge also include Anu Assessment Question and
+Question result ECK entities. They are source-only historical assessment data
+and remain out of migration scope.
+
+For recovery after a failed uninstall, the helper treats an optional Anu ECK
+entity type with no remaining base table as empty and removes only its stale
+field config records rather than querying or recreating that table. Before
+uninstall, it also clears orphaned deleted-field metadata for such missing
+tables through Drupal's Field API repository service.
+
+If a failed uninstall removes a static Anu content-entity table first, the
+guarded command recreates its empty schema through Drupal's entity-definition
+update API immediately before Core validates and completes the uninstall. This
+applies to every missing static content-entity table provided by an anu_lms
+module.

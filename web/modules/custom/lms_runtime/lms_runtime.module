@@ -1,0 +1,28 @@
+<?php
+
+/**
+ * @file
+ * Runtime hooks for site-specific Drupal LMS behavior.
+ */
+
+declare(strict_types=1);
+
+use Drupal\group\Entity\GroupInterface;
+
+/**
+ * Implements hook_group_insert().
+ */
+function lms_runtime_group_insert(GroupInterface $group): void {
+  if ($group->bundle() !== 'lms_course') {
+    return;
+  }
+
+  $owner = $group->getOwner();
+  if ($owner !== NULL && !$group->getMember($owner)) {
+    $group->addMember($owner);
+  }
+  if ($owner !== NULL && !$owner->hasRole('lms_teacher')) {
+    $owner->addRole('lms_teacher');
+    $owner->save();
+  }
+}

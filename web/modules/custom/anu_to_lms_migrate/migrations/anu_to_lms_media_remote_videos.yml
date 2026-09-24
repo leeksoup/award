@@ -1,0 +1,28 @@
+id: anu_to_lms_media_remote_videos
+label: 'Anu LMS embedded videos to core Remote Video media'
+migration_group: anu_to_lms
+migration_tags:
+  - paragraph
+  - media
+  - video
+
+source:
+  plugin: anu_remote_video
+
+process:
+  bundle:
+    plugin: default_value
+    default_value: remote_video
+  name: name
+  status:
+    plugin: default_value
+    default_value: 1
+  uid:
+    plugin: default_value
+    default_value: 1
+  field_media_oembed_video: video_url
+
+destination:
+  plugin: 'entity:media'
+
+migration_dependencies: { }
