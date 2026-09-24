@@ -26,7 +26,7 @@
         "drupal/captcha": "^2.0",
         "drupal/ckeditor5_plugin_pack": "^1.",
         "drupal/commerce": "^3",
-        "drupal/commerce_paypal": "^1",
+        "drupal/commerce_paypal": "^2.1",
         "drupal/commerce_paypal_subscriptions": "^1.0",
         "drupal/commerce_stock": "^3.0",
         "drupal/core-composer-scaffold": "^10",
@@ -65,7 +65,7 @@
     "replace": {
     },
     "require-dev": {
-        "drupal/core-dev": "10.6.15",
+        "drupal/core-dev": "10.6.17",
         "drupal/devel": "^5.",
         "drupal/devel_php": "^1."
     },
