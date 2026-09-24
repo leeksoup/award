@@ -241,6 +241,59 @@ and choose a Default forum. If no forum terms exist yet, create one at
 `/admin/structure/forum`. Place the `Forum Prompt return link` block on forum
 topic pages if students should see the return link after following a prompt.
 
+### Optional: enable Discussion Prompt activities
+
+The reusable Discussion Prompt feature lives in `lms_discussion_prompt`. It
+creates LMS `discussion_prompt` activities backed by group-attached
+`discussion` nodes with comments enabled:
+
+```bash
+drush en lms_discussion_prompt -y
+drush updb -y
+drush cr
+drush config:get lms.lms_activity_type.discussion_prompt
+drush config:get group.relationship_type.lms_course-group_node-discussion
+drush config:get views.view.course_discussions
+```
+
+The module grants LMS Course insider/individual roles permission to view
+discussion group-node relationships and entities. Roles that can edit the
+course or administer members also receive create/update/delete permissions for
+discussion group-node content.
+Update `10002` installs or repairs the Course Discussions tab at
+`/group/{group}/course-discussions`. The View uses
+`group_relationship_field_data.gid` as the course contextual filter, requires
+the `gc__node` relationship, and filters to
+`lms_course-group_node-discussion` relationships for published `discussion`
+nodes.
+Update `10003` grants discussion relationship and entity view permissions to
+non-anonymous LMS Course roles that can already view or take the course, and
+uses the relationship permission for the tab access check. Course-editing roles
+also receive `access group_node overview`, which controls Group's generic
+`/group/{group}/nodes` page.
+Update `10004` repairs existing Discussion Prompt activities whose linked
+discussion node exists but is missing the required `group_node:discussion`
+relationship to the containing course. Without that relationship, both
+`/group/{group}/nodes` and `/group/{group}/course-discussions` can load but
+show no rows.
+
+The optional `lms_course_discussions` module adds the Discussions tab and the
+group-scoped **Start a discussion** action. Its update `10001` repairs access
+for learners enrolled through LMS Classes: it aligns each eligible Class
+role's discussion relationship permissions with its existing entity
+permissions, then merges the view/create permissions into
+`lms_classes.settings:course_permission_mappings`. This is required because
+LMS otherwise inherits only `view group` and `take course` from Class
+membership to the parent Course. Run `drush updb -y` and `drush cr` after
+deploying the update.
+
+If the tab is still empty after updates, compare raw relationships with access
+checks:
+
+```bash
+drush php:eval '$gid = 13; $uid = \Drupal::currentUser()->id(); $group = \Drupal::entityTypeManager()->getStorage("group")->load($gid); echo "user:$uid relationship_perm:", $group->hasPermission("view group_node:discussion relationship", \Drupal::currentUser()) ? "yes" : "no", PHP_EOL; echo "entity_perm:", $group->hasPermission("view group_node:discussion entity", \Drupal::currentUser()) ? "yes" : "no", PHP_EOL; $ids = \Drupal::entityQuery("group_relationship")->accessCheck(FALSE)->condition("gid", $gid)->condition("type", "lms_course-group_node-discussion")->execute(); echo "raw_relationships:", count($ids), PHP_EOL; foreach (\Drupal::entityTypeManager()->getStorage("group_relationship")->loadMultiple($ids) as $relationship) { $node = $relationship->getEntity(); echo "relationship:", $relationship->id(), " node:", $relationship->getEntityId(), " published:", ($node && $node->isPublished() ? "yes" : "no"), " node_access:", ($node && $node->access("view") ? "yes" : "no"), PHP_EOL; }'
+```
+
 ## 4. Verify target configuration
 
 ```bash

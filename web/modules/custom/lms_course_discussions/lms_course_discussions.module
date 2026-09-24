@@ -1,0 +1,55 @@
+<?php
+
+/**
+ * @file
+ * Hooks for LMS Course Discussions.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
+use Drupal\Core\Url;
+use Drupal\lms\Entity\Bundle\Course;
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ */
+function lms_course_discussions_menu_local_tasks_alter(
+  array &$data,
+  string $route_name,
+  RefinableCacheableDependencyInterface &$cacheability,
+): void {
+  if (!in_array($route_name, ['lms.course.start', 'lms.group.answer_form'], TRUE)) {
+    return;
+  }
+
+  $group = \Drupal::routeMatch()->getParameter('group');
+  if (!$group instanceof Course) {
+    return;
+  }
+
+  $url = Url::fromRoute('view.course_discussions.page', [
+    'group' => $group->id(),
+  ]);
+  $access = $url->access(\Drupal::currentUser(), TRUE);
+  $cacheability->addCacheableDependency($access);
+  if (!$access->isAllowed()) {
+    return;
+  }
+
+  if (!isset($data['tabs'][0])) {
+    $data['tabs'][0] = [];
+  }
+
+  $data['tabs'][0]['lms_course_discussions.discussions'] = [
+    '#theme' => 'menu_local_task',
+    '#active' => FALSE,
+    '#weight' => 20,
+    '#link' => [
+      'title' => t('Discussions'),
+      'url' => $url,
+      'localized_options' => [],
+    ],
+    '#access' => $access,
+  ];
+}

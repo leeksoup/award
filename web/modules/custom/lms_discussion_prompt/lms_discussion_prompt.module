@@ -1,0 +1,201 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the LMS Discussion Prompt module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityFormInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
+use Drupal\lms\Entity\ActivityInterface;
+use Drupal\lms\Entity\AnswerInterface;
+use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\LessonInterface;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_entity_insert().
+ */
+function lms_discussion_prompt_entity_insert(EntityInterface $entity): void {
+  _lms_discussion_prompt_entity_saved($entity);
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function lms_discussion_prompt_entity_update(EntityInterface $entity): void {
+  _lms_discussion_prompt_entity_saved($entity);
+}
+
+/**
+ * Creates missing discussions when enough course context is available.
+ */
+function _lms_discussion_prompt_entity_saved(EntityInterface $entity): void {
+  static $processing = FALSE;
+
+  if ($processing) {
+    return;
+  }
+
+  $manager = \Drupal::service('lms_discussion_prompt.manager');
+  $processing = TRUE;
+  try {
+    if ($entity instanceof ActivityInterface && $entity->bundle() === 'discussion_prompt') {
+      $manager->ensureDiscussionForActivity($entity);
+    }
+    elseif ($entity instanceof LessonInterface) {
+      $manager->ensureDiscussionsForLesson($entity);
+    }
+    elseif ($entity instanceof Course) {
+      $manager->ensureDiscussionsForCourse($entity);
+    }
+  }
+  finally {
+    $processing = FALSE;
+  }
+}
+
+/**
+ * Implements hook_entity_view().
+ */
+function lms_discussion_prompt_entity_view(
+  array &$build,
+  EntityInterface $entity,
+  $display,
+  $view_mode,
+): void {
+  if ($entity instanceof NodeInterface && $entity->bundle() === 'discussion') {
+    _lms_discussion_prompt_add_return_link($build, $entity);
+    return;
+  }
+
+  if (!$entity instanceof ActivityInterface || $entity->bundle() !== 'discussion_prompt') {
+    return;
+  }
+
+  $route_match = \Drupal::routeMatch();
+  \assert($route_match instanceof RouteMatchInterface);
+
+  $group = $route_match->getParameter('group');
+  $lesson_delta = $route_match->getParameter('lesson_delta');
+  $activity_delta = $route_match->getParameter('activity_delta');
+
+  if ($group instanceof Course && $lesson_delta !== NULL && $activity_delta !== NULL) {
+    $url = Url::fromRoute('lms_discussion_prompt.open', [
+      'group' => $group->id(),
+      'lesson_delta' => (int) $lesson_delta,
+      'activity_delta' => (int) $activity_delta,
+    ]);
+  }
+  elseif (
+    $entity->hasField('field_discussion_node')
+    && !$entity->get('field_discussion_node')->isEmpty()
+  ) {
+    $url = $entity->get('field_discussion_node')->entity?->toUrl();
+    if ($url === NULL) {
+      return;
+    }
+  }
+  else {
+    return;
+  }
+
+  $build['discussion_prompt_discussion_link'] = [
+    '#type' => 'container',
+    '#attributes' => ['class' => ['lms-discussion-prompt-link']],
+    'link' => Link::fromTextAndUrl(t('Go to discussion'), $url)->toRenderable(),
+    '#weight' => 20,
+    '#cache' => [
+      'contexts' => ['route'],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function lms_discussion_prompt_form_alter(
+  array &$form,
+  FormStateInterface $form_state,
+  string $form_id,
+): void {
+  $form_object = $form_state->getFormObject();
+  if (!$form_object instanceof EntityFormInterface) {
+    return;
+  }
+
+  $entity = $form_object->getEntity();
+  if (
+    $entity instanceof ActivityInterface
+    && $entity->bundle() === 'discussion_prompt'
+    && !$entity instanceof AnswerInterface
+    && isset($form['field_discussion_node'])
+  ) {
+    $form['field_discussion_node']['#access'] = FALSE;
+  }
+
+  if (
+    $entity instanceof AnswerInterface
+    && $entity->getActivity()->bundle() === 'discussion_prompt'
+    && \Drupal::routeMatch()->getRouteName() === 'lms.group.answer_form'
+    && isset($form['actions']['submit'])
+  ) {
+    $form['actions']['submit']['#access'] = FALSE;
+  }
+}
+
+/**
+ * Adds a return-to-course link to linked discussion pages.
+ */
+function _lms_discussion_prompt_add_return_link(array &$build, NodeInterface $discussion): void {
+  $request = \Drupal::request();
+  $return = $request->query->get('return');
+  $allowed_return_pattern =
+    '@^/(?:course/\d+/(?:start|\d+/\d+)|group/\d+)$@';
+  if (
+    \is_string($return)
+    && \preg_match($allowed_return_pattern, $return) === 1
+  ) {
+    $url = Url::fromUserInput($return);
+  }
+  else {
+    $url = \Drupal::service('lms_discussion_prompt.manager')
+      ->getReturnUrlForDiscussion($discussion);
+    if ($url === NULL) {
+      return;
+    }
+  }
+
+  if (isset($build['body'])) {
+    $body_weight = (int) ($build['body']['#weight'] ?? 0);
+    $build['lms_discussion_prompt_return_link_after_prompt'] =
+      _lms_discussion_prompt_return_link_build($url);
+    $build['lms_discussion_prompt_return_link_after_prompt']['#weight'] = $body_weight + 1;
+  }
+
+  $build['lms_discussion_prompt_return_link'] = _lms_discussion_prompt_return_link_build($url);
+  $build['lms_discussion_prompt_return_link']['#weight'] = 100;
+}
+
+/**
+ * Builds a return-to-course link render array.
+ */
+function _lms_discussion_prompt_return_link_build(Url $url): array {
+  return [
+    '#type' => 'container',
+    '#attributes' => ['class' => ['lms-discussion-prompt-return']],
+    'link' => Link::fromTextAndUrl(
+      t('When finished, click here to return to the lesson'),
+      $url,
+    )->toRenderable(),
+    '#cache' => [
+      'max-age' => 0,
+    ],
+  ];
+}

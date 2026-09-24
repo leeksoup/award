@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies: { }
+id: discussion_prompt
+name: 'Discussion Prompt'
+description: 'Prompt that links learners to a course discussion.'
+pluginId: no_answer
+pluginConfiguration: { }
+defaultMaxScore: 10
+

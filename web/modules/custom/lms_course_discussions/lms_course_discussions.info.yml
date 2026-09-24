@@ -1,0 +1,11 @@
+name: 'LMS Course Discussions'
+type: module
+description: 'Adds course-player discussion navigation and a group-scoped discussion action.'
+package: LMS
+core_version_requirement: ^10 || ^11
+dependencies:
+  - group:gnode
+  - lms:lms
+  - lms:lms_classes
+  - lms_discussion_prompt:lms_discussion_prompt
+  - views:views

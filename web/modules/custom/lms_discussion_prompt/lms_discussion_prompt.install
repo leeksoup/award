@@ -1,0 +1,145 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the LMS Discussion Prompt module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_install().
+ */
+function lms_discussion_prompt_install(): void {
+  _lms_discussion_prompt_grant_group_permissions();
+}
+
+/**
+ * Grants LMS Course roles access to group-attached discussion nodes.
+ */
+function _lms_discussion_prompt_grant_group_permissions(): void {
+  $role_storage = \Drupal::entityTypeManager()->getStorage('group_role');
+  $roles = $role_storage->loadByProperties([
+    'group_type' => 'lms_course',
+  ]);
+
+  $view_permissions = [
+    'view group_node:discussion relationship',
+    'view group_node:discussion entity',
+  ];
+  $overview_permissions = [
+    'access group_node overview',
+  ];
+  $manage_permissions = [
+    'create group_node:discussion relationship',
+    'create group_node:discussion entity',
+    'update any group_node:discussion relationship',
+    'update any group_node:discussion entity',
+    'delete any group_node:discussion relationship',
+    'delete any group_node:discussion entity',
+  ];
+
+  foreach ($roles as $role) {
+    $changed = FALSE;
+
+    $global_role = $role->getGlobalRoleId();
+    if ($global_role !== 'anonymous' && (
+      $role->isAdmin()
+      || $role->hasPermission('view group')
+      || $role->hasPermission('take course')
+    )) {
+      foreach ($view_permissions as $permission) {
+        if (!$role->hasPermission($permission)) {
+          $role->grantPermission($permission);
+          $changed = TRUE;
+        }
+      }
+    }
+
+    if (
+      $role->isAdmin()
+      || $role->hasPermission('edit group')
+      || $role->hasPermission('administer members')
+    ) {
+      foreach ([...$overview_permissions, ...$manage_permissions] as $permission) {
+        if (!$role->hasPermission($permission)) {
+          $role->grantPermission($permission);
+          $changed = TRUE;
+        }
+      }
+    }
+
+    if ($changed) {
+      $role->save();
+    }
+  }
+}
+
+/**
+ * Grants LMS Course roles access to discussion prompt group nodes.
+ */
+function lms_discussion_prompt_update_10001(): void {
+  _lms_discussion_prompt_grant_group_permissions();
+}
+
+/**
+ * Repairs the Course discussions View configuration.
+ */
+function lms_discussion_prompt_update_10002(): void {
+  _lms_discussion_prompt_grant_group_permissions();
+  _lms_discussion_prompt_repair_course_discussions_view();
+}
+
+/**
+ * Grants discussion relationship view access to all course-viewer roles.
+ */
+function lms_discussion_prompt_update_10003(): void {
+  _lms_discussion_prompt_grant_group_permissions();
+  _lms_discussion_prompt_repair_course_discussions_view();
+}
+
+/**
+ * Attaches already-linked discussion nodes to their containing courses.
+ */
+function lms_discussion_prompt_update_10004(): void {
+  $activity_storage = \Drupal::entityTypeManager()->getStorage('lms_activity');
+  $ids = $activity_storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'discussion_prompt')
+    ->execute();
+
+  if ($ids === []) {
+    return;
+  }
+
+  $manager = \Drupal::service('lms_discussion_prompt.manager');
+  foreach ($activity_storage->loadMultiple($ids) as $activity) {
+    if ($activity instanceof \Drupal\lms\Entity\ActivityInterface) {
+      $manager->ensureDiscussionForActivity($activity);
+    }
+  }
+
+  \Drupal::service('cache_tags.invalidator')->invalidateTags([
+    'group_relationship_list',
+  ]);
+}
+
+/**
+ * Repairs the Course discussions View from install config.
+ */
+function _lms_discussion_prompt_repair_course_discussions_view(): void {
+  $module_path = \Drupal::service('extension.list.module')
+    ->getPath('lms_discussion_prompt');
+  $source = new \Drupal\Core\Config\FileStorage($module_path . '/config/install');
+  $view_config = $source->read('views.view.course_discussions');
+  if ($view_config === FALSE) {
+    return;
+  }
+
+  \Drupal::configFactory()
+    ->getEditable('views.view.course_discussions')
+    ->setData($view_config)
+    ->save(TRUE);
+
+  \Drupal::service('router.builder')->setRebuildNeeded();
+}

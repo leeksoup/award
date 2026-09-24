@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies: { }
+name: Discussion
+type: discussion
+description: 'A group-attached discussion thread for LMS course prompts.'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: true
+

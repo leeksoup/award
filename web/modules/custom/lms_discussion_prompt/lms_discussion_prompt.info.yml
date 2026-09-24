@@ -1,0 +1,11 @@
+name: 'LMS Discussion Prompt'
+type: module
+description: 'Adds an LMS activity that links learners to a group-attached discussion.'
+package: LMS
+core_version_requirement: ^10 || ^11
+dependencies:
+  - drupal:comment
+  - drupal:node
+  - group:gnode
+  - lms:lms
+

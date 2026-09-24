@@ -1,0 +1,8 @@
+services:
+  lms_discussion_prompt.manager:
+    class: Drupal\lms_discussion_prompt\Service\DiscussionPromptManager
+    arguments:
+      - '@entity_type.manager'
+      - '@lms.training_manager'
+  Drupal\lms_discussion_prompt\Service\DiscussionPromptManager: '@lms_discussion_prompt.manager'
+

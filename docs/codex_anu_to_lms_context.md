@@ -232,6 +232,51 @@ safe `/course/{group}/start` return URL. The optional `Forum Prompt return
 link` block displays that return link on forum pages when the `return` query
 parameter starts with `/course/`.
 
+## Discussion Prompt activity feature
+
+The `lms_discussion_prompt` module adds a reusable LMS `discussion_prompt`
+activity type for prompts backed by group-attached `discussion` nodes with
+comments enabled. It reuses the Forum Prompt runtime pattern but avoids Drupal
+Forum taxonomy entirely: each discussion node is attached to the containing
+`lms_course` group through the Group 3 `group_node:discussion` relationship.
+
+Discussion Prompt activities use the LMS `no_answer` plugin. Author-facing
+fields store the prompt body and the desired discussion title; the internal
+node reference is hidden from the activity form. When the activity is saved or
+opened in course context, the module reuses a same-titled discussion already
+attached to that course, or creates one and links it back to the activity.
+
+Student activity pages show a `Go to discussion` link. The link records an LMS
+answer with full score, advances lesson/course status, and redirects to the
+discussion node with a safe `/course/{group}/start` return URL. Discussion node
+pages also show a return-to-lesson link after the prompt body and again near
+the bottom of the page.
+
+The module also owns a `course_discussions` View for
+`/group/{group}/course-discussions`. Update `10002` repairs existing active
+View config by replacing the mistaken LMS Classes contextual filter with the
+Group relationship `gid` contextual filter, requiring `gc__node`, and filtering
+to `lms_course-group_node-discussion` relationships for published
+`discussion` nodes. Update `10003` broadens discussion view grants to every
+non-anonymous LMS Course role that can already view or take the course, changes
+the tab access check to `view group_node:discussion relationship`, and grants
+course-editing roles `access group_node overview` for Group's generic
+`/group/{group}/nodes` page. Update `10004` repairs activities whose
+`field_discussion_node` points at a discussion node that was never attached to
+the containing course as a `group_node:discussion` relationship. Rows require
+that relationship plus the generated Group permissions
+`view group_node:discussion relationship` and
+`view group_node:discussion entity`; the UI label for the latter is
+`Entity: View any node entities` or similar depending on Group's provider, not
+necessarily `Entity: View any content item entities`.
+
+`lms_course_discussions` update `10001` closes the corresponding LMS Classes
+permission gap. It aligns relationship access for Class roles that already
+have discussion entity access and maps the Class view/create permissions onto
+the parent Course. Without this mapping, a Class-enrolled learner can view an
+individual discussion node while the Course Discussions View returns access
+denied and its local-task tab remains hidden.
+
 ## LMS Classes student management
 
 The LMS `Students` tab is not part of the base Group members page. It is
