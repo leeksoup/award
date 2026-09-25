@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fe8ffd005f77c511c28c6733ffb405a3",
+    "content-hash": "6947b03c0daa5e5b35e71306dd79ed0f",
     "packages": [
         {
             "name": "asm89/stack-cors",
@@ -218,16 +218,16 @@
         },
         {
             "name": "commerceguys/intl",
-            "version": "v2.0.8",
+            "version": "v2.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/commerceguys/intl.git",
-                "reference": "f5c5ecb1ec2ed7e258c22f7db73e25c1a589f9c5"
+                "reference": "53c23d309739d2f460da4832517473fe3eee8036"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/commerceguys/intl/zipball/f5c5ecb1ec2ed7e258c22f7db73e25c1a589f9c5",
-                "reference": "f5c5ecb1ec2ed7e258c22f7db73e25c1a589f9c5",
+                "url": "https://api.github.com/repos/commerceguys/intl/zipball/53c23d309739d2f460da4832517473fe3eee8036",
+                "reference": "53c23d309739d2f460da4832517473fe3eee8036",
                 "shasum": ""
             },
             "require": {
@@ -263,9 +263,9 @@
             "description": "Internationalization library powered by CLDR data.",
             "support": {
                 "issues": "https://github.com/commerceguys/intl/issues",
-                "source": "https://github.com/commerceguys/intl/tree/v2.0.8"
+                "source": "https://github.com/commerceguys/intl/tree/v2.1.0"
             },
-            "time": "2026-08-21T08:01:00+00:00"
+            "time": "2026-09-23T09:38:12+00:00"
         },
         {
             "name": "composer/installers",
@@ -1814,20 +1814,20 @@
         },
         {
             "name": "drupal/commerce",
-            "version": "3.3.9",
+            "version": "3.3.10",
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/commerce.git",
-                "reference": "3.3.9"
+                "reference": "3.3.10"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/commerce-3.3.9.zip",
-                "reference": "3.3.9",
-                "shasum": "223e929fc851ce83e38be9d818c3c3ec503f96c4"
+                "url": "https://ftp.drupal.org/files/projects/commerce-3.3.10.zip",
+                "reference": "3.3.10",
+                "shasum": "e88c4d65909ccd0c17e1a58a756f729d18bfcd74"
             },
             "require": {
-                "commerceguys/intl": "^2.0.6",
+                "commerceguys/intl": "^2.1.0",
                 "drupal/address": "^2.0",
                 "drupal/core": "^10.3 || ^11",
                 "drupal/entity": "^1.0",
@@ -1860,8 +1860,8 @@
             "type": "drupal-module",
             "extra": {
                 "drupal": {
-                    "version": "3.3.9",
-                    "datestamp": "1788781838",
+                    "version": "3.3.10",
+                    "datestamp": "1790160108",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -1894,7 +1894,7 @@
         },
         {
             "name": "drupal/commerce_number_pattern",
-            "version": "3.3.9",
+            "version": "3.3.10",
             "require": {
                 "drupal/commerce": "*",
                 "drupal/commerce_store": "*",
@@ -1903,8 +1903,8 @@
             "type": "metapackage",
             "extra": {
                 "drupal": {
-                    "version": "3.3.9",
-                    "datestamp": "1788781838",
+                    "version": "3.3.10",
+                    "datestamp": "1790160108",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -1937,7 +1937,7 @@
         },
         {
             "name": "drupal/commerce_order",
-            "version": "3.3.9",
+            "version": "3.3.10",
             "require": {
                 "drupal/commerce": "*",
                 "drupal/commerce_number_pattern": "*",
@@ -1951,8 +1951,8 @@
             "type": "metapackage",
             "extra": {
                 "drupal": {
-                    "version": "3.3.9",
-                    "datestamp": "1788781838",
+                    "version": "3.3.10",
+                    "datestamp": "1790160108",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -1985,7 +1985,7 @@
         },
         {
             "name": "drupal/commerce_payment",
-            "version": "3.3.9",
+            "version": "3.3.10",
             "require": {
                 "drupal/commerce": "*",
                 "drupal/commerce_order": "*",
@@ -1995,8 +1995,8 @@
             "type": "metapackage",
             "extra": {
                 "drupal": {
-                    "version": "3.3.9",
-                    "datestamp": "1788781838",
+                    "version": "3.3.10",
+                    "datestamp": "1790160108",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -2143,7 +2143,7 @@
         },
         {
             "name": "drupal/commerce_price",
-            "version": "3.3.9",
+            "version": "3.3.10",
             "require": {
                 "drupal/commerce": "*",
                 "drupal/core": "^10.3 || ^11"
@@ -2151,8 +2151,8 @@
             "type": "metapackage",
             "extra": {
                 "drupal": {
-                    "version": "3.3.9",
-                    "datestamp": "1788781838",
+                    "version": "3.3.10",
+                    "datestamp": "1790160108",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -2185,7 +2185,7 @@
         },
         {
             "name": "drupal/commerce_product",
-            "version": "3.3.9",
+            "version": "3.3.10",
             "require": {
                 "drupal/commerce": "*",
                 "drupal/commerce_price": "*",
@@ -2195,8 +2195,8 @@
             "type": "metapackage",
             "extra": {
                 "drupal": {
-                    "version": "3.3.9",
-                    "datestamp": "1788781838",
+                    "version": "3.3.10",
+                    "datestamp": "1790160108",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -2296,7 +2296,7 @@
         },
         {
             "name": "drupal/commerce_store",
-            "version": "3.3.9",
+            "version": "3.3.10",
             "require": {
                 "drupal/commerce": "*",
                 "drupal/commerce_price": "*",
@@ -2305,8 +2305,8 @@
             "type": "metapackage",
             "extra": {
                 "drupal": {
-                    "version": "3.3.9",
-                    "datestamp": "1788781838",
+                    "version": "3.3.10",
+                    "datestamp": "1790160108",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -4038,17 +4038,17 @@
         },
         {
             "name": "drupal/lms",
-            "version": "1.2.2",
+            "version": "1.2.3",
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/lms.git",
-                "reference": "1.2.2"
+                "reference": "1.2.3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/lms-1.2.2.zip",
-                "reference": "1.2.2",
-                "shasum": "0778aef88f02f8f8fcb9312773dbb618bb45f515"
+                "url": "https://ftp.drupal.org/files/projects/lms-1.2.3.zip",
+                "reference": "1.2.3",
+                "shasum": "ad8a2a99d64c8460e568b5542aa58a3f3bca81de"
             },
             "require": {
                 "drupal/core": "^10.3 || ^11",
@@ -4063,8 +4063,8 @@
             "type": "drupal-module",
             "extra": {
                 "drupal": {
-                    "version": "1.2.2",
-                    "datestamp": "1788526931",
+                    "version": "1.2.3",
+                    "datestamp": "1790154247",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -5069,7 +5069,7 @@
                     "homepage": "https://www.drupal.org/user/281473"
                 },
                 {
-                    "name": "andrey.troeglazov",
+                    "name": "andrtroe",
                     "homepage": "https://www.drupal.org/user/3145389"
                 },
                 {
@@ -5306,17 +5306,17 @@
         },
         {
             "name": "drupal/webform",
-            "version": "6.3.0",
+            "version": "6.3.1",
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/webform.git",
-                "reference": "6.3.0"
+                "reference": "6.3.1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/webform-6.3.0.zip",
-                "reference": "6.3.0",
-                "shasum": "67b09271edfd2fb38dc699ff733911ad500ae5d7"
+                "url": "https://ftp.drupal.org/files/projects/webform-6.3.1.zip",
+                "reference": "6.3.1",
+                "shasum": "f737cb4e614df7f54b9bb77fe40109e7abab789b"
             },
             "require": {
                 "drupal/core": "^10.3 || ^11.0"
@@ -5331,6 +5331,7 @@
                 "drupal/entity": "^1.0",
                 "drupal/entity_print": "^2.0",
                 "drupal/hal": "^2.0",
+                "drupal/honeypot": "^2.0",
                 "drupal/jquery_ui": "^1.0",
                 "drupal/jquery_ui_button": "^2.0",
                 "drupal/jquery_ui_checkboxradio": "^2.0",
@@ -5361,8 +5362,8 @@
             "type": "drupal-module",
             "extra": {
                 "drupal": {
-                    "version": "6.3.0",
-                    "datestamp": "1783989705",
+                    "version": "6.3.1",
+                    "datestamp": "1790179518",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -12197,16 +12198,16 @@
         },
         {
             "name": "justinrainbow/json-schema",
-            "version": "6.12.0",
+            "version": "6.13.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jsonrainbow/json-schema.git",
-                "reference": "8ef236a1a37df364b518b7411a4b5bb95b040d79"
+                "reference": "30de5e9b3fa04253af272a7d932a38cd026c311b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jsonrainbow/json-schema/zipball/8ef236a1a37df364b518b7411a4b5bb95b040d79",
-                "reference": "8ef236a1a37df364b518b7411a4b5bb95b040d79",
+                "url": "https://api.github.com/repos/jsonrainbow/json-schema/zipball/30de5e9b3fa04253af272a7d932a38cd026c311b",
+                "reference": "30de5e9b3fa04253af272a7d932a38cd026c311b",
                 "shasum": ""
             },
             "require": {
@@ -12256,9 +12257,9 @@
             ],
             "support": {
                 "issues": "https://github.com/jsonrainbow/json-schema/issues",
-                "source": "https://github.com/jsonrainbow/json-schema/tree/6.12.0"
+                "source": "https://github.com/jsonrainbow/json-schema/tree/6.13.0"
             },
-            "time": "2026-09-04T12:54:20+00:00"
+            "time": "2026-09-23T19:46:42+00:00"
         },
         {
             "name": "lullabot/mink-selenium2-driver",
@@ -14435,16 +14436,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "9.6.36",
+            "version": "9.6.37",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "abab27ed286d3e1246fbbfe6b56bfd732d945ec9"
+                "reference": "aceaa623912caf8e80bffea22fc4103a0a01565f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/abab27ed286d3e1246fbbfe6b56bfd732d945ec9",
-                "reference": "abab27ed286d3e1246fbbfe6b56bfd732d945ec9",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/aceaa623912caf8e80bffea22fc4103a0a01565f",
+                "reference": "aceaa623912caf8e80bffea22fc4103a0a01565f",
                 "shasum": ""
             },
             "require": {
@@ -14518,7 +14519,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/9.6.36"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/9.6.37"
             },
             "funding": [
                 {
@@ -14526,7 +14527,7 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-08-11T06:25:15+00:00"
+            "time": "2026-09-23T09:59:59+00:00"
         },
         {
             "name": "psr/cache",
