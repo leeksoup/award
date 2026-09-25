@@ -1,14 +1,19 @@
 diff --git a/modules/lms_answer_plugins/src/Plugin/ActivityAnswer/FreeText.php b/modules/lms_answer_plugins/src/Plugin/ActivityAnswer/FreeText.php
 --- a/modules/lms_answer_plugins/src/Plugin/ActivityAnswer/FreeText.php
 +++ b/modules/lms_answer_plugins/src/Plugin/ActivityAnswer/FreeText.php
-@@ -47,7 +47,9 @@ class FreeText extends ActivityAnswerBase {
+@@ -45,9 +45,14 @@ class FreeText extends ActivityAnswerBase {
+     ];
+     foreach ($activity->get('questions') as $delta => $question_item) {
++      $default_value = $data['answer'][$delta] ?? '';
++      if (\is_array($default_value)) {
++        $default_value = $default_value['value'] ?? '';
++      }
++
        $element = [
          '#title' => $question_item->getValue()['value'],
          '#type' => $text_format === NULL ? 'textarea' : 'text_format',
 -        '#default_value' => $data['answer'][$delta] ?? [],
-+        '#default_value' => \is_array($data['answer'][$delta] ?? NULL)
-+          ? ($data['answer'][$delta]['value'] ?? '')
-+          : ($data['answer'][$delta] ?? ''),
++        '#default_value' => $default_value,
        ];
        if ($text_format !== NULL) {
          $element['#format'] = $text_format;
