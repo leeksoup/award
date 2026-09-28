@@ -214,6 +214,12 @@ drush role:perm:add authenticated 'book own vip sessions'
 drush cr
 ```
 
+Access to `/vip-sessions` also requires membership in either the Course or the
+Class configured at `/admin/commerce/config/lms-vip`. Active VIP entitlements
+manage purchaser Class membership automatically. Add teachers and test
+learners to the VIP Course or Class manually when they need access without a
+purchase.
+
 ## 6. Recreate Commerce promotions and coupons
 
 Open:
@@ -309,7 +315,10 @@ Enable only the coupon being tested and complete one real transaction. Verify:
 - Webhook events are processed successfully.
 - The entitlement becomes active.
 - Course and Class memberships are granted.
-- `/vip-sessions` is accessible to the learner.
+- `/vip-sessions` is accessible to a learner in the configured VIP Class.
+- `/vip-sessions` is accessible to a teacher manually added to the configured
+  VIP Course or Class, provided the teacher has `book own vip sessions`.
+- A user outside both configured VIP Hub groups is denied access.
 - The learner can book a session.
 
 After the controlled transaction succeeds, enable the public promotion.

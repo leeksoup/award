@@ -15,14 +15,10 @@ use Drupal\recurring_events_registration\RegistrationCreationService;
 /** Enforces VIP eligibility and one Recurring Events booking per month. */
 final class VipBookingManager {
 
-  public function __construct(private Connection $database, private EntityTypeManagerInterface $entityTypeManager, private ConfigFactoryInterface $configFactory, private TimeInterface $time, private LockBackendInterface $lock, private RegistrationCreationService $registration, private EntitlementMailerInterface $mailer) {}
+  public function __construct(private Connection $database, private EntityTypeManagerInterface $entityTypeManager, private ConfigFactoryInterface $configFactory, private TimeInterface $time, private LockBackendInterface $lock, private RegistrationCreationService $registration, private EntitlementMailerInterface $mailer, private VipGroupAccessChecker $accessChecker) {}
 
   public function hasAccess(int $uid): bool {
-    return $uid > 0 && (bool) $this->database->select('commerce_lms_entitlement', 'e')
-      ->condition('learner_uid', $uid)
-      ->condition('status', 'active')
-      ->condition('vip_active', 1)
-      ->countQuery()->execute()->fetchField();
+    return $this->accessChecker->hasAccess($uid);
   }
 
   /** Returns selectable future instances, with contrib capacity respected. */
@@ -188,7 +184,7 @@ final class VipBookingManager {
 
   private function assertAccess(int $uid): void {
     if (!$this->hasAccess($uid)) {
-      throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException('An active VIP learner entitlement is required.');
+      throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException('VIP Hub Course or Class membership is required.');
     }
   }
 

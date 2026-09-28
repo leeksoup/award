@@ -248,9 +248,13 @@ records recovery state after a partially successful run. After applying, run
 VIP uses Recurring Events 3.x for event series, instances, registrants, and
 capacity. Configure the protected LMS hub, eligible instance-registration
 series, shared meeting URL, and booking cutoff at
-`/admin/commerce/config/lms-vip`. Learners with an active VIP entitlement book
-at `/vip-sessions`; the module enforces one booking per site-timezone calendar
-month and disables selection when contrib reports no remaining capacity.
+`/admin/commerce/config/lms-vip`. Users with the `book own vip sessions`
+permission who belong to either the configured VIP Course or VIP Class can
+book at `/vip-sessions`. Entitlements grant and revoke the Class membership
+for purchasers, while authorized administrators can add teachers or test
+learners to either VIP Hub group manually. The module enforces one booking per
+site-timezone calendar month and disables selection when contrib reports no
+remaining capacity.
 
 Existing subscribers can add or remove VIP from `/my-lms-subscriptions`.
 Drupal asks PayPal to revise the existing subscription and sends the purchaser
