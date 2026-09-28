@@ -12,7 +12,6 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\Tests\UnitTestCase;
 use Drupal\user\UserInterface;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
@@ -23,8 +22,9 @@ final class VipGroupAccessCheckerTest extends UnitTestCase {
 
   /**
    * Tests access through either configured group, or neither group.
+   *
+   * @dataProvider membershipProvider
    */
-  #[DataProvider('membershipProvider')]
   public function testConfiguredGroupMembership(
     bool $course_member,
     bool $class_member,
