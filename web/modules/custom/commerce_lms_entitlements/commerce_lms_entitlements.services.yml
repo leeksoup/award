@@ -11,6 +11,9 @@ services:
   commerce_lms_entitlements.manager:
     class: Drupal\commerce_lms_entitlements\EntitlementManager
     arguments: ['@database', '@entity_type.manager', '@commerce_lms_entitlements.membership_manager', '@config.factory', '@queue', '@datetime.time', '@logger.channel.commerce_lms_entitlements', '@commerce_paypal_subscriptions.checkout_sdk_factory', '@Drupal\commerce_lms_entitlements\Mailer\EntitlementMailerInterface', '@url_generator']
+  commerce_lms_entitlements.clickbank:
+    class: Drupal\commerce_lms_entitlements\ClickBankManager
+    arguments: ['@database', '@config.factory', '@queue', '@datetime.time', '@http_client', '@commerce_lms_entitlements.manager', '@logger.channel.commerce_lms_entitlements']
   Drupal\commerce_lms_entitlements\Mailer\EntitlementMailerInterface:
     class: Drupal\commerce_lms_entitlements\Mailer\EntitlementMailer
     autowire: true

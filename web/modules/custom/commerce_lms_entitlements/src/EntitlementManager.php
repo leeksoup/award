@@ -121,6 +121,7 @@ final class EntitlementManager {
       'offer_id' => $offer->id(), 'purchase_type' => $offer->getPurchaseType(), 'purchaser_uid' => (int) $order->getCustomerId(),
       'learner_uid' => !empty($learner['uid']) ? (int) $learner['uid'] : NULL, 'invitation_id' => $learner['invitation_id'] ?? NULL,
       'order_id' => (int) $order->id(), 'status' => 'pending',
+      'learner_email' => !empty($learner['email']) ? mb_strtolower(trim((string) $learner['email'])) : NULL,
       'paypal_plan_id' => $plan_id,
       'vip_selected' => $vip_selected ? 1 : 0,
       'vip_active' => 0,
@@ -137,6 +138,54 @@ final class EntitlementManager {
   public function loadByPayPalSubscription(string $id): ?array { $row = $this->database->select('commerce_lms_entitlement', 'e')->fields('e')->condition('paypal_subscription_id', $id)->execute()->fetchAssoc(); return $row ?: NULL; }
   public function loadByCheckoutToken(string $id): ?array { $row = $this->database->select('commerce_lms_entitlement', 'e')->fields('e')->condition('checkout_token', $id)->execute()->fetchAssoc(); return $row ?: NULL; }
   public function update(int $eid, array $values): void { $values['changed'] = $this->time->getRequestTime(); $this->database->update('commerce_lms_entitlement')->fields($values)->condition('eid', $eid)->execute(); }
+
+  /** Creates a verified external lifetime entitlement without a Commerce order. */
+  public function activateClickBank(string $offer_id, string $learner_email): int {
+    $offer = $this->entityTypeManager->getStorage('commerce_lms_offer')->load($offer_id);
+    if (!$offer || $offer->getPurchaseType() !== 'lifetime') {
+      throw new \DomainException('The ClickBank offer is missing or is not lifetime.');
+    }
+    $this->validateTargets($offer);
+    $email = mb_strtolower(trim($learner_email));
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+      throw new \DomainException('The ClickBank learner email is invalid.');
+    }
+    $now = $this->time->getRequestTime();
+    $eid = (int) $this->database->insert('commerce_lms_entitlement')->fields([
+      'offer_id' => $offer_id,
+      'source' => 'clickbank',
+      'purchase_type' => 'lifetime',
+      'purchaser_uid' => 0,
+      'learner_email' => $email,
+      'order_id' => NULL,
+      'status' => 'active',
+      'activated' => $now,
+      'created' => $now,
+      'changed' => $now,
+    ])->execute();
+    return $eid;
+  }
+
+  /** Retries learner resolution and access for one ClickBank entitlement. */
+  public function fulfillClickBank(int $eid): void {
+    $entitlement = $this->load($eid);
+    if (!$entitlement || $entitlement['source'] !== 'clickbank' || $entitlement['status'] !== 'active') {
+      throw new \DomainException('ClickBank entitlement is unavailable for fulfillment.');
+    }
+    $this->grant($this->prepareActiveLearner($entitlement));
+  }
+
+  /** Revokes only the access owned by a reversed ClickBank purchase. */
+  public function reverseClickBank(int $eid, string $status): void {
+    $entitlement = $this->load($eid);
+    if (!$entitlement || $entitlement['source'] !== 'clickbank' || !in_array($status, ['refunded', 'chargeback'], TRUE)) {
+      throw new \DomainException('Invalid ClickBank reversal.');
+    }
+    if (!in_array($entitlement['status'], ['refunded', 'chargeback'], TRUE)) {
+      $this->update($eid, ['status' => $status, 'access_through' => NULL]);
+    }
+    $this->revoke($entitlement);
+  }
 
   /** Seals the approved cart state behind an unguessable PayPal custom ID. */
   public function sealRecurringCheckout(array $entitlement, array $snapshot): array {
@@ -597,7 +646,7 @@ final class EntitlementManager {
 
   /** Returns TRUE while an entitlement is inside its 40 calendar-day guarantee. */
   public function isGuaranteeEligible(array $entitlement): bool {
-    if (empty($entitlement['activated'])) {
+    if (($entitlement['source'] ?? 'commerce_paypal') !== 'commerce_paypal' || empty($entitlement['activated'])) {
       return FALSE;
     }
     $activated = (new \DateTimeImmutable('@' . $entitlement['activated']))->setTimezone(new \DateTimeZone('UTC'));
@@ -634,11 +683,14 @@ final class EntitlementManager {
       return $entitlement;
     }
 
-    $order = $this->entityTypeManager
-      ->getStorage('commerce_order')
-      ->load((int) $entitlement['order_id']);
-    $learner = $order?->getData('commerce_lms_learner') ?: [];
-    $email = mb_strtolower(trim((string) ($learner['email'] ?? '')));
+    $email = mb_strtolower(trim((string) ($entitlement['learner_email'] ?? '')));
+    if ($email === '' && !empty($entitlement['order_id'])) {
+      $order = $this->entityTypeManager
+        ->getStorage('commerce_order')
+        ->load((int) $entitlement['order_id']);
+      $learner = $order?->getData('commerce_lms_learner') ?: [];
+      $email = mb_strtolower(trim((string) ($learner['email'] ?? '')));
+    }
     if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
       $this->logger->error('Active entitlement @eid has no valid learner email or account.', [
         '@eid' => $entitlement['eid'],
@@ -759,7 +811,7 @@ final class EntitlementManager {
       foreach ($entitlement_ids as $eid) {
         $entitlement = $this->load((int) $eid);
         $values = ['learner_uid' => $uid];
-        $order = $entitlement
+        $order = $entitlement && !empty($entitlement['order_id'])
           ? $this->entityTypeManager->getStorage('commerce_order')->load($entitlement['order_id'])
           : NULL;
         $order_email = $order ? mb_strtolower((string) $order->getEmail()) : '';
