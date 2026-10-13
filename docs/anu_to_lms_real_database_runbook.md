@@ -110,6 +110,11 @@ the shared field consistently. After `drush updb -y` and `drush cr`, use the
 Views field whose configuration is `table: lms_activity__body` and
 `field: body`; `field_content_body` and `field_checklist_body` are the legacy
 fields. This label update does not change activity values or revisions.
+`lms_runtime` update `10003` copies legacy checklist and content values into
+matching historical `body` revisions, preserving their revision IDs, languages,
+and text formats. It does not replace an existing nonempty `body` value, so
+edits made after update `10001` stay intact. Keep the legacy fields installed
+until the revision audit below passes.
 The runtime module is already a dependency of the migration module, so its
 field storage is installed before a fresh import. A post-migration site does
 not need to rerun the Anu migrations for this change.
@@ -121,25 +126,26 @@ field or an activity has no body. Resolve that content before retrying the
 update. Do not run `migrate:import --update` for this field conversion.
 
 Audit every current translation after the update. This command must print
-`mismatches:0`; old fields remain installed until this has been checked:
+`missing:0`; old fields remain installed until this has been checked. An edited
+`body` value may legitimately differ from the retained legacy value:
 
 ```bash
 drush php:eval '
 $storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
-$mismatches = 0;
+$missing = 0;
 foreach (["checklist" => "field_checklist_body", "content" => "field_content_body"] as $bundle => $old_field) {
   $ids = $storage->getQuery()->accessCheck(FALSE)->condition("type", $bundle)->execute();
   foreach ($storage->loadMultiple($ids) as $activity) {
     foreach (array_keys($activity->getTranslationLanguages()) as $langcode) {
       $translation = $activity->getTranslation($langcode);
-      if ($translation->get("body")->getValue() !== $translation->get($old_field)->getValue()) {
-        echo "mismatch activity:", $activity->id(), " language:", $langcode, PHP_EOL;
-        $mismatches++;
+      if (!$translation->get($old_field)->isEmpty() && $translation->get("body")->isEmpty()) {
+        echo "missing body activity:", $activity->id(), " language:", $langcode, PHP_EOL;
+        $missing++;
       }
     }
   }
 }
-echo "mismatches:", $mismatches, PHP_EOL;
+echo "missing:", $missing, PHP_EOL;
 '
 ```
 
@@ -149,9 +155,8 @@ historical revision values. Discussion Prompt still uses its own prompt field;
 its conversion is a separate slice.
 Update `10001` copied only the then-current activity revision. The LMS revision
 history page can still show earlier revisions because the entity and old fields
-remain revisionable; it does not establish that earlier values were copied into
-the new `body` field. Audit old revision values before deleting either legacy
-field if historical text must remain available.
+remain revisionable. Update `10003` fills historical `body` rows from those old
+fields. Audit the result before deleting either legacy field.
 
 For one representative checklist or content activity, inspect the actual values
 on each revision. Replace `ACTIVITY_ID` with its numeric ID:
@@ -174,6 +179,44 @@ foreach ($vids as $vid) {
     " legacy:", ($activity->get($old_field)->isEmpty() ? "empty" : "set"),
     PHP_EOL;
 }
+'
+```
+
+For every checklist and content revision, the `body` value should now be set
+whenever the corresponding legacy value is set. A newer revision may legitimately
+have a different `body` value because update `10003` preserves existing body
+edits rather than replacing them with a stale legacy value.
+
+Audit all historical revisions and translations before removing the old fields.
+This command must print `missing:0`:
+
+```bash
+drush php:eval '
+$storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
+$vids = \Drupal::database()->select("lms_activity_revision", "r")
+  ->fields("r", ["vid"])
+  ->execute()
+  ->fetchCol();
+$missing = 0;
+foreach ($vids as $vid) {
+  $activity = $storage->loadRevision((int) $vid);
+  $old_field = match ($activity->bundle()) {
+    "checklist" => "field_checklist_body",
+    "content" => "field_content_body",
+    default => NULL,
+  };
+  if ($old_field === NULL) {
+    continue;
+  }
+  foreach (array_keys($activity->getTranslationLanguages()) as $langcode) {
+    $translation = $activity->getTranslation($langcode);
+    if (!$translation->get($old_field)->isEmpty() && $translation->get("body")->isEmpty()) {
+      echo "missing body activity:", $activity->id(), " revision:", $vid, " language:", $langcode, PHP_EOL;
+      $missing++;
+    }
+  }
+}
+echo "missing:", $missing, PHP_EOL;
 '
 ```
 

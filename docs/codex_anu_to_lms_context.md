@@ -151,8 +151,9 @@ The user confirmed on dev that a single Views field using
 `lms_activity__body.body` displays both checklist and content activity text.
 The old and new field instance labels were ambiguous in the picker; runtime
 update `10002` changes both new instance labels to `Body`. This does not copy
-historical revision values; older revisions still require an audit before
-deleting the legacy fields.
+historical revision values. Runtime update `10003` copies missing historical
+revision values and formats into the same revision IDs while retaining any
+existing nonempty `body` values. Audit revisions before deleting legacy fields.
 
 Validated from user-provided staging output:
 
