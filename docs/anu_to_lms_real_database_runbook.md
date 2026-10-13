@@ -100,6 +100,48 @@ answer questions are discovered as grouped LMS `free_text` activities.
 Update `10017` clears cached migration definitions so Anu text blocks migrate
 to LMS Content activities using `filtered_html`; this preserves stored `<p>`
 paragraph tags that Anu `minimal_html` strips at render time.
+`lms_runtime` update `10001` creates the shared `lms_activity.body` storage,
+copies checklist and content activity values with their text formats, and
+switches their form/view displays. It retains the old fields for audit and
+historical revisions. `anu_to_lms_migrate` update `10019` refreshes cached
+migration definitions so any future checklist/content import writes `body`.
+The runtime module is already a dependency of the migration module, so its
+field storage is installed before a fresh import. A post-migration site does
+not need to rerun the Anu migrations for this change.
+
+On a staging copy of a post-migration site, back up the database, deploy the
+code, then run `drush updb -y` and `drush cr`. The runtime update stops with an
+activity ID and language code if an existing `body` conflicts with the old
+field or an activity has no body. Resolve that content before retrying the
+update. Do not run `migrate:import --update` for this field conversion.
+
+Audit every current translation after the update. This command must print
+`mismatches:0`; old fields remain installed until this has been checked:
+
+```bash
+drush php:eval '
+$storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
+$mismatches = 0;
+foreach (["checklist" => "field_checklist_body", "content" => "field_content_body"] as $bundle => $old_field) {
+  $ids = $storage->getQuery()->accessCheck(FALSE)->condition("type", $bundle)->execute();
+  foreach ($storage->loadMultiple($ids) as $activity) {
+    foreach (array_keys($activity->getTranslationLanguages()) as $langcode) {
+      $translation = $activity->getTranslation($langcode);
+      if ($translation->get("body")->getValue() !== $translation->get($old_field)->getValue()) {
+        echo "mismatch activity:", $activity->id(), " language:", $langcode, PHP_EOL;
+        $mismatches++;
+      }
+    }
+  }
+}
+echo "mismatches:", $mismatches, PHP_EOL;
+'
+```
+
+Also open checklist and content activity edit/playback pages and verify their
+text and formatting. The old field storage is intentionally retained, including
+historical revision values. Discussion Prompt still uses its own prompt field;
+its conversion is a separate slice.
 
 Verify that there are no pending database updates:
 
@@ -299,8 +341,9 @@ drush php:eval '$gid = 13; $uid = \Drupal::currentUser()->id(); $group = \Drupal
 
 ```bash
 drush config:get lms.lms_activity_type.checklist
-drush config:get field.storage.lms_activity.field_checklist_body
-drush config:get field.field.lms_activity.checklist.field_checklist_body
+drush config:get field.storage.lms_activity.body
+drush config:get field.field.lms_activity.checklist.body
+drush config:get field.field.lms_activity.content.body
 ```
 
 The activity type must use `pluginId: no_answer`. The field must be a
@@ -418,7 +461,7 @@ drush php:eval '
 $storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
 $ids = \Drupal::entityQuery("lms_activity")->accessCheck(FALSE)->condition("type", "checklist")->execute();
 foreach ($storage->loadMultiple($ids) as $activity) {
-  $body = $activity->get("field_checklist_body")->value;
+  $body = $activity->get("body")->value;
   if ($body === NULL || $body === "" || $body === "Array" || is_array($body)) {
     echo $activity->id(), ": ";
     var_export($body);
@@ -475,8 +518,8 @@ $storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
 $ids = \Drupal::entityQuery("lms_activity")->accessCheck(FALSE)->condition("type", "content")->execute();
 $issues = [];
 foreach ($storage->loadMultiple($ids) as $activity) {
-  if ($activity->hasField("field_content_body") && !$activity->get("field_content_body")->isEmpty()) {
-    $format = $activity->get("field_content_body")->format;
+  if ($activity->hasField("body") && !$activity->get("body")->isEmpty()) {
+    $format = $activity->get("body")->format;
     if ($format !== "filtered_html") {
       $issues[] = [$activity->id(), $format];
     }
