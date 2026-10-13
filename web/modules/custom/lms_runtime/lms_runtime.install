@@ -128,3 +128,15 @@ function lms_runtime_update_10001(): void {
     }
   }
 }
+
+/**
+ * Gives the shared activity body field the same label on both bundles.
+ */
+function lms_runtime_update_10002(): void {
+  foreach (['checklist', 'content'] as $bundle) {
+    $field = FieldConfig::loadByName('lms_activity', $bundle, 'body');
+    if ($field !== NULL && $field->label() !== 'Body') {
+      $field->setLabel('Body')->save();
+    }
+  }
+}

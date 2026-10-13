@@ -105,6 +105,11 @@ copies checklist and content activity values with their text formats, and
 switches their form/view displays. It retains the old fields for audit and
 historical revisions. `anu_to_lms_migrate` update `10019` refreshes cached
 migration definitions so any future checklist/content import writes `body`.
+`lms_runtime` update `10002` labels both bundle instances `Body` so Views lists
+the shared field consistently. After `drush updb -y` and `drush cr`, use the
+Views field whose configuration is `table: lms_activity__body` and
+`field: body`; `field_content_body` and `field_checklist_body` are the legacy
+fields. This label update does not change activity values or revisions.
 The runtime module is already a dependency of the migration module, so its
 field storage is installed before a fresh import. A post-migration site does
 not need to rerun the Anu migrations for this change.
@@ -142,6 +147,35 @@ Also open checklist and content activity edit/playback pages and verify their
 text and formatting. The old field storage is intentionally retained, including
 historical revision values. Discussion Prompt still uses its own prompt field;
 its conversion is a separate slice.
+Update `10001` copied only the then-current activity revision. The LMS revision
+history page can still show earlier revisions because the entity and old fields
+remain revisionable; it does not establish that earlier values were copied into
+the new `body` field. Audit old revision values before deleting either legacy
+field if historical text must remain available.
+
+For one representative checklist or content activity, inspect the actual values
+on each revision. Replace `ACTIVITY_ID` with its numeric ID:
+
+```bash
+drush php:eval '
+$id = ACTIVITY_ID;
+$storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
+$vids = \Drupal::database()->select("lms_activity_revision", "r")
+  ->fields("r", ["vid"])
+  ->condition("id", $id)
+  ->orderBy("vid")
+  ->execute()
+  ->fetchCol();
+foreach ($vids as $vid) {
+  $activity = $storage->loadRevision((int) $vid);
+  $old_field = $activity->bundle() === "checklist" ? "field_checklist_body" : "field_content_body";
+  echo "revision:", $vid,
+    " body:", ($activity->get("body")->isEmpty() ? "empty" : "set"),
+    " legacy:", ($activity->get($old_field)->isEmpty() ? "empty" : "set"),
+    PHP_EOL;
+}
+'
+```
 
 Verify that there are no pending database updates:
 

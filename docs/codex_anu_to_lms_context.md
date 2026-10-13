@@ -147,6 +147,13 @@ the temporary admin-View bypass from update `10008`.
 
 ## Validated behavior versus pending behavior
 
+The user confirmed on dev that a single Views field using
+`lms_activity__body.body` displays both checklist and content activity text.
+The old and new field instance labels were ambiguous in the picker; runtime
+update `10002` changes both new instance labels to `Body`. This does not copy
+historical revision values; older revisions still require an audit before
+deleting the legacy fields.
+
 Validated from user-provided staging output:
 
 - checklist and lesson plugin discovery;
