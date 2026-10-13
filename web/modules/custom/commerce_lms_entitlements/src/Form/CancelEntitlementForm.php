@@ -32,7 +32,8 @@ final class CancelEntitlementForm extends ConfirmFormBase {
     if (!$this->entitlement || (int) $this->entitlement['purchaser_uid'] !== (int) $this->currentUser()->id()) {
       throw new AccessDeniedHttpException();
     }
-    if (!in_array($this->entitlement['purchase_type'], ['recurring', 'lifetime'], TRUE)) {
+    if (($this->entitlement['source'] ?? 'commerce_paypal') !== 'commerce_paypal'
+      || !in_array($this->entitlement['purchase_type'], ['recurring', 'lifetime'], TRUE)) {
       throw new AccessDeniedHttpException();
     }
     $form['eid'] = ['#type' => 'value', '#value' => (int) $eid];
@@ -47,7 +48,10 @@ final class CancelEntitlementForm extends ConfirmFormBase {
 
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $entitlement = $this->manager->load((int) $form_state->getValue('eid'));
-    if (!$entitlement || (int) $entitlement['purchaser_uid'] !== (int) $this->currentUser()->id()) { throw new AccessDeniedHttpException(); }
+    if (!$entitlement || ($entitlement['source'] ?? 'commerce_paypal') !== 'commerce_paypal'
+      || (int) $entitlement['purchaser_uid'] !== (int) $this->currentUser()->id()) {
+      throw new AccessDeniedHttpException();
+    }
     $gateway = $this->gateway($entitlement);
     try {
       $guarantee = (bool) $form_state->getValue('guarantee') && $this->manager->isGuaranteeEligible($entitlement);

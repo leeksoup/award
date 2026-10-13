@@ -18,6 +18,9 @@ final class EntitlementController extends ControllerBase {
   }
 
   public function mine(): array {
+    if ((int) $this->currentUser()->id() === 0) {
+      return $this->table([], TRUE);
+    }
     return $this->table($this->database->select('commerce_lms_entitlement', 'e')->fields('e')->condition('purchaser_uid', $this->currentUser()->id())->orderBy('created', 'DESC')->execute()->fetchAll(), TRUE);
   }
 
@@ -28,7 +31,7 @@ final class EntitlementController extends ControllerBase {
   private function table(array $records, bool $allow_cancel): array {
     $rows = [];
     foreach ($records as $record) {
-      $row = [(string) $record->eid, $record->offer_id, $record->purchase_type, $record->status, $record->learner_uid ?: $this->t('Invitation pending'), $record->access_through ? $this->dateFormatter()->format($record->access_through, 'short') : $this->t('—')];
+      $row = [(string) $record->eid, $record->offer_id, $record->source ?? 'commerce_paypal', $record->purchase_type, $record->status, $record->learner_uid ?: $this->t('Invitation pending'), $record->access_through ? $this->dateFormatter()->format($record->access_through, 'short') : $this->t('—')];
       if ($allow_cancel) {
         $operations = [];
         $offer = $this->entityTypeManager()->getStorage('commerce_lms_offer')->load($record->offer_id);
@@ -38,14 +41,14 @@ final class EntitlementController extends ControllerBase {
             ? ['#markup' => $this->t('VIP change pending')]
             : ['#type' => 'link', '#title' => !empty($record->vip_active) ? $this->t('Remove VIP') : $this->t('Add VIP'), '#url' => Url::fromRoute('commerce_lms_entitlements.change_tier', ['eid' => $record->eid])];
         }
-        if (!in_array($record->status, ['expired', 'guarantee_refunded', 'guarantee_refund_pending'], TRUE)) {
+        if (($record->source ?? 'commerce_paypal') === 'commerce_paypal' && !in_array($record->status, ['expired', 'guarantee_refunded', 'guarantee_refund_pending'], TRUE)) {
           $operations['cancel'] = ['#type' => 'link', '#title' => $this->t('Cancel subscription'), '#url' => Url::fromRoute('commerce_lms_entitlements.cancel', ['eid' => $record->eid])];
         }
         $row[] = ['data' => $operations ?: ['#markup' => '—']];
       }
       $rows[] = $row;
     }
-    $header = [$this->t('ID'), $this->t('Offer'), $this->t('Type'), $this->t('Status'), $this->t('Learner'), $this->t('Access through')];
+    $header = [$this->t('ID'), $this->t('Offer'), $this->t('Source'), $this->t('Type'), $this->t('Status'), $this->t('Learner'), $this->t('Access through')];
     if ($allow_cancel) { $header[] = $this->t('Operations'); }
     return [
       'table' => [

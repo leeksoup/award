@@ -396,6 +396,13 @@ function anu_to_lms_migrate_update_10018(): void {
 }
 
 /**
+ * Refreshes activity migrations that now write to the shared body field.
+ */
+function anu_to_lms_migrate_update_10019(): void {
+  \Drupal::service('plugin.manager.migration')->clearCachedDefinitions();
+}
+
+/**
  * Grants course roles the permissions required for the Students tab.
  */
 function _anu_to_lms_migrate_grant_course_student_permissions(): void {

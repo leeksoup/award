@@ -273,3 +273,7 @@ renewal-boundary tier activation, monthly booking quota, cutoff, capacity,
 booking changes, and mail delivery.
 This repository has no bootstrapped Commerce site, so those checks are not yet
 run here.
+
+# ClickBank pilot
+
+See [docs/CLICKBANK.md](docs/CLICKBANK.md) for the disabled-by-default single lifetime-course integration, staging setup, and recovery commands.

@@ -170,3 +170,27 @@ entity.commerce_lms_campaign.delete_form:
     parameters:
       commerce_lms_campaign:
         type: 'entity:commerce_lms_campaign'
+
+commerce_lms_entitlements.clickbank_checkout:
+  path: '/courses/clickbank/checkout'
+  defaults:
+    _form: '\Drupal\commerce_lms_entitlements\Form\ClickBankCheckoutForm'
+    _title: 'Choose course learner'
+  requirements:
+    _access: 'TRUE'
+
+commerce_lms_entitlements.clickbank_notification:
+  path: '/commerce-lms-entitlements/clickbank/ins'
+  defaults:
+    _controller: '\Drupal\commerce_lms_entitlements\Controller\ClickBankController::notification'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]
+
+commerce_lms_entitlements.clickbank_thanks:
+  path: '/courses/clickbank/thanks'
+  defaults:
+    _controller: '\Drupal\commerce_lms_entitlements\Controller\ClickBankController::thanks'
+    _title: 'Thank you for your purchase'
+  requirements:
+    _access: 'TRUE'
