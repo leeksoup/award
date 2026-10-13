@@ -22,7 +22,7 @@ declare(strict_types=1);
  *   CHECKLIST_IMPORT_PATH=/tmp/checklists.json \
  *     drush php:script scripts/import_lms_checklist_activities.php -- --apply
  *
- * The importer changes only the activity name and field_checklist_body. It
+ * The importer changes only the activity name and body. It
  * validates all records before saving any entity. Applying requires a
  * non-anonymous revision author; it does not change the activity owner.
  */
@@ -141,12 +141,12 @@ foreach ($payload['activities'] as $index => $record) {
       (int) $activity->getRevisionId(),
     );
   }
-  if (!$activity->hasField('field_checklist_body')) {
-    $errors[] = sprintf('Activity %d does not have field_checklist_body.', $id);
+  if (!$activity->hasField('body')) {
+    $errors[] = sprintf('Activity %d does not have body.', $id);
     continue;
   }
 
-  $current_body_values = $activity->get('field_checklist_body')->getValue();
+  $current_body_values = $activity->get('body')->getValue();
   $current_body = [
     'value' => (string) ($current_body_values[0]['value'] ?? ''),
     'format' => (string) ($current_body_values[0]['format'] ?? ''),
@@ -211,7 +211,7 @@ foreach ($prepared as $item) {
   /** @var \Drupal\Core\Entity\ContentEntityInterface $activity */
   $activity = $item['activity'];
   $activity->set('name', $item['name']);
-  $activity->set('field_checklist_body', [$item['body']]);
+  $activity->set('body', [$item['body']]);
 
   // Checklist activities are revisionable. Preserve the previous revision
   // and make the import traceable in the entity's revision history.

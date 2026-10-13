@@ -19,7 +19,7 @@ process:
   uid:
     plugin: default_value
     default_value: 1
-  field_content_body:
+  body:
     plugin: skip_on_empty
     method: process
     source: body

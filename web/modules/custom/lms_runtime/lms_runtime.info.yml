@@ -6,5 +6,6 @@ core_version_requirement: ^10 || ^11
 dependencies:
   - drupal:media
   - drupal:media_library
+  - drupal:text
   - group:group
   - lms:lms

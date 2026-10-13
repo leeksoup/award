@@ -19,7 +19,7 @@ process:
   uid: uid
   created: created
   changed: changed
-  field_checklist_body:
+  body:
     plugin: anu_to_lms_checklist_body
     source:
       - items

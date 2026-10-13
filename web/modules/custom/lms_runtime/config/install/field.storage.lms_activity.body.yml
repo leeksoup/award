@@ -4,8 +4,8 @@ dependencies:
   module:
     - lms
     - text
-id: lms_activity.field_checklist_body
-field_name: field_checklist_body
+id: lms_activity.body
+field_name: body
 entity_type: lms_activity
 type: text_long
 settings: { }

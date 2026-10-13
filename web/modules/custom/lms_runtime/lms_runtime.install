@@ -1,0 +1,130 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for LMS Runtime.
+ */
+
+declare(strict_types=1);
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Moves checklist and content text into a shared activity body field.
+ */
+function lms_runtime_update_10001(): void {
+  $storage = FieldStorageConfig::loadByName('lms_activity', 'body');
+  if ($storage === NULL) {
+    $storage = FieldStorageConfig::create([
+      'field_name' => 'body',
+      'entity_type' => 'lms_activity',
+      'type' => 'text_long',
+      'cardinality' => 1,
+      'translatable' => TRUE,
+    ]);
+    $storage->save();
+  }
+  elseif ($storage->getType() !== 'text_long' || $storage->getCardinality() !== 1) {
+    throw new \RuntimeException('The existing lms_activity.body storage is not a single-value text_long field.');
+  }
+
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $activity_storage = $entity_type_manager->getStorage('lms_activity');
+  foreach ([
+    'checklist' => ['field_checklist_body', 'Checklist content'],
+    'content' => ['field_content_body', 'Content'],
+  ] as $bundle => [$old_field, $label]) {
+    if ($entity_type_manager->getStorage('lms_activity_type')->load($bundle) === NULL) {
+      continue;
+    }
+
+    $field = FieldConfig::loadByName('lms_activity', $bundle, 'body');
+    if ($field === NULL) {
+      $field = FieldConfig::create([
+        'field_storage' => $storage,
+        'bundle' => $bundle,
+        'label' => $label,
+        'required' => FALSE,
+        'translatable' => TRUE,
+      ]);
+      $field->save();
+    }
+
+    $ids = $activity_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', $bundle)
+      ->execute();
+
+    // Check for conflicting manual values before changing any activities in
+    // this bundle. Existing body values are never overwritten.
+    $activities = $activity_storage->loadMultiple($ids);
+    foreach ($activities as $activity) {
+      foreach (array_keys($activity->getTranslationLanguages()) as $langcode) {
+        $translation = $activity->getTranslation($langcode);
+        if (!$translation->hasField($old_field) || $translation->get($old_field)->isEmpty()) {
+          continue;
+        }
+        if (!$translation->get('body')->isEmpty()
+          && $translation->get('body')->getValue() !== $translation->get($old_field)->getValue()) {
+          throw new \RuntimeException(sprintf(
+            'Activity %s (%s) has different %s and body values; resolve the conflict before updating.',
+            $activity->id(),
+            $langcode,
+            $old_field,
+          ));
+        }
+      }
+    }
+
+    foreach ($activities as $activity) {
+      $changed = FALSE;
+      foreach (array_keys($activity->getTranslationLanguages()) as $langcode) {
+        $translation = $activity->getTranslation($langcode);
+        if ($translation->hasField($old_field)
+          && !$translation->get($old_field)->isEmpty()
+          && $translation->get('body')->isEmpty()) {
+          $translation->set('body', $translation->get($old_field)->getValue());
+          $changed = TRUE;
+        }
+      }
+      if ($changed) {
+        $activity->save();
+      }
+    }
+
+    $activity_storage->resetCache($ids);
+    foreach ($activity_storage->loadMultiple($ids) as $activity) {
+      foreach (array_keys($activity->getTranslationLanguages()) as $langcode) {
+        if ($activity->getTranslation($langcode)->get('body')->isEmpty()) {
+          throw new \RuntimeException(sprintf(
+            'Activity %s (%s) has no body. Fill it before completing the LMS Runtime update.',
+            $activity->id(),
+            $langcode,
+          ));
+        }
+      }
+    }
+
+    $field->setRequired(TRUE)->save();
+    $legacy_field = FieldConfig::loadByName('lms_activity', $bundle, $old_field);
+    if ($legacy_field !== NULL && $legacy_field->isRequired()) {
+      $legacy_field->setRequired(FALSE)->save();
+    }
+
+    foreach (['entity_form_display', 'entity_view_display'] as $display_type) {
+      $displays = $entity_type_manager->getStorage($display_type)->loadByProperties([
+        'targetEntityType' => 'lms_activity',
+        'bundle' => $bundle,
+      ]);
+      foreach ($displays as $display) {
+        $component = $display->getComponent($old_field);
+        if ($component !== NULL) {
+          $display->setComponent('body', $component);
+          $display->removeComponent($old_field);
+          $display->save();
+        }
+      }
+    }
+  }
+}

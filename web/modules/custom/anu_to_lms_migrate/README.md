@@ -61,9 +61,11 @@ references on `module_assessment` nodes and the ordered
 `field_lesson_section_content` references on lesson sections, so it works with
 revisioned paragraph references and excludes orphaned question wrappers.
 
-Target LMS configuration uses reusable names (`checklist` and
-`field_checklist_body`) so authors can create new LMS-native checklist
-activities after migration. Migration IDs, module names, and source plugins
+Target LMS configuration uses reusable names (`checklist` and the shared
+`lms_activity.body` field) so authors can create new LMS-native checklist
+activities after migration. The body field storage belongs to `lms_runtime`,
+which this module requires, and is available before a fresh migration starts.
+Migration IDs, module names, and source plugins
 retain the `anu_to_lms`/`anu_` prefix because they describe migration
 provenance and are required to preserve existing migration map tables.
 

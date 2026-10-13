@@ -74,8 +74,8 @@ foreach ($lessons as $lesson) {
 $records = [];
 foreach ($activities as $activity) {
   $body = NULL;
-  if ($activity->hasField('field_checklist_body')) {
-    $body_values = $activity->get('field_checklist_body')->getValue();
+  if ($activity->hasField('body')) {
+    $body_values = $activity->get('body')->getValue();
     if ($body_values !== []) {
       $body = [
         'value' => (string) ($body_values[0]['value'] ?? ''),
