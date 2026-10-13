@@ -4,3 +4,8 @@ services:
 
   lms.training_manager:
     class: Drupal\lms_runtime\LmsRuntimeTrainingManager
+
+  lms_runtime.body_field_config_import_subscriber:
+    class: Drupal\lms_runtime\EventSubscriber\BodyFieldConfigImportSubscriber
+    tags:
+      - { name: event_subscriber }

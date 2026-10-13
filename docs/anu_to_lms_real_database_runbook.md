@@ -115,9 +115,28 @@ matching historical `body` revisions, preserving their revision IDs, languages,
 and text formats. It does not replace an existing nonempty `body` value, so
 edits made after update `10001` stay intact. Keep the legacy fields installed
 until the revision audit below passes.
+Update `10004` rejects a UUID mismatch between active and sync configuration
+for the shared body storage and its two field instances. The runtime config
+import subscriber also rejects a plan that both creates and deletes any of
+those three config entities. A delete/create pair for the same field can detach
+its data, even when the revision audit passed before import. On sites where
+update `10001` has not run, it now gives newly created body config entities
+the UUIDs already present in sync configuration.
 The runtime module is already a dependency of the migration module, so its
 field storage is installed before a fresh import. A post-migration site does
 not need to rerun the Anu migrations for this change.
+
+Before importing configuration that removes the legacy fields, review the
+import preview. The three `body` config names must **not** appear in both
+`Create` and `Delete`. If they do, stop. Compare their `uuid` values in active
+and sync configuration and reconcile them on a database copy before importing.
+Do not solve the mismatch by allowing the body storage to be deleted. Run
+`drush updb -y` before `drush cim -y`, and repeat both body audits below on
+the target database before the import. If an import has already replaced the
+body storage, stop cron/field purge, snapshot the affected database, and prefer
+restoring a pre-import database backup. Drupal can retain deleted field data
+temporarily in `field_deleted_data_*` and `field_deleted_revision_*` tables,
+but those tables may be purged by cron and require a separate recovery plan.
 
 On a staging copy of a post-migration site, back up the database, deploy the
 code, then run `drush updb -y` and `drush cr`. The runtime update stops with an

@@ -154,6 +154,12 @@ update `10002` changes both new instance labels to `Body`. This does not copy
 historical revision values. Runtime update `10003` copies missing historical
 revision values and formats into the same revision IDs while retaining any
 existing nonempty `body` values. Audit revisions before deleting legacy fields.
+A config import listed the same three shared `body` config entities in both
+`Create` and `Delete`, and the activity bodies disappeared after import. This
+is consistent with differing config-entity UUIDs. The affected environment
+and backup state are pending confirmation. Runtime update `10004` and an
+import validation subscriber guard future imports. Recovery must restore the affected data
+before any further field purge or config import.
 
 Validated from user-provided staging output:
 

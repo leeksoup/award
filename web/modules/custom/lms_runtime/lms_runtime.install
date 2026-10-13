@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+use Drupal\Component\Uuid\Uuid;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 
@@ -16,13 +17,18 @@ use Drupal\field\Entity\FieldStorageConfig;
 function lms_runtime_update_10001(): void {
   $storage = FieldStorageConfig::loadByName('lms_activity', 'body');
   if ($storage === NULL) {
-    $storage = FieldStorageConfig::create([
+    $values = [
       'field_name' => 'body',
       'entity_type' => 'lms_activity',
       'type' => 'text_long',
       'cardinality' => 1,
       'translatable' => TRUE,
-    ]);
+    ];
+    $uuid = lms_runtime_sync_config_uuid('field.storage.lms_activity.body', 'lms_activity.body');
+    if ($uuid !== NULL) {
+      $values['uuid'] = $uuid;
+    }
+    $storage = FieldStorageConfig::create($values);
     $storage->save();
   }
   elseif ($storage->getType() !== 'text_long' || $storage->getCardinality() !== 1) {
@@ -41,13 +47,18 @@ function lms_runtime_update_10001(): void {
 
     $field = FieldConfig::loadByName('lms_activity', $bundle, 'body');
     if ($field === NULL) {
-      $field = FieldConfig::create([
+      $values = [
         'field_storage' => $storage,
         'bundle' => $bundle,
         'label' => $label,
         'required' => FALSE,
         'translatable' => TRUE,
-      ]);
+      ];
+      $uuid = lms_runtime_sync_config_uuid("field.field.lms_activity.$bundle.body", "lms_activity.$bundle.body");
+      if ($uuid !== NULL) {
+        $values['uuid'] = $uuid;
+      }
+      $field = FieldConfig::create($values);
       $field->save();
     }
 
@@ -248,4 +259,48 @@ function lms_runtime_update_10003(): void {
       }
     }
   }
+}
+
+/**
+ * Rejects mismatched body field UUIDs before a configuration import.
+ */
+function lms_runtime_update_10004(): void {
+  $active = \Drupal::service('config.storage');
+  $sync = \Drupal::service('config.storage.sync');
+  foreach ([
+    'field.storage.lms_activity.body',
+    'field.field.lms_activity.content.body',
+    'field.field.lms_activity.checklist.body',
+  ] as $name) {
+    $current = $active->read($name);
+    $incoming = $sync->read($name);
+    if ($current !== FALSE && $incoming !== FALSE
+      && ($current['uuid'] ?? NULL) !== ($incoming['uuid'] ?? NULL)) {
+      throw new \RuntimeException(sprintf(
+        'UUID mismatch for %s. Do not import configuration until the active and sync UUIDs agree; import would delete and recreate the field.',
+        $name,
+      ));
+    }
+  }
+}
+
+/**
+ * Gets the UUID intended for a new config entity from staged sync config.
+ */
+function lms_runtime_sync_config_uuid(string $name, string $expected_id): ?string {
+  $configuration = \Drupal::service('config.storage.sync')->read($name);
+  if ($configuration === FALSE) {
+    return NULL;
+  }
+  if (($configuration['id'] ?? NULL) !== $expected_id) {
+    throw new \RuntimeException(sprintf('Invalid ID in synchronized config %s.', $name));
+  }
+  $uuid = $configuration['uuid'] ?? NULL;
+  if ($uuid === NULL) {
+    return NULL;
+  }
+  if (!is_string($uuid) || !Uuid::isValid($uuid)) {
+    throw new \RuntimeException(sprintf('Invalid UUID in synchronized config %s.', $name));
+  }
+  return $uuid;
 }
