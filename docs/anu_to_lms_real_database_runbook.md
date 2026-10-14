@@ -143,6 +143,10 @@ the failed database for investigation before replacing it. After the clean
 restore, confirm the colliding deleted-field table names are absent before
 running updates or importing configuration. Do not drop individual tables on
 the live, partially imported database as a substitute for a clean restore.
+The same database can be reused by taking the site offline, verifying the
+target connection and backup, running `drush sql:drop -y` to remove **all**
+tables, and then importing the pre-update backup. `sql:drop` leaves the
+database itself in place.
 
 On a staging copy of a post-migration site, back up the database, deploy the
 code, then run `drush updb -y` and `drush cr`. The runtime update stops with an
