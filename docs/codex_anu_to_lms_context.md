@@ -160,6 +160,14 @@ is consistent with differing config-entity UUIDs. The affected environment
 and backup state are pending confirmation. Runtime update `10004` and an
 import validation subscriber guard future imports. Recovery must restore the affected data
 before any further field purge or config import.
+Production was restored from a backup preceding `lms_runtime` updates `10001`
+through `10003`. The next config import failed deleting both legacy field
+storages because `field_deleted_data_ca6c48c1a5` and
+`field_deleted_data_7f401bc233` already existed. Drupal's field schema
+deletion renames live field tables to these deleted-field names. A restore over
+an existing database can leave tables not present in the backup; confirm the
+restore method before retrying. Prefer a clean restore into an empty database
+and verify the colliding tables are absent.
 
 Validated from user-provided staging output:
 

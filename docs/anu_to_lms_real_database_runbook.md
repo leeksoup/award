@@ -134,9 +134,15 @@ Do not solve the mismatch by allowing the body storage to be deleted. Run
 `drush updb -y` before `drush cim -y`, and repeat both body audits below on
 the target database before the import. If an import has already replaced the
 body storage, stop cron/field purge, snapshot the affected database, and prefer
-restoring a pre-import database backup. Drupal can retain deleted field data
-temporarily in `field_deleted_data_*` and `field_deleted_revision_*` tables,
-but those tables may be purged by cron and require a separate recovery plan.
+restoring a pre-import database backup into an **empty database**. Importing a
+backup over an existing database can leave `field_deleted_data_*` and
+`field_deleted_revision_*` tables from the failed import. A later import may
+then fail when Drupal tries to rename a legacy field table to one of those
+existing names. Drupal can purge deleted field tables during cron, so preserve
+the failed database for investigation before replacing it. After the clean
+restore, confirm the colliding deleted-field table names are absent before
+running updates or importing configuration. Do not drop individual tables on
+the live, partially imported database as a substitute for a clean restore.
 
 On a staging copy of a post-migration site, back up the database, deploy the
 code, then run `drush updb -y` and `drush cr`. The runtime update stops with an
