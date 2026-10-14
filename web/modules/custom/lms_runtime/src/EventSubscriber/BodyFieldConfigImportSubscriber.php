@@ -21,21 +21,19 @@ final class BodyFieldConfigImportSubscriber implements EventSubscriberInterface 
   }
 
   /**
-   * Rejects UUID-driven deletion and recreation of body field configuration.
+   * Rejects deletion of shared body field configuration.
    */
   public function validateBodyFields(ConfigImporterEvent $event): void {
-    $recreated = array_intersect(
-      $event->getChangelist('create'),
-      $event->getChangelist('delete'),
-    );
+    $deleted = $event->getChangelist('delete');
     foreach ([
       'field.storage.lms_activity.body',
       'field.field.lms_activity.content.body',
       'field.field.lms_activity.checklist.body',
+      'field.field.lms_activity.discussion_prompt.body',
     ] as $name) {
-      if (in_array($name, $recreated, TRUE)) {
+      if (in_array($name, $deleted, TRUE)) {
         $event->getConfigImporter()->logError(sprintf(
-          'Configuration import would delete and recreate %s. Match its sync UUID to the active UUID before importing, or restore the field data from a backup.',
+          'Configuration import would delete %s and detach its data. Keep the field in sync configuration with the active UUID before importing.',
           $name,
         ));
       }

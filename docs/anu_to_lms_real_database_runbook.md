@@ -117,8 +117,8 @@ edits made after update `10001` stay intact. Keep the legacy fields installed
 until the revision audit below passes.
 Update `10004` rejects a UUID mismatch between active and sync configuration
 for the shared body storage and its two field instances. The runtime config
-import subscriber also rejects a plan that both creates and deletes any of
-those three config entities. A delete/create pair for the same field can detach
+import subscriber rejects a plan that deletes shared body storage or any of
+its field instances. A delete/create pair for the same field can detach
 its data, even when the revision audit passed before import. On sites where
 update `10001` has not run, it now gives newly created body config entities
 the UUIDs already present in sync configuration.
@@ -127,8 +127,8 @@ field storage is installed before a fresh import. A post-migration site does
 not need to rerun the Anu migrations for this change.
 
 Before importing configuration that removes the legacy fields, review the
-import preview. The three `body` config names must **not** appear in both
-`Create` and `Delete`. If they do, stop. Compare their `uuid` values in active
+import preview. The shared `body` config names must **not** appear under
+`Delete`. If they do, stop. Compare their `uuid` values in active
 and sync configuration and reconcile them on a database copy before importing.
 Do not solve the mismatch by allowing the body storage to be deleted. Run
 `drush updb -y` before `drush cim -y`, and repeat both body audits below on
@@ -415,6 +415,46 @@ discussion node exists but is missing the required `group_node:discussion`
 relationship to the containing course. Without that relationship, both
 `/group/{group}/nodes` and `/group/{group}/course-discussions` can load but
 show no rows.
+
+Update `10005` adds the Discussion Prompt `Body` instance on the existing
+shared `lms_activity.body` storage. It copies every current and historical
+`field_discussion_prompt_body` value and text format into the matching entity
+and revision rows. It stops on a conflicting nonempty body, reporting the
+activity and revision. It then changes the form and view displays and makes
+the legacy prompt field optional. The legacy field remains available for an
+audit; do not delete it before the audit passes. The module now depends on
+`lms_runtime`, which owns the shared field storage.
+
+On a staging copy, back up the database, deploy the code, then run:
+
+```bash
+drush updb -y
+drush cr
+drush config:get field.field.lms_activity.discussion_prompt.body
+drush sql:query "SELECT COUNT(*) AS missing_or_changed FROM lms_activity__field_discussion_prompt_body src LEFT JOIN lms_activity__body dest ON dest.entity_id = src.entity_id AND dest.revision_id = src.revision_id AND dest.langcode = src.langcode AND dest.delta = src.delta AND dest.deleted = 0 WHERE src.bundle = 'discussion_prompt' AND src.deleted = 0 AND (dest.entity_id IS NULL OR NOT (dest.body_value <=> src.field_discussion_prompt_body_value AND dest.body_format <=> src.field_discussion_prompt_body_format))"
+drush sql:query "SELECT COUNT(*) AS missing_or_changed FROM lms_activity_revision__field_discussion_prompt_body src LEFT JOIN lms_activity_revision__body dest ON dest.entity_id = src.entity_id AND dest.revision_id = src.revision_id AND dest.langcode = src.langcode AND dest.delta = src.delta AND dest.deleted = 0 WHERE src.bundle = 'discussion_prompt' AND src.deleted = 0 AND (dest.entity_id IS NULL OR NOT (dest.body_value <=> src.field_discussion_prompt_body_value AND dest.body_format <=> src.field_discussion_prompt_body_format))"
+```
+
+Both audit counts must be `0`. Review a current Discussion Prompt and an old
+revision in the UI, and confirm a newly created prompt and its linked
+discussion render the same formatted text. The linked discussion node's own
+`body` field is separate; this update does not rewrite existing nodes.
+
+Before `drush cim -y`, preview the import and compare the active and sync
+UUIDs for `field.storage.lms_activity.body` and all three `body` instances:
+
+```bash
+drush config:status
+drush php:eval '$a = \Drupal::service("config.storage"); $s = \Drupal::service("config.storage.sync"); foreach (["field.storage.lms_activity.body", "field.field.lms_activity.checklist.body", "field.field.lms_activity.content.body", "field.field.lms_activity.discussion_prompt.body"] as $name) { $active = $a->read($name); $sync = $s->read($name); echo $name, " active=", $active["uuid"] ?? "(absent)", " sync=", $sync["uuid"] ?? "(absent)", PHP_EOL; }'
+```
+
+Each shared body field must be present in both active and sync configuration
+with the same UUID. The import must not list any shared body field under
+`Delete`; the runtime import guard rejects that plan. Export configuration
+from the updated staging site before deploying it to production. After the
+audits and config import, the legacy prompt field can be
+removed through the UI and configuration exported. Re-run the audits before
+that removal, as deleting its field storage also removes its old revisions.
 
 The optional `lms_course_discussions` module adds the Discussions tab and the
 group-scoped **Start a discussion** action. Its update `10001` repairs access

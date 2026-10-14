@@ -261,6 +261,14 @@ fields store the prompt body and the desired discussion title; the internal
 node reference is hidden from the activity form. When the activity is saved or
 opened in course context, the module reuses a same-titled discussion already
 attached to that course, or creates one and links it back to the activity.
+The new Discussion Prompt body instance shares `lms_activity.body` storage
+with Checklist and Content. Pending staging validation, update `10005` copies
+current and historical `field_discussion_prompt_body` rows into matching
+`body` rows, preserving IDs, translations, text formats, and revisions. The
+legacy field remains until the runbook audits pass. A config import must keep
+the UUID of the shared storage and each body instance; the runtime import
+guard now covers the Discussion Prompt instance too. Existing linked
+discussion node bodies are not changed by the field conversion.
 
 Student activity pages show a `Go to discussion` link. The link records an LMS
 answer with full score, advances lesson/course status, and redirects to the

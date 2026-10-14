@@ -185,11 +185,12 @@ final class DiscussionPromptManager {
     }
 
     $body = [];
-    if (
-      $activity->hasField('field_discussion_prompt_body')
-      && !$activity->get('field_discussion_prompt_body')->isEmpty()
-    ) {
-      $body = $activity->get('field_discussion_prompt_body')->first()->getValue();
+    // Code can be deployed before update 10005 creates the body instance.
+    foreach (['body', 'field_discussion_prompt_body'] as $field_name) {
+      if ($activity->hasField($field_name) && !$activity->get($field_name)->isEmpty()) {
+        $body = $activity->get($field_name)->first()->getValue();
+        break;
+      }
     }
 
     $title = $this->discussionTitle($activity);

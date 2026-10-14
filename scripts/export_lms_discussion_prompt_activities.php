@@ -124,7 +124,7 @@ $records = [];
 $discussion_usage = [];
 $discussion_details = [];
 foreach ($activities as $activity) {
-  if (!$activity->hasField('field_discussion_prompt_body')
+  if (!$activity->hasField('body')
     || !$activity->hasField('field_discussion_title')
     || !$activity->hasField('field_discussion_node')) {
     throw new \RuntimeException(sprintf(
@@ -133,7 +133,7 @@ foreach ($activities as $activity) {
     ));
   }
 
-  $body_values = $activity->get('field_discussion_prompt_body')->getValue();
+  $body_values = $activity->get('body')->getValue();
   $body = [
     'value' => (string) ($body_values[0]['value'] ?? ''),
     'format' => (string) ($body_values[0]['format'] ?? ''),
