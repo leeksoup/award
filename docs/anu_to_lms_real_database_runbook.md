@@ -442,13 +442,18 @@ drush updb -y
 drush cr
 drush config:get field.field.lms_activity.discussion_prompt.body
 drush sql:query "SELECT COUNT(*) AS missing_or_changed FROM lms_activity__field_discussion_prompt_body src LEFT JOIN lms_activity__body dest ON dest.entity_id = src.entity_id AND dest.revision_id = src.revision_id AND dest.langcode = src.langcode AND dest.delta = src.delta AND dest.deleted = 0 WHERE src.bundle = 'discussion_prompt' AND src.deleted = 0 AND (dest.entity_id IS NULL OR NOT (dest.body_value <=> src.field_discussion_prompt_body_value AND dest.body_format <=> src.field_discussion_prompt_body_format))"
-drush sql:query "SELECT COUNT(*) AS missing_or_changed FROM lms_activity_revision__field_discussion_prompt_body src LEFT JOIN lms_activity_revision__body dest ON dest.entity_id = src.entity_id AND dest.revision_id = src.revision_id AND dest.langcode = src.langcode AND dest.delta = src.delta AND dest.deleted = 0 WHERE src.bundle = 'discussion_prompt' AND src.deleted = 0 AND (dest.entity_id IS NULL OR NOT (dest.body_value <=> src.field_discussion_prompt_body_value AND dest.body_format <=> src.field_discussion_prompt_body_format))"
+legacy_revision_table=$(drush php:eval '$s = \Drupal\field\Entity\FieldStorageConfig::loadByName("lms_activity", "field_discussion_prompt_body"); echo \Drupal::entityTypeManager()->getStorage("lms_activity")->getTableMapping()->getDedicatedRevisionTableName($s);')
+body_revision_table=$(drush php:eval '$s = \Drupal\field\Entity\FieldStorageConfig::loadByName("lms_activity", "body"); echo \Drupal::entityTypeManager()->getStorage("lms_activity")->getTableMapping()->getDedicatedRevisionTableName($s);')
+drush sql:query "SELECT COUNT(*) AS missing_or_changed FROM ${legacy_revision_table} src LEFT JOIN ${body_revision_table} dest ON dest.entity_id = src.entity_id AND dest.revision_id = src.revision_id AND dest.langcode = src.langcode AND dest.delta = src.delta AND dest.deleted = 0 WHERE src.bundle = 'discussion_prompt' AND src.deleted = 0 AND (dest.entity_id IS NULL OR NOT (dest.body_value <=> src.field_discussion_prompt_body_value AND dest.body_format <=> src.field_discussion_prompt_body_format))"
 ```
 
 Both audit counts must be `0`. Review a current Discussion Prompt and an old
 revision in the UI, and confirm a newly created prompt and its linked
 discussion render the same formatted text. The linked discussion node's own
 `body` field is separate; this update does not rewrite existing nodes.
+Drupal hashes the long legacy revision-table name, so use the table mapping
+above instead of assuming the name is
+`lms_activity_revision__field_discussion_prompt_body`.
 
 Before `drush cim -y`, preview the import and compare the active and sync
 UUIDs for `field.storage.lms_activity.body` and all three `body` instances:
