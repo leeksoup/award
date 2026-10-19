@@ -1,0 +1,8 @@
+name: 'LMS Content Sync'
+type: module
+description: 'Exports and imports LMS references with their referenced content and per-reference data.'
+package: Custom
+core_version_requirement: ^10 || ^11
+dependencies:
+  - lms:lms
+  - single_content_sync:single_content_sync
