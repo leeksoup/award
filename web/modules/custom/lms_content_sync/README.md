@@ -13,6 +13,9 @@ this module: earlier exports contain only numeric `target_id` values and are
 intentionally rejected by this processor. Inspect a new lesson export for
 `base_fields.activities` entries containing `entity`, `uuid`, `entity_type`,
 `base_fields`, and `custom_fields`, alongside each item's `data`.
+The lesson and its nested activities must each have a scalar
+`base_fields.langcode` such as `en`. Re-export after installing this update;
+older exports with a list under `langcode` cannot be imported safely.
 
 Import a newly exported lesson on a staging copy first. Single Content Sync
 updates an existing referenced entity when its UUID matches and otherwise
