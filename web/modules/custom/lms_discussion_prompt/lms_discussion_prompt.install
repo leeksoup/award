@@ -7,6 +7,10 @@
 
 declare(strict_types=1);
 
+use Drupal\Component\Uuid\Uuid;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
 /**
  * Implements hook_install().
  */
@@ -122,6 +126,188 @@ function lms_discussion_prompt_update_10004(): void {
   \Drupal::service('cache_tags.invalidator')->invalidateTags([
     'group_relationship_list',
   ]);
+}
+
+/**
+ * Moves discussion prompts into the shared body field, including revisions.
+ */
+function lms_discussion_prompt_update_10005(): void {
+  $bundle = 'discussion_prompt';
+  $legacy_name = 'field_discussion_prompt_body';
+  $body_storage = FieldStorageConfig::loadByName('lms_activity', 'body');
+  $legacy_storage = FieldStorageConfig::loadByName('lms_activity', $legacy_name);
+  foreach (['body' => $body_storage, $legacy_name => $legacy_storage] as $name => $storage) {
+    if ($storage === NULL || $storage->getType() !== 'text_long'
+      || $storage->getCardinality() !== 1 || !$storage->isTranslatable()) {
+      throw new \RuntimeException(sprintf('%s must be a translatable, single-value text_long activity field.', $name));
+    }
+  }
+
+  $legacy_field = FieldConfig::loadByName('lms_activity', $bundle, $legacy_name);
+  if ($legacy_field === NULL) {
+    throw new \RuntimeException('The legacy discussion prompt field is missing; restore it before converting its values.');
+  }
+
+  $body_field = FieldConfig::loadByName('lms_activity', $bundle, 'body');
+  if ($body_field === NULL) {
+    $values = [
+      'field_storage' => $body_storage,
+      'bundle' => $bundle,
+      'label' => 'Body',
+      'required' => FALSE,
+      'translatable' => TRUE,
+    ];
+    $sync = \Drupal::service('config.storage.sync')->read('field.field.lms_activity.discussion_prompt.body');
+    if ($sync !== FALSE) {
+      if (($sync['id'] ?? NULL) !== 'lms_activity.discussion_prompt.body'
+        || !is_string($sync['uuid'] ?? NULL)
+        || !Uuid::isValid($sync['uuid'])) {
+        throw new \RuntimeException('Invalid synchronized discussion prompt body field ID or UUID.');
+      }
+      $values['uuid'] = $sync['uuid'];
+    }
+    $body_field = FieldConfig::create($values);
+    $body_field->save();
+  }
+
+  $active = \Drupal::service('config.storage')->read('field.field.lms_activity.discussion_prompt.body');
+  $sync = \Drupal::service('config.storage.sync')->read('field.field.lms_activity.discussion_prompt.body');
+  if ($active !== FALSE && $sync !== FALSE
+    && ($active['uuid'] ?? NULL) !== ($sync['uuid'] ?? NULL)) {
+    throw new \RuntimeException('Discussion prompt body UUID differs from sync configuration; reconcile it before importing configuration.');
+  }
+
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $activity_storage = $entity_type_manager->getStorage('lms_activity');
+  $mapping = $activity_storage->getTableMapping();
+  foreach ([FALSE, TRUE] as $write) {
+    foreach (['data', 'revision'] as $kind) {
+      $legacy_table = $kind === 'data'
+        ? $mapping->getDedicatedDataTableName($legacy_storage)
+        : $mapping->getDedicatedRevisionTableName($legacy_storage);
+      $body_table = $kind === 'data'
+        ? $mapping->getDedicatedDataTableName($body_storage)
+        : $mapping->getDedicatedRevisionTableName($body_storage);
+      _lms_discussion_prompt_copy_body_table(
+        $legacy_table,
+        $body_table,
+        $legacy_storage,
+        $body_storage,
+        $write,
+      );
+    }
+  }
+
+  $ids = $activity_storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', $bundle)
+    ->execute();
+  $activity_storage->resetCache($ids);
+  foreach ($activity_storage->loadMultiple($ids) as $activity) {
+    foreach (array_keys($activity->getTranslationLanguages()) as $langcode) {
+      if ($activity->getTranslation($langcode)->get('body')->isEmpty()) {
+        throw new \RuntimeException(sprintf('Discussion prompt activity %s (%s) has no body.', $activity->id(), $langcode));
+      }
+    }
+  }
+
+  $body_field->setLabel('Body')->setRequired(TRUE)->save();
+  if ($legacy_field->isRequired()) {
+    $legacy_field->setRequired(FALSE)->save();
+  }
+
+  foreach (['entity_form_display', 'entity_view_display'] as $display_type) {
+    $displays = $entity_type_manager->getStorage($display_type)->loadByProperties([
+      'targetEntityType' => 'lms_activity',
+      'bundle' => $bundle,
+    ]);
+    foreach ($displays as $display) {
+      $component = $display->getComponent($legacy_name);
+      if ($component !== NULL) {
+        $display->setComponent('body', $component);
+        $display->removeComponent($legacy_name);
+        $display->save();
+      }
+    }
+  }
+}
+
+/**
+ * Copies formatted text rows without changing activity revision IDs.
+ */
+function _lms_discussion_prompt_copy_body_table(
+  string $legacy_table,
+  string $body_table,
+  FieldStorageConfig $legacy_storage,
+  FieldStorageConfig $body_storage,
+  bool $write,
+): void {
+  $database = \Drupal::database();
+  foreach ([$legacy_table, $body_table] as $table) {
+    if (!$database->schema()->tableExists($table)) {
+      throw new \RuntimeException(sprintf('Missing discussion prompt field table %s.', $table));
+    }
+  }
+  $mapping = \Drupal::entityTypeManager()->getStorage('lms_activity')->getTableMapping();
+  $legacy_value = $mapping->getFieldColumnName($legacy_storage, 'value');
+  $legacy_format = $mapping->getFieldColumnName($legacy_storage, 'format');
+  $body_value = $mapping->getFieldColumnName($body_storage, 'value');
+  $body_format = $mapping->getFieldColumnName($body_storage, 'format');
+  $keys = ['bundle', 'deleted', 'entity_id', 'revision_id', 'langcode', 'delta'];
+
+  $query = $database->select($legacy_table, 'legacy')
+    ->fields('legacy', [...$keys, $legacy_value, $legacy_format])
+    ->condition('bundle', 'discussion_prompt')
+    ->condition('deleted', 0);
+  foreach ($query->execute() as $legacy) {
+    if ((int) $legacy->delta !== 0) {
+      throw new \RuntimeException(sprintf(
+        'Activity %s revision %s has an unexpected prompt delta %s.',
+        $legacy->entity_id,
+        $legacy->revision_id,
+        $legacy->delta,
+      ));
+    }
+    $key = [];
+    foreach ($keys as $column) {
+      $key[$column] = $legacy->{$column};
+    }
+    $existing = $database->select($body_table, 'body')
+      ->fields('body', [$body_value, $body_format]);
+    foreach ($key as $column => $value) {
+      $existing->condition($column, $value);
+    }
+    $row = $existing->execute()->fetchAssoc();
+    $value = $legacy->{$legacy_value};
+    $format = $legacy->{$legacy_format};
+    if ($row !== FALSE && $row[$body_value] !== NULL && $row[$body_value] !== '') {
+      if ($row[$body_value] !== $value || $row[$body_format] !== $format) {
+        throw new \RuntimeException(sprintf(
+          'Activity %s revision %s (%s) has conflicting prompt and body values.',
+          $legacy->entity_id,
+          $legacy->revision_id,
+          $legacy->langcode,
+        ));
+      }
+      continue;
+    }
+    if (!$write) {
+      continue;
+    }
+    if ($row === FALSE) {
+      $database->insert($body_table)
+        ->fields($key + [$body_value => $value, $body_format => $format])
+        ->execute();
+    }
+    else {
+      $update = $database->update($body_table)
+        ->fields([$body_value => $value, $body_format => $format]);
+      foreach ($key as $column => $key_value) {
+        $update->condition($column, $key_value);
+      }
+      $update->execute();
+    }
+  }
 }
 
 /**

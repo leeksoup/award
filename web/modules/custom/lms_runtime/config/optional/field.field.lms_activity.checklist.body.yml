@@ -10,7 +10,7 @@ id: lms_activity.checklist.body
 field_name: body
 entity_type: lms_activity
 bundle: checklist
-label: 'Checklist content'
+label: Body
 description: ''
 required: true
 translatable: true

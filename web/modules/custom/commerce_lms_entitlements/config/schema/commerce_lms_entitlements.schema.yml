@@ -68,3 +68,23 @@ commerce_lms_entitlements.vip:
         type: integer
     meeting_url: { type: string, label: 'Protected meeting URL' }
     change_cutoff_hours: { type: integer, label: 'Booking change cutoff in hours' }
+
+commerce_lms_entitlements.clickbank:
+  type: config_object
+  label: 'ClickBank lifetime-course pilot'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Enabled'
+    allow_test_transactions:
+      type: boolean
+      label: 'Fulfill ClickBank test transactions'
+    vendor:
+      type: string
+      label: 'ClickBank vendor nickname'
+    sku:
+      type: string
+      label: 'ClickBank product SKU'
+    offer_id:
+      type: string
+      label: 'Lifetime LMS offer ID'

@@ -36,6 +36,9 @@ function commerce_lms_entitlements_entity_update(\Drupal\Core\Entity\EntityInter
 function commerce_lms_entitlements_cron(): void {
   \Drupal::queue('commerce_lms_entitlements_reconcile')->createItem([]);
   \Drupal::queue('commerce_lms_entitlements_live_plan_audit')->createItem([]);
+  if (\Drupal::service('commerce_lms_entitlements.clickbank')->isConfigured()) {
+    \Drupal::queue('commerce_lms_clickbank_reconcile')->createItem([]);
+  }
 }
 
 /**

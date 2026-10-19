@@ -147,6 +147,28 @@ the temporary admin-View bypass from update `10008`.
 
 ## Validated behavior versus pending behavior
 
+The user confirmed on dev that a single Views field using
+`lms_activity__body.body` displays both checklist and content activity text.
+The old and new field instance labels were ambiguous in the picker; runtime
+update `10002` changes both new instance labels to `Body`. This does not copy
+historical revision values. Runtime update `10003` copies missing historical
+revision values and formats into the same revision IDs while retaining any
+existing nonempty `body` values. Audit revisions before deleting legacy fields.
+A config import listed the same three shared `body` config entities in both
+`Create` and `Delete`, and the activity bodies disappeared after import. This
+is consistent with differing config-entity UUIDs. The affected environment
+and backup state are pending confirmation. Runtime update `10004` and an
+import validation subscriber guard future imports. Recovery must restore the affected data
+before any further field purge or config import.
+Production was restored from a backup preceding `lms_runtime` updates `10001`
+through `10003`. The next config import failed deleting both legacy field
+storages because `field_deleted_data_ca6c48c1a5` and
+`field_deleted_data_7f401bc233` already existed. Drupal's field schema
+deletion renames live field tables to these deleted-field names. A restore over
+an existing database can leave tables not present in the backup; confirm the
+restore method before retrying. Prefer a clean restore into an empty database
+and verify the colliding tables are absent.
+
 Validated from user-provided staging output:
 
 - checklist and lesson plugin discovery;
@@ -247,6 +269,14 @@ fields store the prompt body and the desired discussion title; the internal
 node reference is hidden from the activity form. When the activity is saved or
 opened in course context, the module reuses a same-titled discussion already
 attached to that course, or creates one and links it back to the activity.
+The new Discussion Prompt body instance shares `lms_activity.body` storage
+with Checklist and Content. Pending staging validation, update `10005` copies
+current and historical `field_discussion_prompt_body` rows into matching
+`body` rows, preserving IDs, translations, text formats, and revisions. The
+legacy field remains until the runbook audits pass. A config import must keep
+the UUID of the shared storage and each body instance; the runtime import
+guard now covers the Discussion Prompt instance too. Existing linked
+discussion node bodies are not changed by the field conversion.
 
 Student activity pages show a `Go to discussion` link. The link records an LMS
 answer with full score, advances lesson/course status, and redirects to the

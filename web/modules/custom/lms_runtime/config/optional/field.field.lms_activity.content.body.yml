@@ -10,7 +10,7 @@ id: lms_activity.content.body
 field_name: body
 entity_type: lms_activity
 bundle: content
-label: Content
+label: Body
 description: ''
 required: true
 translatable: true

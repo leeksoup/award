@@ -42,11 +42,13 @@ function commerce_lms_entitlements_schema(): array {
     'fields' => [
       'eid' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
       'offer_id' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'source' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'commerce_paypal'],
+      'learner_email' => ['type' => 'varchar', 'length' => 254, 'not null' => FALSE],
       'purchase_type' => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE],
       'purchaser_uid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
       'learner_uid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
       'invitation_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
-      'order_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'order_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
       'payment_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
       'paypal_subscription_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
       'paypal_plan_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
@@ -113,6 +115,50 @@ function commerce_lms_entitlements_schema(): array {
     ],
     'primary key' => ['id'],
     'unique keys' => ['token_hash' => ['token_hash']],
+  ];
+  $schema['commerce_lms_clickbank_intent'] = [
+    'description' => 'Server-side learner selection for a ClickBank checkout.',
+    'fields' => [
+      'token_hash' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'offer_id' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'learner_email' => ['type' => 'varchar', 'length' => 254, 'not null' => TRUE],
+      'created' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'expires' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+    ],
+    'primary key' => ['token_hash'],
+    'indexes' => ['expires' => ['expires']],
+  ];
+  $schema['commerce_lms_clickbank_purchase'] = [
+    'description' => 'One ClickBank receipt and its fulfillment state.',
+    'fields' => [
+      'receipt' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'sku' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'vendor' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'buyer_email' => ['type' => 'varchar', 'length' => 254, 'not null' => FALSE],
+      'affiliate' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'intent_hash' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'eid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE],
+      'status' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'pending'],
+      'reason' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+      'created' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'changed' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+    ],
+    'primary key' => ['receipt'],
+    'indexes' => ['status_changed' => ['status', 'changed'], 'eid' => ['eid']],
+  ];
+  $schema['commerce_lms_clickbank_event'] = [
+    'description' => 'Deduplicated ClickBank notifications awaiting verification.',
+    'fields' => [
+      'event_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+      'receipt' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE],
+      'event_type' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE],
+      'payload' => ['type' => 'blob', 'size' => 'big', 'not null' => TRUE],
+      'status' => ['type' => 'varchar', 'length' => 24, 'not null' => TRUE, 'default' => 'queued'],
+      'created' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'changed' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+    ],
+    'primary key' => ['event_id'],
+    'indexes' => ['receipt' => ['receipt'], 'status' => ['status']],
   ];
   $schema['commerce_lms_plan_change'] = [
     'description' => 'Auditable PayPal subscription tier revisions.',
@@ -386,4 +432,41 @@ function commerce_lms_entitlements_update_10019(): string {
   $update_manager->installEntityType($entity_type);
 
   return (string) t('Registered the subscription campaign config entity type.');
+}
+
+/**
+ * Adds independent ClickBank receipt, checkout intent, and event storage.
+ */
+function commerce_lms_entitlements_update_10020(): string {
+  $schema = \Drupal::database()->schema();
+  $definition = commerce_lms_entitlements_schema();
+  foreach (['source', 'learner_email'] as $field) {
+    if (!$schema->fieldExists('commerce_lms_entitlement', $field)) {
+      $schema->addField('commerce_lms_entitlement', $field, $definition['commerce_lms_entitlement']['fields'][$field]);
+    }
+  }
+  // SQLite, MySQL, and PostgreSQL all allow multiple NULLs in a unique key.
+  // Rebuilding the key with changeField preserves existing Commerce order IDs.
+  if (!\Drupal::state()->get('commerce_lms_entitlements.clickbank_order_nullable', FALSE)) {
+    if ($schema->indexExists('commerce_lms_entitlement', 'order')) {
+      $schema->dropUniqueKey('commerce_lms_entitlement', 'order');
+    }
+    $schema->changeField('commerce_lms_entitlement', 'order_id', 'order_id', $definition['commerce_lms_entitlement']['fields']['order_id'], [
+      'unique keys' => ['order' => ['order_id']],
+    ]);
+    \Drupal::state()->set('commerce_lms_entitlements.clickbank_order_nullable', TRUE);
+  }
+  foreach (['commerce_lms_clickbank_intent', 'commerce_lms_clickbank_purchase', 'commerce_lms_clickbank_event'] as $table) {
+    if (!$schema->tableExists($table)) {
+      $schema->createTable($table, $definition[$table]);
+    }
+  }
+  $config = \Drupal::configFactory()->getEditable('commerce_lms_entitlements.clickbank');
+  if ($config->get('enabled') === NULL) {
+    $config->setData(['enabled' => FALSE, 'allow_test_transactions' => FALSE, 'vendor' => '', 'sku' => '', 'offer_id' => ''])->save(TRUE);
+  }
+  elseif ($config->get('allow_test_transactions') === NULL) {
+    $config->set('allow_test_transactions', FALSE)->save(TRUE);
+  }
+  return (string) t('Added disabled ClickBank lifetime-course integration storage.');
 }

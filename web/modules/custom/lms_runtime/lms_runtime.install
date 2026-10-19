@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+use Drupal\Component\Uuid\Uuid;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 
@@ -16,13 +17,18 @@ use Drupal\field\Entity\FieldStorageConfig;
 function lms_runtime_update_10001(): void {
   $storage = FieldStorageConfig::loadByName('lms_activity', 'body');
   if ($storage === NULL) {
-    $storage = FieldStorageConfig::create([
+    $values = [
       'field_name' => 'body',
       'entity_type' => 'lms_activity',
       'type' => 'text_long',
       'cardinality' => 1,
       'translatable' => TRUE,
-    ]);
+    ];
+    $uuid = lms_runtime_sync_config_uuid('field.storage.lms_activity.body', 'lms_activity.body');
+    if ($uuid !== NULL) {
+      $values['uuid'] = $uuid;
+    }
+    $storage = FieldStorageConfig::create($values);
     $storage->save();
   }
   elseif ($storage->getType() !== 'text_long' || $storage->getCardinality() !== 1) {
@@ -41,13 +47,18 @@ function lms_runtime_update_10001(): void {
 
     $field = FieldConfig::loadByName('lms_activity', $bundle, 'body');
     if ($field === NULL) {
-      $field = FieldConfig::create([
+      $values = [
         'field_storage' => $storage,
         'bundle' => $bundle,
         'label' => $label,
         'required' => FALSE,
         'translatable' => TRUE,
-      ]);
+      ];
+      $uuid = lms_runtime_sync_config_uuid("field.field.lms_activity.$bundle.body", "lms_activity.$bundle.body");
+      if ($uuid !== NULL) {
+        $values['uuid'] = $uuid;
+      }
+      $field = FieldConfig::create($values);
       $field->save();
     }
 
@@ -127,4 +138,169 @@ function lms_runtime_update_10001(): void {
       }
     }
   }
+}
+
+/**
+ * Gives the shared activity body field the same label on both bundles.
+ */
+function lms_runtime_update_10002(): void {
+  foreach (['checklist', 'content'] as $bundle) {
+    $field = FieldConfig::loadByName('lms_activity', $bundle, 'body');
+    if ($field !== NULL && $field->label() !== 'Body') {
+      $field->setLabel('Body')->save();
+    }
+  }
+}
+
+/**
+ * Copies legacy body values into their matching activity revisions.
+ */
+function lms_runtime_update_10003(): void {
+  $body_storage = FieldStorageConfig::loadByName('lms_activity', 'body');
+  if ($body_storage === NULL
+    || $body_storage->getType() !== 'text_long'
+    || $body_storage->getCardinality() !== 1) {
+    throw new \RuntimeException('The shared lms_activity.body storage must be a single-value text_long field.');
+  }
+
+  $database = \Drupal::database();
+  $table_mapping = \Drupal::entityTypeManager()
+    ->getStorage('lms_activity')
+    ->getTableMapping();
+  $body_table = $table_mapping->getDedicatedRevisionTableName($body_storage);
+  if (!$database->schema()->tableExists($body_table)) {
+    throw new \RuntimeException(sprintf('Missing activity body revision table %s.', $body_table));
+  }
+  $body_value_column = $table_mapping->getFieldColumnName($body_storage, 'value');
+  $body_format_column = $table_mapping->getFieldColumnName($body_storage, 'format');
+
+  $legacy_fields = [
+    'checklist' => 'field_checklist_body',
+    'content' => 'field_content_body',
+  ];
+  foreach ($legacy_fields as $bundle => $legacy_name) {
+    if (\Drupal::entityTypeManager()->getStorage('lms_activity_type')->load($bundle) === NULL) {
+      continue;
+    }
+    if (FieldConfig::loadByName('lms_activity', $bundle, 'body') === NULL) {
+      throw new \RuntimeException(sprintf('Missing shared body field on %s activities.', $bundle));
+    }
+
+    $legacy_storage = FieldStorageConfig::loadByName('lms_activity', $legacy_name);
+    if ($legacy_storage === NULL
+      || $legacy_storage->getType() !== 'text_long'
+      || $legacy_storage->getCardinality() !== 1) {
+      throw new \RuntimeException(sprintf('The legacy %s storage must be a single-value text_long field.', $legacy_name));
+    }
+    $legacy_table = $table_mapping->getDedicatedRevisionTableName($legacy_storage);
+    if (!$database->schema()->tableExists($legacy_table)) {
+      throw new \RuntimeException(sprintf('Missing legacy activity revision table %s.', $legacy_table));
+    }
+    $legacy_value_column = $table_mapping->getFieldColumnName($legacy_storage, 'value');
+    $legacy_format_column = $table_mapping->getFieldColumnName($legacy_storage, 'format');
+
+    $query = $database->select($legacy_table, 'legacy')
+      ->fields('legacy', [
+        'bundle', 'deleted', 'entity_id', 'revision_id', 'langcode', 'delta',
+        $legacy_value_column, $legacy_format_column,
+      ])
+      ->condition('bundle', $bundle)
+      ->condition('deleted', 0);
+    foreach ($query->execute() as $legacy) {
+      if ((int) $legacy->delta !== 0) {
+        throw new \RuntimeException(sprintf(
+          'Activity %s revision %s has an unexpected %s delta %s.',
+          $legacy->entity_id,
+          $legacy->revision_id,
+          $legacy_name,
+          $legacy->delta,
+        ));
+      }
+      $key = [
+        'entity_id' => $legacy->entity_id,
+        'revision_id' => $legacy->revision_id,
+        'langcode' => $legacy->langcode,
+        'delta' => $legacy->delta,
+        'deleted' => 0,
+      ];
+      $existing = $database->select($body_table, 'body')
+        ->fields('body', [$body_value_column])
+        ->condition('entity_id', $key['entity_id'])
+        ->condition('revision_id', $key['revision_id'])
+        ->condition('langcode', $key['langcode'])
+        ->condition('delta', $key['delta'])
+        ->condition('deleted', 0)
+        ->execute()
+        ->fetchField();
+      $value = $legacy->{$legacy_value_column};
+      $format = $legacy->{$legacy_format_column};
+
+      if ($existing === FALSE) {
+        $database->insert($body_table)
+          ->fields($key + [
+            'bundle' => $bundle,
+            $body_value_column => $value,
+            $body_format_column => $format,
+          ])
+          ->execute();
+      }
+      elseif (($existing === NULL || $existing === '') && $value !== NULL && $value !== '') {
+        $database->update($body_table)
+          ->fields([
+            $body_value_column => $value,
+            $body_format_column => $format,
+          ])
+          ->condition('entity_id', $key['entity_id'])
+          ->condition('revision_id', $key['revision_id'])
+          ->condition('langcode', $key['langcode'])
+          ->condition('delta', $key['delta'])
+          ->condition('deleted', 0)
+          ->execute();
+      }
+    }
+  }
+}
+
+/**
+ * Rejects mismatched body field UUIDs before a configuration import.
+ */
+function lms_runtime_update_10004(): void {
+  $active = \Drupal::service('config.storage');
+  $sync = \Drupal::service('config.storage.sync');
+  foreach ([
+    'field.storage.lms_activity.body',
+    'field.field.lms_activity.content.body',
+    'field.field.lms_activity.checklist.body',
+  ] as $name) {
+    $current = $active->read($name);
+    $incoming = $sync->read($name);
+    if ($current !== FALSE && $incoming !== FALSE
+      && ($current['uuid'] ?? NULL) !== ($incoming['uuid'] ?? NULL)) {
+      throw new \RuntimeException(sprintf(
+        'UUID mismatch for %s. Do not import configuration until the active and sync UUIDs agree; import would delete and recreate the field.',
+        $name,
+      ));
+    }
+  }
+}
+
+/**
+ * Gets the UUID intended for a new config entity from staged sync config.
+ */
+function lms_runtime_sync_config_uuid(string $name, string $expected_id): ?string {
+  $configuration = \Drupal::service('config.storage.sync')->read($name);
+  if ($configuration === FALSE) {
+    return NULL;
+  }
+  if (($configuration['id'] ?? NULL) !== $expected_id) {
+    throw new \RuntimeException(sprintf('Invalid ID in synchronized config %s.', $name));
+  }
+  $uuid = $configuration['uuid'] ?? NULL;
+  if ($uuid === NULL) {
+    return NULL;
+  }
+  if (!is_string($uuid) || !Uuid::isValid($uuid)) {
+    throw new \RuntimeException(sprintf('Invalid UUID in synchronized config %s.', $name));
+  }
+  return $uuid;
 }

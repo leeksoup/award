@@ -2,14 +2,15 @@ langcode: en
 status: true
 dependencies:
   config:
-    - field.storage.lms_activity.field_discussion_prompt_body
+    - field.storage.lms_activity.body
     - lms.lms_activity_type.discussion_prompt
-  module: [text]
-id: lms_activity.discussion_prompt.field_discussion_prompt_body
-field_name: field_discussion_prompt_body
+  module:
+    - text
+id: lms_activity.discussion_prompt.body
+field_name: body
 entity_type: lms_activity
 bundle: discussion_prompt
-label: Prompt
+label: Body
 description: ''
 required: true
 translatable: true

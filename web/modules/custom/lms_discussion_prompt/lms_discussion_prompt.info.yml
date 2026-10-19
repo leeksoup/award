@@ -8,4 +8,5 @@ dependencies:
   - drupal:node
   - group:gnode
   - lms:lms
+  - lms_runtime:lms_runtime
 

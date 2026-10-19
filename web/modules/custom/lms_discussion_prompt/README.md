@@ -6,6 +6,9 @@ sends learners to a linked `discussion` node attached to the LMS Course group.
 ## Behavior
 
 - Discussion Prompt activities use the LMS `no_answer` plugin.
+- Their prompt text uses the shared `lms_activity.body` field, also used by
+  Checklist and Content activities. Update `10005` copies current and
+  historical prompt values into matching body rows on existing sites.
 - The module installs a reusable `discussion` node type with comments enabled.
 - The module installs a Group node relationship type so `lms_course` groups can
   contain `discussion` nodes.

@@ -194,7 +194,7 @@ foreach ($payload['activities'] as $index => $record) {
   }
   $expected_fields = [
     'field_discussion_title',
-    'field_discussion_prompt_body',
+    'body',
     'field_discussion_node',
   ];
   foreach ($expected_fields as $field_name) {
@@ -203,7 +203,7 @@ foreach ($payload['activities'] as $index => $record) {
     }
   }
   if (!$activity->hasField('field_discussion_title')
-    || !$activity->hasField('field_discussion_prompt_body')
+    || !$activity->hasField('body')
     || !$activity->hasField('field_discussion_node')) {
     continue;
   }
@@ -227,7 +227,7 @@ foreach ($payload['activities'] as $index => $record) {
     );
   }
 
-  $current_body_values = $activity->get('field_discussion_prompt_body')->getValue();
+  $current_body_values = $activity->get('body')->getValue();
   $current_body = [
     'value' => (string) ($current_body_values[0]['value'] ?? ''),
     'format' => (string) ($current_body_values[0]['format'] ?? ''),
@@ -431,7 +431,7 @@ foreach ($prepared_activities as $item) {
   $activity = $item['entity'];
   $activity->set('name', $item['name']);
   $activity->set('field_discussion_title', $item['discussion_title']);
-  $activity->set('field_discussion_prompt_body', [$item['prompt_body']]);
+  $activity->set('body', [$item['prompt_body']]);
   $activity->setNewRevision(TRUE);
   $activity->setRevisionUserId((int) $revision_uid);
   $activity->setRevisionLogMessage(sprintf(

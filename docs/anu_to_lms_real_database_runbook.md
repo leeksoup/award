@@ -105,9 +105,49 @@ copies checklist and content activity values with their text formats, and
 switches their form/view displays. It retains the old fields for audit and
 historical revisions. `anu_to_lms_migrate` update `10019` refreshes cached
 migration definitions so any future checklist/content import writes `body`.
+`lms_runtime` update `10002` labels both bundle instances `Body` so Views lists
+the shared field consistently. After `drush updb -y` and `drush cr`, use the
+Views field whose configuration is `table: lms_activity__body` and
+`field: body`; `field_content_body` and `field_checklist_body` are the legacy
+fields. This label update does not change activity values or revisions.
+`lms_runtime` update `10003` copies legacy checklist and content values into
+matching historical `body` revisions, preserving their revision IDs, languages,
+and text formats. It does not replace an existing nonempty `body` value, so
+edits made after update `10001` stay intact. Keep the legacy fields installed
+until the revision audit below passes.
+Update `10004` rejects a UUID mismatch between active and sync configuration
+for the shared body storage and its two field instances. The runtime config
+import subscriber rejects a plan that deletes shared body storage or any of
+its field instances. A delete/create pair for the same field can detach
+its data, even when the revision audit passed before import. On sites where
+update `10001` has not run, it now gives newly created body config entities
+the UUIDs already present in sync configuration.
+
 The runtime module is already a dependency of the migration module, so its
 field storage is installed before a fresh import. A post-migration site does
 not need to rerun the Anu migrations for this change.
+
+Before importing configuration that removes the legacy fields, review the
+import preview. The shared `body` config names must **not** appear under
+`Delete`. If they do, stop. Compare their `uuid` values in active
+and sync configuration and reconcile them on a database copy before importing.
+Do not solve the mismatch by allowing the body storage to be deleted. Run
+`drush updb -y` before `drush cim -y`, and repeat both body audits below on
+the target database before the import. If an import has already replaced the
+body storage, stop cron/field purge, snapshot the affected database, and prefer
+restoring a pre-import database backup into an **empty database**. Importing a
+backup over an existing database can leave `field_deleted_data_*` and
+`field_deleted_revision_*` tables from the failed import. A later import may
+then fail when Drupal tries to rename a legacy field table to one of those
+existing names. Drupal can purge deleted field tables during cron, so preserve
+the failed database for investigation before replacing it. After the clean
+restore, confirm the colliding deleted-field table names are absent before
+running updates or importing configuration. Do not drop individual tables on
+the live, partially imported database as a substitute for a clean restore.
+The same database can be reused by taking the site offline, verifying the
+target connection and backup, running `drush sql:drop -y` to remove **all**
+tables, and then importing the pre-update backup. `sql:drop` leaves the
+database itself in place.
 
 On a staging copy of a post-migration site, back up the database, deploy the
 code, then run `drush updb -y` and `drush cr`. The runtime update stops with an
@@ -116,25 +156,26 @@ field or an activity has no body. Resolve that content before retrying the
 update. Do not run `migrate:import --update` for this field conversion.
 
 Audit every current translation after the update. This command must print
-`mismatches:0`; old fields remain installed until this has been checked:
+`missing:0`; old fields remain installed until this has been checked. An edited
+`body` value may legitimately differ from the retained legacy value:
 
 ```bash
 drush php:eval '
 $storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
-$mismatches = 0;
+$missing = 0;
 foreach (["checklist" => "field_checklist_body", "content" => "field_content_body"] as $bundle => $old_field) {
   $ids = $storage->getQuery()->accessCheck(FALSE)->condition("type", $bundle)->execute();
   foreach ($storage->loadMultiple($ids) as $activity) {
     foreach (array_keys($activity->getTranslationLanguages()) as $langcode) {
       $translation = $activity->getTranslation($langcode);
-      if ($translation->get("body")->getValue() !== $translation->get($old_field)->getValue()) {
-        echo "mismatch activity:", $activity->id(), " language:", $langcode, PHP_EOL;
-        $mismatches++;
+      if (!$translation->get($old_field)->isEmpty() && $translation->get("body")->isEmpty()) {
+        echo "missing body activity:", $activity->id(), " language:", $langcode, PHP_EOL;
+        $missing++;
       }
     }
   }
 }
-echo "mismatches:", $mismatches, PHP_EOL;
+echo "missing:", $missing, PHP_EOL;
 '
 ```
 
@@ -142,6 +183,72 @@ Also open checklist and content activity edit/playback pages and verify their
 text and formatting. The old field storage is intentionally retained, including
 historical revision values. Discussion Prompt still uses its own prompt field;
 its conversion is a separate slice.
+Update `10001` copied only the then-current activity revision. The LMS revision
+history page can still show earlier revisions because the entity and old fields
+remain revisionable. Update `10003` fills historical `body` rows from those old
+fields. Audit the result before deleting either legacy field.
+
+For one representative checklist or content activity, inspect the actual values
+on each revision. Replace `ACTIVITY_ID` with its numeric ID:
+
+```bash
+drush php:eval '
+$id = ACTIVITY_ID;
+$storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
+$vids = \Drupal::database()->select("lms_activity_revision", "r")
+  ->fields("r", ["vid"])
+  ->condition("id", $id)
+  ->orderBy("vid")
+  ->execute()
+  ->fetchCol();
+foreach ($vids as $vid) {
+  $activity = $storage->loadRevision((int) $vid);
+  $old_field = $activity->bundle() === "checklist" ? "field_checklist_body" : "field_content_body";
+  echo "revision:", $vid,
+    " body:", ($activity->get("body")->isEmpty() ? "empty" : "set"),
+    " legacy:", ($activity->get($old_field)->isEmpty() ? "empty" : "set"),
+    PHP_EOL;
+}
+'
+```
+
+For every checklist and content revision, the `body` value should now be set
+whenever the corresponding legacy value is set. A newer revision may legitimately
+have a different `body` value because update `10003` preserves existing body
+edits rather than replacing them with a stale legacy value.
+
+Audit all historical revisions and translations before removing the old fields.
+This command must print `missing:0`:
+
+```bash
+drush php:eval '
+$storage = \Drupal::entityTypeManager()->getStorage("lms_activity");
+$vids = \Drupal::database()->select("lms_activity_revision", "r")
+  ->fields("r", ["vid"])
+  ->execute()
+  ->fetchCol();
+$missing = 0;
+foreach ($vids as $vid) {
+  $activity = $storage->loadRevision((int) $vid);
+  $old_field = match ($activity->bundle()) {
+    "checklist" => "field_checklist_body",
+    "content" => "field_content_body",
+    default => NULL,
+  };
+  if ($old_field === NULL) {
+    continue;
+  }
+  foreach (array_keys($activity->getTranslationLanguages()) as $langcode) {
+    $translation = $activity->getTranslation($langcode);
+    if (!$translation->get($old_field)->isEmpty() && $translation->get("body")->isEmpty()) {
+      echo "missing body activity:", $activity->id(), " revision:", $vid, " language:", $langcode, PHP_EOL;
+      $missing++;
+    }
+  }
+}
+echo "missing:", $missing, PHP_EOL;
+'
+```
 
 Verify that there are no pending database updates:
 
@@ -319,6 +426,51 @@ discussion node exists but is missing the required `group_node:discussion`
 relationship to the containing course. Without that relationship, both
 `/group/{group}/nodes` and `/group/{group}/course-discussions` can load but
 show no rows.
+
+Update `10005` adds the Discussion Prompt `Body` instance on the existing
+shared `lms_activity.body` storage. It copies every current and historical
+`field_discussion_prompt_body` value and text format into the matching entity
+and revision rows. It stops on a conflicting nonempty body, reporting the
+activity and revision. It then changes the form and view displays and makes
+the legacy prompt field optional. The legacy field remains available for an
+audit; do not delete it before the audit passes. The module now depends on
+`lms_runtime`, which owns the shared field storage.
+
+On a staging copy, back up the database, deploy the code, then run:
+
+```bash
+drush updb -y
+drush cr
+drush config:get field.field.lms_activity.discussion_prompt.body
+drush sql:query "SELECT COUNT(*) AS missing_or_changed FROM lms_activity__field_discussion_prompt_body src LEFT JOIN lms_activity__body dest ON dest.entity_id = src.entity_id AND dest.revision_id = src.revision_id AND dest.langcode = src.langcode AND dest.delta = src.delta AND dest.deleted = 0 WHERE src.bundle = 'discussion_prompt' AND src.deleted = 0 AND (dest.entity_id IS NULL OR NOT (dest.body_value <=> src.field_discussion_prompt_body_value AND dest.body_format <=> src.field_discussion_prompt_body_format))"
+legacy_revision_table=$(drush php:eval '$s = \Drupal\field\Entity\FieldStorageConfig::loadByName("lms_activity", "field_discussion_prompt_body"); echo \Drupal::entityTypeManager()->getStorage("lms_activity")->getTableMapping()->getDedicatedRevisionTableName($s);')
+body_revision_table=$(drush php:eval '$s = \Drupal\field\Entity\FieldStorageConfig::loadByName("lms_activity", "body"); echo \Drupal::entityTypeManager()->getStorage("lms_activity")->getTableMapping()->getDedicatedRevisionTableName($s);')
+drush sql:query "SELECT COUNT(*) AS missing_or_changed FROM ${legacy_revision_table} src LEFT JOIN ${body_revision_table} dest ON dest.entity_id = src.entity_id AND dest.revision_id = src.revision_id AND dest.langcode = src.langcode AND dest.delta = src.delta AND dest.deleted = 0 WHERE src.bundle = 'discussion_prompt' AND src.deleted = 0 AND (dest.entity_id IS NULL OR NOT (dest.body_value <=> src.field_discussion_prompt_body_value AND dest.body_format <=> src.field_discussion_prompt_body_format))"
+```
+
+Both audit counts must be `0`. Review a current Discussion Prompt and an old
+revision in the UI, and confirm a newly created prompt and its linked
+discussion render the same formatted text. The linked discussion node's own
+`body` field is separate; this update does not rewrite existing nodes.
+Drupal hashes the long legacy revision-table name, so use the table mapping
+above instead of assuming the name is
+`lms_activity_revision__field_discussion_prompt_body`.
+
+Before `drush cim -y`, preview the import and compare the active and sync
+UUIDs for `field.storage.lms_activity.body` and all three `body` instances:
+
+```bash
+drush config:status
+drush php:eval '$a = \Drupal::service("config.storage"); $s = \Drupal::service("config.storage.sync"); foreach (["field.storage.lms_activity.body", "field.field.lms_activity.checklist.body", "field.field.lms_activity.content.body", "field.field.lms_activity.discussion_prompt.body"] as $name) { $active = $a->read($name); $sync = $s->read($name); echo $name, " active=", $active["uuid"] ?? "(absent)", " sync=", $sync["uuid"] ?? "(absent)", PHP_EOL; }'
+```
+
+Each shared body field must be present in both active and sync configuration
+with the same UUID. The import must not list any shared body field under
+`Delete`; the runtime import guard rejects that plan. Export configuration
+from the updated staging site before deploying it to production. After the
+audits and config import, the legacy prompt field can be
+removed through the UI and configuration exported. Re-run the audits before
+that removal, as deleting its field storage also removes its old revisions.
 
 The optional `lms_course_discussions` module adds the Discussions tab and the
 group-scoped **Start a discussion** action. Its update `10001` repairs access
