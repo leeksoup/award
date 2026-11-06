@@ -26,6 +26,7 @@
         "drupal/captcha": "^2.0",
         "drupal/ckeditor5_plugin_pack": "^1.",
         "drupal/commerce": "^3",
+        "drupal/commerce_add_to_cart_confirmation": "^2.0",
         "drupal/commerce_paypal": "^2.1",
         "drupal/commerce_paypal_subscriptions": "^1.0",
         "drupal/commerce_stock": "^3.0",
@@ -60,16 +61,18 @@
         "drupal/webform": "^6",
         "drush/drush": "^13.",
         "getbrevo/brevo-php": "^1.0",
+        "twig/twig": "3.29.0",
         "wikimedia/composer-merge-plugin": "^2.1"
     },
     "replace": {
     },
+    "conflict": {
+        "twig/twig": ">=3.30"
+    },
     "require-dev": {
-        "drupal/core-dev": "10.6.17",
+        "drupal/core-dev": "^10.6",
         "drupal/devel": "^5.",
         "drupal/devel_php": "^1."
-    },
-    "conflict": {
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
@@ -151,9 +154,6 @@
             "drupal/webform": "-p1"
         },
         "patches": {
-            "drupal/lms": {
-                "Pass a string default to formatted Free Text answers": "patches/lms-1.2.3-free-text-default-value.patch"
-            },
             "drupal/commerce_paypal_subscriptions": {
                 "Fix SDK factory arguments for Commerce PayPal 1.12": "patches/commerce_paypal_subscriptions-1.0.0-commerce-paypal-1.12-sdk-factory.patch",
                 "Use deferred PayPal checkout form with Commerce 3": "patches/commerce_paypal_subscriptions-1.0.0-commerce-3-checkout-form.patch"
