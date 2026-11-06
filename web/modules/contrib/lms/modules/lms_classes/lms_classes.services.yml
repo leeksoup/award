@@ -9,4 +9,5 @@ services:
 
   Drupal\lms_classes\Hook\LmsClassesMembershipHooks: ~
   Drupal\lms_classes\Hook\LmsClassesViewsHooks: ~
+  Drupal\lms_classes\Routing\LmsClassesRouteSubscriber: ~
   Drupal\lms_classes\Service\ClassNameGenerator: ~

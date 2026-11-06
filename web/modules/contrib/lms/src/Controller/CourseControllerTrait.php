@@ -7,7 +7,7 @@ namespace Drupal\lms\Controller;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\Core\Utility\Error;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Entity\LessonStatusInterface;
 use Drupal\lms\Exception\TrainingException;
 
@@ -19,7 +19,7 @@ trait CourseControllerTrait {
   /**
    * Error handler.
    */
-  private function handleError(Course $group, \Exception $e): Url {
+  private function handleError(CourseInterface $group, \Exception $e): Url {
     // Training exception - reset current lesson and activity and redirect
     // to the lesson.
     if ($e instanceof TrainingException) {

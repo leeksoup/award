@@ -20,7 +20,7 @@ include:
 ################
 variables:
   _SHOW_ENVIRONMENT_VARIABLES: "1"
-  _CSPELL_WORDS: 'autocompleteclose'
+  _CSPELL_WORDS: 'autocompleteclose, duolingo, kint, metacognitive, moodle, opigno, scorm, webform, webforms, xapi'
   _CSPELL_IGNORE_PATHS: '"logo-svg.txt"'
   SKIP_ESLINT: '1'
   _TARGET_PHP: "$CORE_PHP_MIN"
@@ -28,3 +28,14 @@ variables:
   OPT_IN_TEST_NEXT_MAJOR: '0'
   OPT_IN_TEST_PREVIOUS_MAJOR: '1'
   OPT_IN_TEST_MAX_PHP: '1'
+  _AUTORUN_NEXT_MINOR: 'push-and-schedule'
+
+# gitlab_templates commit d724def (#3447087) switched _PHPUNIT_CONCURRENT to '1'
+# by default, routing tests through core/scripts/run-tests.sh. On Drupal 10.x
+# that runner's TestDiscovery only recognizes the legacy @group docblock, not
+# the PHPUnit #[Group] attribute (fallback only exists on core 11.x, #3497431),
+# so it throws MissingGroupException for attribute-only test classes. Revert
+# just the previous-major leg to the plain phpunit binary until that's fixed.
+phpunit (previous major):
+  variables:
+    _PHPUNIT_CONCURRENT: '0'

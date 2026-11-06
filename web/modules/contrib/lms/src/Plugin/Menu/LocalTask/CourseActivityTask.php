@@ -8,7 +8,7 @@ use Drupal\Core\Menu\LocalTaskDefault;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
 use Drupal\lms\Entity\ActivityInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Entity\LessonInterface;
 
 /**
@@ -28,7 +28,7 @@ final class CourseActivityTask extends LocalTaskDefault {
       $activity_delta = 0;
     }
 
-    if ($group instanceof Course) {
+    if ($group instanceof CourseInterface) {
       $lesson = $group->getLesson((int) $lesson_delta);
       if ($lesson instanceof LessonInterface) {
         $activity_items = $lesson->get(LessonInterface::ACTIVITIES);

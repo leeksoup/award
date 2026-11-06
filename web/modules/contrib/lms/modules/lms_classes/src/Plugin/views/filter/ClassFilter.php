@@ -6,7 +6,7 @@ namespace Drupal\lms_classes\Plugin\views\filter;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms_classes\ClassHelper;
 use Drupal\views\Attribute\ViewsFilter;
 use Drupal\views\Plugin\views\filter\FilterPluginBase;
@@ -24,7 +24,7 @@ final class ClassFilter extends FilterPluginBase {
   /**
    * Static cache.
    */
-  private ?Course $course = NULL;
+  protected ?CourseInterface $course = NULL;
 
   /**
    * The constructor.
@@ -33,7 +33,7 @@ final class ClassFilter extends FilterPluginBase {
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
+    protected EntityTypeManagerInterface $entityTypeManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -46,7 +46,7 @@ final class ClassFilter extends FilterPluginBase {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity_type.manager')
+      $container->get(EntityTypeManagerInterface::class)
     );
   }
 
@@ -134,7 +134,7 @@ final class ClassFilter extends FilterPluginBase {
    *
    * @todo Go one step further and get classes here.
    */
-  private function getCourseFromArgs(): ?Course {
+  private function getCourseFromArgs(): ?CourseInterface {
     if ($this->course !== NULL) {
       return $this->course;
     }
@@ -147,7 +147,7 @@ final class ClassFilter extends FilterPluginBase {
     }
 
     $course = $this->entityTypeManager->getStorage('group')->load($this->view->args[0]);
-    if (!$course instanceof Course) {
+    if (!$course instanceof CourseInterface) {
       return NULL;
     }
     $this->course = $course;

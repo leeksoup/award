@@ -16,8 +16,7 @@ use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\lms\Entity\AnswerInterface;
 use Drupal\lms_answer_comments\Form\AnswerCommentForm;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\DependencyInjection\Attribute\AutowireCallable;
+use Symfony\Component\DependencyInjection\Attribute\AutowireServiceClosure;
 
 /**
  * Contains answer comment hooks.
@@ -30,10 +29,9 @@ final class AnswerCommentsHooks {
   public const FIELD_NAME = 'comments';
 
   public function __construct(
-    #[Autowire(service: AccountInterface::class, lazy: TRUE)]
     protected readonly AccountInterface $currentUser,
-    #[AutowireCallable(service: FormBuilderInterface::class, method: 'buildForm', lazy: TRUE)]
-    protected \Closure $buildForm,
+    #[AutowireServiceClosure(FormBuilderInterface::class)]
+    protected \Closure $formBuilder,
   ) {}
 
   #[Hook('entity_base_field_info')]
@@ -69,7 +67,7 @@ final class AnswerCommentsHooks {
     $form_state = (new FormState())->setFormState([
       'use_ajax' => $build['#use_ajax'],
     ]);
-    $build['comment_form'] = ($this->buildForm)($form_object, $form_state);
+    $build['comment_form'] = ($this->formBuilder)()->buildForm($form_object, $form_state);
   }
 
   #[Hook('form_lms_answer_evaluate_form_alter')]

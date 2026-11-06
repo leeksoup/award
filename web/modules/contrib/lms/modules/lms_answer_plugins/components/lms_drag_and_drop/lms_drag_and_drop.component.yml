@@ -21,10 +21,11 @@ slots:
   hidden_answer_field:
     title: 'Hidden Answer Field'
     description: 'A slot for the hidden form field that stores the answer.'
-dependencies:
-  - core/drupal
-  - core/drupalSettings
-  - core/once
+libraryOverrides:
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
 assets:
   css:
     component:

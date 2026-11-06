@@ -98,9 +98,10 @@ final class LmsEntitySelection extends FieldPluginBase {
     }
 
     $button_name = 'add_references_' . $query['type'];
+    $label_plural = $query['type'] === 'lms_lesson' ? $this->t('lessons') : $this->t('activities');
     $form['actions'][$button_name] = [
       '#type' => 'button',
-      '#value' => $this->t('Add references'),
+      '#value' => $this->t('Add selected @label', ['@label' => $label_plural]),
       // Class for styling and automated tests.
       '#attributes' => ['class' => ['lms-add-references']],
       '#ajax' => [

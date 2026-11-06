@@ -44,6 +44,16 @@ final class CourseStatusViewsData extends EntityViewsData {
       ],
     ];
 
+    // Course progress field.
+    $data['lms_course_status']['progress'] = [
+      'title' => $this->t('Course progress'),
+      'help' => $this->t('Display the student progress in the course as finished lessons out of the total.'),
+      'field' => [
+        'id' => 'lms_course_progress',
+        'real field' => 'id',
+      ],
+    ];
+
     // Course relationship.
     $data['lms_course_status']['course__target_id']['relationship'] = [
       'base' => 'groups_field_data',
@@ -51,10 +61,6 @@ final class CourseStatusViewsData extends EntityViewsData {
       'id' => 'standard',
       'label' => $this->t('Course'),
     ];
-
-    // @todo Remove in the next minor when the obsolete field is removed.
-    $data['lms_course_status']['gid']['deprecated'] = TRUE;
-    $data['lms_course_status']['gid']['help'] = $this->t("Deprecated: Don't use this field, It's not used by Drupal LMS and subject to removal.");
 
     return $data;
   }

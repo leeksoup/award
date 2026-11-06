@@ -13,8 +13,9 @@ use Drupal\Core\Hook\Attribute\LegacyHook;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\group\Entity\GroupRelationshipInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms_classes\Hook\LmsClassesMembershipHooks;
+use Drupal\lms_classes\Hook\LmsClassesViewsHooks;
 
 /**
  * Implements hook_form_BASE_FORM_ID_alter().
@@ -36,7 +37,7 @@ function lms_classes_form_group_relationship_confirm_form_alter(array &$form, Fo
  * Implements hook_lms_course_link().
  */
 #[LegacyHook]
-function lms_classes_lms_course_link(Course $course, AccountInterface $current_user, CacheableMetadata $cacheability): array {
+function lms_classes_lms_course_link(CourseInterface $course, AccountInterface $current_user, CacheableMetadata $cacheability): array {
   return \Drupal::service(LmsClassesMembershipHooks::class)->lmsCourseLink($course, $current_user, $cacheability);
 }
 
@@ -62,4 +63,12 @@ function lms_classes_group_relationship_presave(GroupRelationshipInterface $grou
 #[LegacyHook]
 function lms_classes_group_relationship_delete(GroupRelationshipInterface $group_relationship): void {
   \Drupal::service(LmsClassesMembershipHooks::class)->invalidateRelationshipTags($group_relationship);
+}
+
+/**
+ * Implements hook_views_data_alter().
+ */
+#[LegacyHook]
+function lms_classes_views_data_alter(array &$data): void {
+  \Drupal::service(LmsClassesViewsHooks::class)->viewsDataAlter($data);
 }

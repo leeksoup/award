@@ -10,7 +10,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Exception\TrainingException;
 use Drupal\lms\Plugin\Field\FieldType\LMSReferenceItem;
 
@@ -37,7 +37,7 @@ class LessonStatus extends ContentEntityBase implements LessonStatusInterface {
   /**
    * Cache the current lesson delta.
    */
-  private ?int $currentLessonDelta = NULL;
+  protected ?int $currentLessonDelta = NULL;
 
   use EntityChangedTrait;
 
@@ -258,8 +258,11 @@ class LessonStatus extends ContentEntityBase implements LessonStatusInterface {
     if ($this->currentLessonDelta !== NULL) {
       return $this->currentLessonDelta;
     }
+    if ($this->get(self::LESSON_FIELD)->isEmpty()) {
+      return 0;
+    }
     $current_lesson_id = $this->get(self::LESSON_FIELD)->first()->get('target_id')->getValue();
-    foreach ($this->getCourseStatus()->getCourse()->get(Course::LESSONS) as $delta => $item) {
+    foreach ($this->getCourseStatus()->getCourse()->get(CourseInterface::LESSONS) as $delta => $item) {
       if ($current_lesson_id === $item->get('target_id')->getValue()) {
         $this->currentLessonDelta = $delta;
         break;
@@ -278,7 +281,7 @@ class LessonStatus extends ContentEntityBase implements LessonStatusInterface {
     $item = $this
       ->getCourseStatus()
       ->getCourse()
-      ->get(Course::LESSONS)
+      ->get(CourseInterface::LESSONS)
       ->get($this->getCurrentLessonDelta());
     \assert($item instanceof LMSReferenceItem);
     return $item;
@@ -314,12 +317,12 @@ class LessonStatus extends ContentEntityBase implements LessonStatusInterface {
   /**
    * {@inheritdoc}
    */
-  public function getNextLessonDelta(?Course $course = NULL): ?int {
+  public function getNextLessonDelta(?CourseInterface $course = NULL): ?int {
     if ($course === NULL) {
       $course = $this->getCourseStatus()->getCourse();
     }
     $next = $this->getCurrentLessonDelta() + 1;
-    if ($course->get(Course::LESSONS)->offsetExists($next)) {
+    if ($course->get(CourseInterface::LESSONS)->offsetExists($next)) {
       return $next;
     }
     return NULL;
@@ -447,13 +450,6 @@ class LessonStatus extends ContentEntityBase implements LessonStatusInterface {
       ->setDescription(\t('The learning path status this lesson status belongs to.'))
       ->setSetting('target_type', 'lms_course_status');
 
-    // Legacy field.
-    // @todo Remove in the next major.
-    $fields['lesson'] = BaseFieldDefinition::create('entity_reference')
-      ->setLabel(\t('Lesson (deprecated)'))
-      ->setDescription(\t('The Lesson of this status (deprecated).'))
-      ->setSetting('target_type', 'lms_lesson');
-
     $fields[self::LESSON_FIELD] = BaseFieldDefinition::create('lms_revision_reference')
       ->setLabel(\t('Lesson'))
       ->setDescription(\t('The Lesson of this status.'))
@@ -482,13 +478,6 @@ class LessonStatus extends ContentEntityBase implements LessonStatusInterface {
     $fields['percent'] = BaseFieldDefinition::create('integer')
       ->setLabel(\t('Pass Percent'))
       ->setDescription(\t('Number of answered questions / number of total questions.'));
-
-    // Legacy field.
-    // @todo Remove in the next major.
-    $fields['activities'] = BaseFieldDefinition::create('entity_reference')
-      ->setLabel(\t('Activities for this lesson status'))
-      ->setSetting('target_type', 'lms_activity')
-      ->setCardinality(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
 
     $fields[self::ACTIVITIES_FIELD] = BaseFieldDefinition::create('lms_revision_reference')
       ->setLabel(\t('Activities for this lesson status'))

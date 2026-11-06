@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\lms\Entity\Handlers;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
-use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Pager\PagerManagerInterface;
 use Drupal\Core\Url;
 use Drupal\lms\Entity\LessonInterface;
@@ -23,16 +24,16 @@ final class LessonListBuilder extends EntityListBuilder {
   /**
    * Lesson bundles.
    */
-  private array $bundles;
+  protected array $bundles;
 
   public function __construct(
     EntityTypeInterface $entity_type,
-    EntityStorageInterface $storage,
-    protected readonly PagerManagerInterface $pagerManager,
-    protected readonly RequestStack $requestStack,
+    EntityTypeManagerInterface $entity_type_manager,
+    protected PagerManagerInterface $pagerManager,
+    protected RequestStack $requestStack,
     EntityTypeBundleInfoInterface $entityTypeBundleInfo,
   ) {
-    parent::__construct($entity_type, $storage);
+    parent::__construct($entity_type, $entity_type_manager->getStorage($entity_type->id()));
     $this->bundles = $entityTypeBundleInfo->getBundleInfo($entity_type->id());
   }
 
@@ -42,10 +43,10 @@ final class LessonListBuilder extends EntityListBuilder {
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type): static {
     return new static(
       $entity_type,
-      $container->get('entity_type.manager')->getStorage($entity_type->id()),
-      $container->get('pager.manager'),
-      $container->get('request_stack'),
-      $container->get('entity_type.bundle.info'),
+      $container->get(EntityTypeManagerInterface::class),
+      $container->get(PagerManagerInterface::class),
+      $container->get(RequestStack::class),
+      $container->get(EntityTypeBundleInfoInterface::class),
     );
   }
 
@@ -142,9 +143,11 @@ final class LessonListBuilder extends EntityListBuilder {
   /**
    * {@inheritdoc}
    */
-  protected function getDefaultOperations(EntityInterface $entity) {
-    $operations = parent::getDefaultOperations($entity);
-    if ($entity->access('update')) {
+  protected function getDefaultOperations(EntityInterface $entity, ?CacheableMetadata $cacheability = NULL) {
+    $operations = parent::getDefaultOperations($entity, $cacheability);
+    $update_access = $entity->access('update', return_as_object: TRUE);
+    $cacheability?->addCacheableDependency($update_access);
+    if ($update_access->isAllowed()) {
       $operations['revisions'] = [
         'title' => $this->t('Revisions'),
         'weight' => 20,

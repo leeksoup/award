@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -164,4 +165,36 @@ function lms_tokens(string $type, array $tokens, array $data, array $options, Bu
 #[LegacyHook]
 function lms_page_top(array &$page_top): void {
   \Drupal::service('lms.hook.other')->pageTop($page_top);
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK_alter() for container.
+ */
+#[LegacyHook]
+function lms_theme_suggestions_container_alter(array &$suggestions, array $variables): void {
+  \Drupal::service('lms.hook.other')->themeSuggestionsContainerAlter($suggestions, $variables);
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ */
+#[LegacyHook]
+function lms_menu_local_tasks_alter(array &$data, string $route_name, RefinableCacheableDependencyInterface &$cacheability): void {
+  \Drupal::service('lms.hook.other')->menuLocalTasksAlter($data, $route_name, $cacheability);
+}
+
+/**
+ * Implements hook_field_formatter_info_alter().
+ */
+#[LegacyHook]
+function lms_field_formatter_info_alter(array &$info): void {
+  \Drupal::service('lms.hook.entity')->fieldFormatterInfoAlter($info);
+}
+
+/**
+ * Implements hook_views_data_alter().
+ */
+#[LegacyHook]
+function lms_views_data_alter(array &$data): void {
+  \Drupal::service('lms.hook.other')->viewsDataAlter($data);
 }

@@ -1,7 +1,0 @@
-langcode: en
-status: true
-dependencies: {  }
-name: 'Course label'
-vid: course_label
-description: ''
-weight: 0

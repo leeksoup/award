@@ -255,7 +255,7 @@ display:
           exposed: true
           expose:
             operator_id: name_op
-            label: Name
+            label: 'Filter by name'
             description: ''
             use_operator: false
             operator: name_op

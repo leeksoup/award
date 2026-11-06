@@ -7,12 +7,13 @@ namespace Drupal\lms\Plugin\Validation\Constraint;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\lms\Entity\Bundle\Course;
-use Drupal\lms\Entity\LessonInterface;
 use Drupal\lms\Entity\ActivityInterface;
+use Drupal\lms\Entity\Bundle\CourseInterface;
+use Drupal\lms\Entity\LessonInterface;
+use Drupal\lms\LmsCourseStorage;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\ConstraintValidator;
 
 /**
  * Checks if an unpublished entity has published parents.
@@ -23,13 +24,17 @@ final class UnpublishedParentConstraintValidator extends ConstraintValidator imp
 
   public function __construct(
     protected readonly EntityTypeManagerInterface $entityTypeManager,
+    protected readonly LmsCourseStorage $lmsCourseStorage,
   ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): self {
-    return new static($container->get(EntityTypeManagerInterface::class));
+    return new static(
+      $container->get(EntityTypeManagerInterface::class),
+      $container->get(LmsCourseStorage::class),
+    );
   }
 
   /**
@@ -64,8 +69,9 @@ final class UnpublishedParentConstraintValidator extends ConstraintValidator imp
     $query->accessCheck(FALSE);
     $query->condition('status', TRUE);
     if ($queried_entity_type === 'group') {
-      $query->condition('type', 'lms_course');
-      $query->condition(Course::LESSONS, $entity->id());
+      $course_bundles = $this->lmsCourseStorage->getCourseBundleIds();
+      $query->condition('type', $course_bundles, 'IN');
+      $query->condition(CourseInterface::LESSONS, $entity->id());
     }
     else {
       $query->condition(LessonInterface::ACTIVITIES, $entity->id());

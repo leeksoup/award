@@ -48,11 +48,11 @@ final class ModalSubformController implements ContainerInjectionInterface {
    */
   public static function create(ContainerInterface $container): self {
     return new static(
-      $container->get('plugin.manager.modal_subform'),
-      $container->get('current_user'),
-      $container->get('form_ajax_response_builder'),
-      $container->get('keyvalue.expirable'),
-      $container->get('request_stack'),
+      $container->get(ModalSubformManager::class),
+      $container->get(AccountInterface::class),
+      $container->get(FormAjaxResponseBuilderInterface::class),
+      $container->get(KeyValueExpirableFactoryInterface::class),
+      $container->get(RequestStack::class),
       $container->get('logger.channel.modal_form')
     );
   }
@@ -259,13 +259,24 @@ final class ModalSubformController implements ContainerInjectionInterface {
       \array_key_exists('#ajax', $trigger) &&
       \array_key_exists('callback', $trigger['#ajax'])
     ) {
+      // Identify the element for logging: the rebuild re-derives the triggering
+      // element from cached parent input, and a parent widget whose button
+      // #value is not stable can resolve to the wrong element here.
+      $element = \implode('][', $trigger['#array_parents'] ?? [$trigger['#name'] ?? '?']);
       $callback = $form_state->prepareCallback($trigger['#ajax']['callback']);
       if (!\is_callable($callback)) {
-        return $this->errorOutput('Invalid form callback.');
+        return $this->errorOutput('Parent form rebuild: triggering element [%element] has a non-callable AJAX callback %callback.', [
+          '%element' => $element,
+          '%callback' => $this->describeCallback($callback),
+        ]);
       }
-      $form_response = \call_user_func_array($callback, [$form, $form_state]);
+      $form_response = \call_user_func_array($callback, [$form, $form_state, $this->requestStack->getCurrentRequest()]);
       if (!\is_array($form_response)) {
-        return $this->errorOutput('Invalid form callback.');
+        return $this->errorOutput('Parent form rebuild: AJAX callback %callback for triggering element [%element] returned type %type; expected an array of AJAX commands. The rebuild most likely resolved the wrong triggering element.', [
+          '%callback' => $this->describeCallback($callback),
+          '%element' => $element,
+          '%type' => \get_debug_type($form_response),
+        ]);
       }
       // @todo track https://www.drupal.org/project/drupal/issues/3343670
       // so we can be consistent and make this parent form callback be
@@ -273,13 +284,31 @@ final class ModalSubformController implements ContainerInjectionInterface {
       // to merge with the existing one instead of an array of commands.
       foreach ($form_response as $command) {
         if (!$command instanceof CommandInterface) {
-          return $this->errorOutput('Invalid form callback.');
+          return $this->errorOutput('Parent form rebuild: AJAX callback %callback for triggering element [%element] returned an item of type %type; expected AJAX command objects.', [
+            '%callback' => $this->describeCallback($callback),
+            '%element' => $element,
+            '%type' => \get_debug_type($command),
+          ]);
         }
         $response->addCommand($command);
       }
     }
 
     return $response;
+  }
+
+  /**
+   * Human-readable description of a callback for logging.
+   */
+  private function describeCallback(mixed $callback): string {
+    if (\is_string($callback)) {
+      return $callback;
+    }
+    if (\is_array($callback) && \count($callback) === 2) {
+      $class = \is_object($callback[0]) ? \get_class($callback[0]) : (string) $callback[0];
+      return $class . '::' . (string) $callback[1];
+    }
+    return \get_debug_type($callback);
   }
 
   /**

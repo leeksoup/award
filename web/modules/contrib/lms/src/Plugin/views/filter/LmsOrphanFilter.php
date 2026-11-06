@@ -6,8 +6,9 @@ namespace Drupal\lms\Plugin\views\filter;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Attribute\ViewsFilter;
+use Drupal\views\Plugin\ViewsHandlerManager;
 use Drupal\views\Plugin\views\filter\FilterPluginBase;
-use Drupal\views\Views;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Filter that shows only LMS entities not referenced by any parent entity.
@@ -27,6 +28,27 @@ use Drupal\views\Views;
  */
 #[ViewsFilter(id: 'lms_orphan')]
 final class LmsOrphanFilter extends FilterPluginBase {
+
+  public function __construct(
+    array $configuration,
+    $plugin_id,
+    $plugin_definition,
+    protected ViewsHandlerManager $joinManager,
+  ) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('plugin.manager.views.join'),
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -82,7 +104,7 @@ final class LmsOrphanFilter extends FilterPluginBase {
         ['field' => 'deleted', 'value' => 0, 'numeric' => TRUE],
       ],
     ];
-    $join = Views::pluginManager('join')->createInstance('standard', $configuration);
+    $join = $this->joinManager->createInstance('standard', $configuration);
     /** @var \Drupal\views\Plugin\views\query\Sql $query */
     $query = $this->query;
     $alias = $query->addTable($parent_table, $this->relationship, $join);

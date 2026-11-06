@@ -18,7 +18,7 @@ final class LmsBundleSelectionForm extends FormBase {
   /**
    * The entity type ID for this form.
    */
-  private string $entityTypeId;
+  protected string $entityTypeId;
 
   /**
    * The constructor.
@@ -32,7 +32,7 @@ final class LmsBundleSelectionForm extends FormBase {
    */
   public static function create(ContainerInterface $container): self {
     return new static(
-      $container->get('entity_type.bundle.info')
+      $container->get(EntityTypeBundleInfoInterface::class)
     );
   }
 

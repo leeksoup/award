@@ -22,7 +22,7 @@ final class LmsReferenceParametersForm extends FormBase {
   /**
    * The entity type ID for this form.
    */
-  private string $entityTypeId;
+  protected string $entityTypeId;
 
   /**
    * The constructor.
@@ -36,7 +36,7 @@ final class LmsReferenceParametersForm extends FormBase {
    */
   public static function create(ContainerInterface $container): self {
     return new static(
-      $container->get('entity_type.bundle.info')
+      $container->get(EntityTypeBundleInfoInterface::class)
     );
   }
 
@@ -59,18 +59,13 @@ final class LmsReferenceParametersForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $query = $form_state->getBuildInfo()['query'];
-    if ($query['type'] === 'lms_lesson') {
-      $this->setLessonDataElements($form);
-    }
-    elseif ($query['type'] === 'lms_activity') {
-      $this->setActivityDataElements($form);
-    }
+    $form += static::getParameterFormElements($query['type']);
 
     // Set existing values.
     if (\array_key_exists('data_path', $query)) {
       $input = $form_state->getBuildInfo()['input'];
       $data_path = $query['data_path'];
-      \array_push($data_path, 'actions', 'parameters');
+      \array_push($data_path, 'parameters', 'json');
       $data = NestedArray::getValue($input, $data_path);
       if ($data !== NULL) {
         foreach (Json::decode($data) as $parameter => $value) {
@@ -126,67 +121,103 @@ final class LmsReferenceParametersForm extends FormBase {
   }
 
   /**
+   * Parameter form elements for a given entity type.
+   *
+   * #hide_if_falsy hides the item in the reference table when the value is
+   * falsy; it is ignored by the form renderer.
+   *
+   * @return array<string, array<string, mixed>>
+   */
+  public static function getParameterFormElements(string $entity_type_id): array {
+    if ($entity_type_id === 'lms_lesson') {
+      return [
+        'mandatory' => [
+          '#type' => 'checkbox',
+          '#title' => t('Mandatory'),
+          '#default_value' => TRUE,
+        ],
+        'auto_repeat_failed' => [
+          '#type' => 'checkbox',
+          '#title' => t('Auto-repeat if failed'),
+          '#default_value' => FALSE,
+          '#description' => t('If a student does not achieve the required score on this lesson, the lesson restarts when they attempt to continue to the next one.'),
+          '#hide_if_falsy' => TRUE,
+        ],
+        'required_score' => [
+          '#type' => 'number',
+          '#title' => t('Required score'),
+          '#field_suffix' => '%',
+          '#default_value' => 50,
+          '#min' => 0,
+          '#max' => 100,
+          '#description' => t('The minimum percentage a student must score to pass this lesson.'),
+        ],
+        'time_limit' => [
+          '#type' => 'number',
+          '#title' => t('Time limit'),
+          '#field_suffix' => t('min'),
+          '#default_value' => 0,
+          '#min' => 0,
+          '#description' => t('After this much time has passed, the lesson is closed automatically and remaining activities are left unanswered. Set to 0 for no time limit.'),
+          '#hide_if_falsy' => TRUE,
+        ],
+      ];
+    }
+    if ($entity_type_id === 'lms_activity') {
+      return [
+        'max_score' => [
+          '#type' => 'number',
+          '#title' => t('Maximum score'),
+          '#default_value' => 5,
+          '#min' => 0,
+          '#max' => 100,
+          '#description' => t('The score this activity is marked out of. Set to 0 if the activity does not require evaluation.'),
+        ],
+      ];
+    }
+    return [];
+  }
+
+  /**
+   * Format a single parameter value as a complete list item string.
+   */
+  public static function formatParameterItem(array $def, mixed $value): string {
+    if ($def['#type'] === 'checkbox') {
+      $display = (bool) $value ? (string) t('Yes') : (string) t('No');
+    }
+    else {
+      $display = (string) $value;
+      if (\array_key_exists('#field_suffix', $def)) {
+        $display .= ' ' . (string) $def['#field_suffix'];
+      }
+    }
+    return (string) $def['#title'] . ': ' . $display;
+  }
+
+  /**
    * Ajax callback.
    */
-  public static function ajaxSubmit(array $form, FormStateInterface $form_state): AjaxResponse {
+  public static function ajaxSubmit(array $_form, FormStateInterface $form_state): AjaxResponse {
     $response = new AjaxResponse();
     $trigger = $form_state->getTriggeringElement();
-    $selector_value = $trigger['#ajax']['options']['query']['selector'];
-    $selector = '[data-lms-selector="' . $selector_value . '"]';
+    $query = $trigger['#ajax']['options']['query'];
+    $parent = '[data-lms-selector="' . $query['selector'] . '"]';
     $values = $form_state->cleanValues()->getValues();
-    $response->addCommand(new InvokeCommand($selector, 'val', [Json::encode($values)]));
+    $response->addCommand(new InvokeCommand($parent . ' input[type="hidden"]', 'val', [Json::encode($values)]));
+    $definitions = static::getParameterFormElements($query['type']);
+    foreach ($definitions as $key => $def) {
+      if (!\array_key_exists($key, $values)) {
+        continue;
+      }
+      $value = $values[$key];
+      $item_selector = $parent . ' .lms-param-item--' . $key;
+      $hide = (\array_key_exists('#hide_if_falsy', $def) && (bool) $def['#hide_if_falsy']) && !(bool) $value;
+      $response->addCommand(new InvokeCommand($item_selector, 'html', [$hide ? '' : static::formatParameterItem($def, $value)]));
+      if (\array_key_exists('#hide_if_falsy', $def) && (bool) $def['#hide_if_falsy']) {
+        $response->addCommand(new InvokeCommand($item_selector, $hide ? 'hide' : 'show', []));
+      }
+    }
     return $response;
-  }
-
-  /**
-   * LMS Lesson data elements.
-   *
-   * @param mixed[] $element
-   *   Form element.
-   */
-  private function setLessonDataElements(array &$element): void {
-    $element['mandatory'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Mandatory'),
-      '#default_value' => TRUE,
-    ];
-    $element['auto_repeat_failed'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Auto-repeat if failed'),
-      '#description' => $this->t("If a student didn't get the score required to pass this lesson, it will be restarted when trying to navigate to the next one."),
-      '#default_value' => FALSE,
-    ];
-    $element['required_score'] = [
-      '#type' => 'number',
-      '#min' => 0,
-      '#max' => 100,
-      '#title' => $this->t('Required score [%]'),
-      '#default_value' => 50,
-    ];
-    $element['time_limit'] = [
-      '#type' => 'number',
-      '#min' => 0,
-      '#title' => $this->t('Time limit [min]'),
-      '#description' => $this->t('After this much time has passed, the lesson will be finished with all remaining activities unanswered.'),
-      '#default_value' => 0,
-    ];
-  }
-
-  /**
-   * LMS Activity data elements.
-   *
-   * @param mixed[] $element
-   *   Form element.
-   */
-  private function setActivityDataElements(array &$element): void {
-    $element['max_score'] = [
-      '#type' => 'number',
-      '#min' => 0,
-      '#max' => 100,
-      '#title' => $this->t('Maximum score'),
-      '#description' => $this->t('Setting this value to 0 will set all answers to the activity as evaluated.'),
-      '#default_value' => 5,
-    ];
   }
 
   /**

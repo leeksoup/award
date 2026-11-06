@@ -16,7 +16,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\SessionConfigurationInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Entity\CourseStatusInterface;
 use Drupal\lms\TrainingManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -42,10 +42,10 @@ final class CourseStartLink extends BlockBase implements ContainerFactoryPluginI
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    protected readonly ModuleHandlerInterface $moduleHandler,
-    protected readonly TrainingManager $trainingManager,
-    protected readonly SessionConfigurationInterface $sessionConfiguration,
-    protected readonly RequestStack $requestStack,
+    protected ModuleHandlerInterface $moduleHandler,
+    protected TrainingManager $trainingManager,
+    protected SessionConfigurationInterface $sessionConfiguration,
+    protected RequestStack $requestStack,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -75,7 +75,7 @@ final class CourseStartLink extends BlockBase implements ContainerFactoryPluginI
    */
   protected function blockAccess(AccountInterface $account): AccessResult {
     $group = $this->getContextValue('group');
-    if (!$group instanceof Course) {
+    if (!$group instanceof CourseInterface) {
       return AccessResult::forbidden();
     }
     return AccessResult::allowed();
@@ -116,22 +116,24 @@ final class CourseStartLink extends BlockBase implements ContainerFactoryPluginI
         'user.group_permissions',
       ]);
 
-    // Allow other modules to conditionally return a link.
-    $build = $this->moduleHandler->invokeAll('lms_course_link', [$course, $currentUser, $cacheability]);
+    // Allow other modules to conditionally return a link. The first
+    // implementation that returns a non-empty render array wins,
+    // remaining implementations are skipped.
+    $build = [];
+    $this->moduleHandler->invokeAllWith(
+      'lms_course_link',
+      function (callable $hook, string $_module) use ($course, $currentUser, $cacheability, &$build): void {
+        if (\count($build) === 0) {
+          $result = $hook($course, $currentUser, $cacheability);
+          if (\is_array($result) && \count($result) !== 0) {
+            $build = $result;
+          }
+        }
+      }
+    );
     if (\count($build) !== 0) {
-      if (
-        !\array_key_exists('#type', $build) &&
-        !\array_key_exists('#theme', $build)
-      ) {
-        $build = \reset($build);
-      }
-      if (
-        \array_key_exists('#type', $build) ||
-        \array_key_exists('#theme', $build)
-      ) {
-        $cacheability->applyTo($build);
-        return $build;
-      }
+      $cacheability->applyTo($build);
+      return $build;
     }
 
     // @todo This array is inherited while moving the code around but there's no
@@ -195,7 +197,7 @@ final class CourseStartLink extends BlockBase implements ContainerFactoryPluginI
       $link_text = '';
       $aria_label = NULL;
 
-      if ($status === NULL) {
+      if ($status === NULL || $status === CourseStatusInterface::STATUS_NEW) {
         $link_text = $this->t('Start');
         $aria_label = $this->t('Start @title', ['@title' => $course->label()]);
         $link_options['attributes']['class'][] = 'start-link--start';
@@ -286,6 +288,13 @@ final class CourseStartLink extends BlockBase implements ContainerFactoryPluginI
         'info_text' => $info,
       ],
     ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function createPlaceholder(): bool {
+    return TRUE;
   }
 
 }

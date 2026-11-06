@@ -7,7 +7,9 @@ namespace Drupal\lms\Plugin\views\access;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\group\Plugin\views\access\GroupPermission;
+use Drupal\lms\LmsCourseStorage;
 use Drupal\views\Attribute\ViewsAccess;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\Route;
 
 /**
@@ -28,6 +30,20 @@ use Symfony\Component\Routing\Route;
 final class CoursePermission extends GroupPermission {
 
   /**
+   * The LMS course storage.
+   */
+  protected LmsCourseStorage $lmsCourseStorage;
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
+    $instance->lmsCourseStorage = $container->get(LmsCourseStorage::class);
+    return $instance;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function access(AccountInterface $account) {
@@ -46,7 +62,7 @@ final class CoursePermission extends GroupPermission {
     if (!\array_key_exists('group', $parameters)) {
       return;
     }
-    $parameters['group']['bundle'] = ['lms_course'];
+    $parameters['group']['bundle'] = $this->lmsCourseStorage->getCourseBundleIds();
     $route->setOption('parameters', $parameters);
   }
 

@@ -21,6 +21,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\lms\Entity\ActivityTypeInterface;
 use Drupal\lms\Entity\Handlers\LmsEntityAccessControlHandlerBase;
+use Drupal\lms\Form\Modal\LmsReferenceParametersForm;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -63,9 +64,9 @@ final class LMSReferenceTable extends WidgetBase {
       $configuration['field_definition'],
       $configuration['settings'],
       $configuration['third_party_settings'],
-      $container->get('entity_type.bundle.info'),
-      $container->get('entity_type.manager'),
-      $container->get('current_user')
+      $container->get(EntityTypeBundleInfoInterface::class),
+      $container->get(EntityTypeManagerInterface::class),
+      $container->get(AccountInterface::class)
     );
   }
 
@@ -188,6 +189,7 @@ final class LMSReferenceTable extends WidgetBase {
       '#header' => [
         'title' => $this->t('Title'),
         'type' => $this->t('Type'),
+        'parameters' => $this->t('Parameters'),
         'actions' => $this->t('Actions'),
         'weight' => $this->t('Weight'),
       ],
@@ -199,7 +201,7 @@ final class LMSReferenceTable extends WidgetBase {
           'group' => self::TABLEDRAG_CLASS,
         ],
       ],
-      '#empty' => $this->t('No referenced @label_plural.', ['@label_plural' => $label_plural]),
+      '#empty' => $this->t('No @label_plural have been added yet. Use the buttons below to create a new @label or add an existing one.', ['@label_plural' => $label_plural]),
       '#attributes' => [
         'data-lms-selector' => 'lms-reference-table-' . \strtr($target_type, ['_' => '-']),
       ],
@@ -213,13 +215,15 @@ final class LMSReferenceTable extends WidgetBase {
     if (!\array_key_exists('references', $field_state)) {
       $field_state['references'] = [];
       foreach ($items as $item_delta => $item) {
+        /** @var \Drupal\lms\Plugin\Field\FieldType\LMSReferenceItem $item */
+        // @phpstan-ignore varTag.nativeType (this field is always lms_reference)
         $entity = $item->entity;
         $id = $entity->id();
         $field_state['references'][$id] = [
           'weight' => $item_delta,
           'label' => $entity->label(),
           'bundle' => $entity->bundle(),
-          'parameters' => Json::encode($item->data),
+          'parameters' => Json::encode($item->get('data')->getValue()),
           'access' => $entity->access('edit', $this->currentUser),
         ];
       }
@@ -237,6 +241,13 @@ final class LMSReferenceTable extends WidgetBase {
         if (\array_key_exists($entity_id, $field_state['references'])) {
           $ordered_references[$entity_id] = $field_state['references'][$entity_id];
           $ordered_references[$entity_id]['weight'] = $row_values['weight'];
+          if (
+            \array_key_exists('parameters', $row_values) &&
+            \is_array($row_values['parameters']) &&
+            \array_key_exists('json', $row_values['parameters'])
+          ) {
+            $ordered_references[$entity_id]['parameters'] = $row_values['parameters']['json'];
+          }
         }
       }
       foreach (\array_keys($ordered_references) as $entity_id) {
@@ -281,12 +292,19 @@ final class LMSReferenceTable extends WidgetBase {
         'type' => [
           '#markup' => $bundle_info[$reference['bundle']]['label'],
         ],
-        'actions' => [
-          'parameters' => [
+        'parameters' => [
+          '#type' => 'container',
+          '#attributes' => ['data-lms-selector' => $parameters_selector],
+          'json' => [
             '#type' => 'hidden',
             '#default_value' => $reference['parameters'],
-            '#attributes' => ['data-lms-selector' => $parameters_selector],
           ],
+          'display' => [
+            '#theme' => 'item_list',
+            '#items' => $this->formatParametersForDisplay(Json::decode($reference['parameters']), $target_type),
+          ],
+        ],
+        'actions' => [
           'edit_parameters' => [
             '#type' => 'button',
             '#value' => $this->t('Modify parameters'),
@@ -359,7 +377,8 @@ final class LMSReferenceTable extends WidgetBase {
 
     $element['create_item'] = [
       '#type' => 'button',
-      '#value' => $this->t('Create @label', [
+      '#name' => 'create_new_' . $field_name,
+      '#value' => $this->t('Create new @label', [
         '@label' => $label,
       ]),
       '#ajax' => [
@@ -388,7 +407,7 @@ final class LMSReferenceTable extends WidgetBase {
 
     $element['reference_item'] = [
       '#type' => 'button',
-      '#value' => $this->t('Reference @label', [
+      '#value' => $this->t('Add existing @label', [
         '@label' => $label_plural,
       ]),
       '#ajax' => [
@@ -469,6 +488,10 @@ final class LMSReferenceTable extends WidgetBase {
     $trigger = $form_state->getTriggeringElement();
     $element_parents = $trigger['#ajax']['#element_parents'];
     $element = NestedArray::getValue($form, $element_parents);
+    // Mimic core's fix for elements being a part of a field group.
+    // @see \Drupal\Core\Form\FormAjaxResponseBuilder::buildResponse().
+    // @todo Track https://www.drupal.org/project/drupal/issues/3617783.
+    unset($element['#group']);
     $selector = '[data-drupal-selector="' . $element['#attributes']['data-drupal-selector'] . '"]';
     return [new ReplaceCommand($selector, $element)];
   }
@@ -511,9 +534,9 @@ final class LMSReferenceTable extends WidgetBase {
       return $item_values;
     }
     foreach ($values['table'] as $entity_id => $item) {
-      $data = $item['actions']['parameters'];
+      $data = $item['parameters']['json'];
       if (\is_string($data)) {
-        $data = Json::decode($item['actions']['parameters']);
+        $data = Json::decode($data);
       }
       else {
         $target_type = $this->fieldDefinition->getSetting('target_type');
@@ -525,6 +548,29 @@ final class LMSReferenceTable extends WidgetBase {
       ];
     }
     return $item_values;
+  }
+
+  /**
+   * Format parameter values for display as an item list.
+   */
+  private function formatParametersForDisplay(array $parameters, string $entity_type_id): array {
+    $definitions = LmsReferenceParametersForm::getParameterFormElements($entity_type_id);
+    $items = [];
+    foreach ($definitions as $key => $def) {
+      if (!\array_key_exists($key, $parameters)) {
+        continue;
+      }
+      $value = $parameters[$key];
+      $hidden = (\array_key_exists('#hide_if_falsy', $def) && (bool) $def['#hide_if_falsy']) && !(bool) $value;
+      $items[] = [
+        '#markup' => LmsReferenceParametersForm::formatParameterItem($def, $value),
+        '#wrapper_attributes' => [
+          'class' => ['lms-param-item--' . $key],
+          'style' => $hidden ? 'display:none' : FALSE,
+        ],
+      ];
+    }
+    return $items;
   }
 
   /**

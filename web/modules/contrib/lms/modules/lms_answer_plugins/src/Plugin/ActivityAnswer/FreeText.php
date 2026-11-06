@@ -47,7 +47,7 @@ final class FreeText extends ActivityAnswerBase {
       $element = [
         '#title' => $question_item->getValue()['value'],
         '#type' => $text_format === NULL ? 'textarea' : 'text_format',
-        '#default_value' => $data['answer'][$delta] ?? [],
+        '#default_value' => $data['answer'][$delta]['value'] ?? $data['answer'][$delta] ?? '',
       ];
       if ($text_format !== NULL) {
         $element['#format'] = $text_format;

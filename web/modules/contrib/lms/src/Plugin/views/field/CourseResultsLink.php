@@ -25,7 +25,7 @@ final class CourseResultsLink extends FieldPluginBase {
   /**
    * The current user.
    */
-  private AccountInterface $currentUser;
+  protected AccountInterface $currentUser;
 
   /**
    * Injects services.

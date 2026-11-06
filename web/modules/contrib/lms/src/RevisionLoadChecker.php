@@ -7,7 +7,7 @@ namespace Drupal\lms;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 
 /**
  * Check if a stored revision should be loaded for the current request.
@@ -37,7 +37,7 @@ class RevisionLoadChecker {
     }
 
     $group = $this->routeMatch->getParameter('group');
-    if (!$group instanceof Course) {
+    if (!$group instanceof CourseInterface) {
       return TRUE;
     }
 

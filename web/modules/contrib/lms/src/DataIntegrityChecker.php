@@ -9,12 +9,13 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerTrait;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\group\Entity\GroupInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Entity\ActivityInterface;
 use Drupal\lms\Entity\AnswerInterface;
 use Drupal\lms\Entity\CourseStatusInterface;
 use Drupal\lms\Entity\LessonInterface;
 use Drupal\lms\Entity\LessonStatusInterface;
+use Drupal\lms\Exception\TrainingException;
 
 /**
  * Checks Course / Lesson / Activity progress.
@@ -63,7 +64,7 @@ final class DataIntegrityChecker {
   /**
    * Get lesson usage.
    *
-   * @return \Drupal\lms\Entity\Bundle\Course[]
+   * @return \Drupal\lms\Entity\Bundle\CourseInterface[]
    *   Courses keyed by their IDs.
    */
   public function getLessonUsage(string $lesson_id): array {
@@ -71,16 +72,16 @@ final class DataIntegrityChecker {
     $query = $group_storage->getQuery();
     $lesson_ids = $query
       ->accessCheck(FALSE)
-      ->condition(Course::LESSONS, $lesson_id)
+      ->condition(CourseInterface::LESSONS, $lesson_id)
       ->execute();
-    /** @var \Drupal\lms\Entity\Bundle\Course[] */
+    /** @var \Drupal\lms\Entity\Bundle\CourseInterface[] */
     return $group_storage->loadMultiple($lesson_ids);
   }
 
   /**
    * Check if activity has any progress.
    *
-   * @return \Drupal\lms\Entity\Bundle\Course[]
+   * @return \Drupal\lms\Entity\Bundle\CourseInterface[]
    *   Courses keyed by their IDs.
    */
   public function checkActivityProgress(ActivityInterface $activity, bool $use_revision = FALSE): array {
@@ -109,38 +110,13 @@ final class DataIntegrityChecker {
 
       ->execute();
 
-    if (\count($results) === 0) {
-      return [];
-    }
-
-    $course_status_ids = \array_map(fn($item) => $item['course_status'], $results);
-
-    /** @var \Drupal\lms\Entity\CourseStatusInterface[] */
-    $course_statuses = $this->entityTypeManager->getStorage('lms_course_status')->loadMultiple($course_status_ids);
-    $courses = [];
-    foreach ($course_statuses as $course_status) {
-      $course_id = $course_status->getCourseId();
-      if (\array_key_exists($course_id, $courses)) {
-        continue;
-      }
-      $course = $course_status->getCourse();
-
-      // Orphaned course status. It may be there's a data integrity error
-      // or this check ran before cleanup cron execution.
-      // @see \Drupal\lms\Hook\LmsEntityHooks::groupDelete().
-      if ($course === NULL) {
-        continue;
-      }
-      $courses[$course_id] = $course;
-    }
-
-    return $courses;
+    return $this->getCoursesFromStatusResults($results);
   }
 
   /**
    * Check if lesson has any progress.
    *
-   * @return \Drupal\lms\Entity\Bundle\Course[]
+   * @return \Drupal\lms\Entity\Bundle\CourseInterface[]
    *   Courses keyed by their IDs.
    */
   public function checkLessonProgress(LessonInterface $lesson, bool $use_revision = FALSE): array {
@@ -170,10 +146,19 @@ final class DataIntegrityChecker {
 
       ->execute();
 
-    if (\count($results) === 0) {
-      return [];
-    }
+    return $this->getCoursesFromStatusResults($results);
+  }
 
+  /**
+   * Get courses from course status aggregate query results.
+   *
+   * @param array<array<string, int>> $results
+   *   Aggregate query results containing course status IDs.
+   *
+   * @return \Drupal\lms\Entity\Bundle\CourseInterface[]
+   *   Courses keyed by their IDs.
+   */
+  private function getCoursesFromStatusResults(array $results): array {
     $course_status_ids = \array_map(fn($item) => $item['course_status'], $results);
 
     /** @var \Drupal\lms\Entity\CourseStatusInterface[] */
@@ -184,15 +169,13 @@ final class DataIntegrityChecker {
       if (\array_key_exists($course_id, $courses)) {
         continue;
       }
-      $course = $course_status->getCourse();
 
-      // Orphaned course status. It may be there's a data integrity error
-      // or this check ran before cleanup cron execution.
-      // @see \Drupal\lms\Hook\LmsEntityHooks::groupDelete().
-      if ($course === NULL) {
-        continue;
+      try {
+        $courses[$course_id] = $course_status->getCourse();
       }
-      $courses[$course_id] = $course;
+      catch (TrainingException) {
+        // Orphaned status, possibly not cleaned up by cron yet.
+      }
     }
 
     return $courses;
@@ -202,7 +185,7 @@ final class DataIntegrityChecker {
    * Check if the given course has any progress.
    */
   public function checkCourseProgress(GroupInterface $course): bool {
-    if (!$course instanceof Course) {
+    if (!$course instanceof CourseInterface) {
       return FALSE;
     }
     if ($course->isNew()) {

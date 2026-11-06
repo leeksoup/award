@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\lms_classes\Plugin\views\argument;
 
-use Drupal\Core\Entity\EntityStorageInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms_classes\ClassHelper;
 use Drupal\views\Attribute\ViewsArgument;
 use Drupal\views\Plugin\views\argument\ArgumentPluginBase;
@@ -27,7 +27,7 @@ final class CourseClassesRelationships extends ArgumentPluginBase {
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    protected readonly EntityStorageInterface $groupStorage,
+    protected EntityTypeManagerInterface $entityTypeManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -40,7 +40,7 @@ final class CourseClassesRelationships extends ArgumentPluginBase {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity_type.manager')->getStorage('group')
+      $container->get(EntityTypeManagerInterface::class)
     );
   }
 
@@ -51,8 +51,8 @@ final class CourseClassesRelationships extends ArgumentPluginBase {
    */
   public function query($group_by = FALSE): void {
     $this->ensureMyTable();
-    $course = $this->groupStorage->load($this->argument);
-    if (!$course instanceof Course) {
+    $course = $this->entityTypeManager->getStorage('group')->load($this->argument);
+    if (!$course instanceof CourseInterface) {
       return;
     }
     $class_ids = [];

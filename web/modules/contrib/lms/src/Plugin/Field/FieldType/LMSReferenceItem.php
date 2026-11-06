@@ -96,7 +96,8 @@ final class LMSReferenceItem extends EntityReferenceItem {
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $definitions = parent::propertyDefinitions($field_definition);
-    $definitions['data'] = MapDataDefinition::create();
+    $definitions['data'] = MapDataDefinition::create()
+      ->setLabel(new TranslatableMarkup('Data'));
     return $definitions;
   }
 
@@ -119,7 +120,7 @@ final class LMSReferenceItem extends EntityReferenceItem {
    * @phpstan-ignore-next-line Contravariant stuff.
    */
   public function setValue($values, $notify = TRUE): void {
-    if (\array_key_exists('data', $values)) {
+    if (\is_array($values) && \array_key_exists('data', $values)) {
       if (!\is_array($values['data'])) {
         if ($values['data'] instanceof MapItem) {
           $values['data'] = $values['data']->getValue();

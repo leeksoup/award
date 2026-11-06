@@ -19,9 +19,7 @@ use Drupal\lms\Plugin\Field\FieldType\StartLinkFieldItemList;
 /**
  * Course group bundle class.
  */
-final class Course extends Group {
-
-  public const LESSONS = 'lessons';
+class Course extends Group implements CourseInterface {
 
   /**
    * Check if the given user can take this learning path.
@@ -38,6 +36,9 @@ final class Course extends Group {
     $access_result = GroupAccessResult::allowedIfHasGroupPermission($this, $account, 'view own unpublished group');
     if ($access_result->isAllowed()) {
       $access->addCacheContexts(['user']);
+      // @todo Use a strict comparison when we're 100% sure getOwnerId() and
+      // AccountInterface::id() always return the same type.
+      // @phpstan-ignore equal.notAllowed
       if ($this->getOwnerId() == $account->id()) {
         return $access->andIf($access_result);
       }
@@ -155,14 +156,15 @@ final class Course extends Group {
         'weight' => 1,
       ])
       ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE)
       ->addConstraint('NotNull', [
-        'message' => new TranslatableMarkup('At least one lesson needs to be a part of the course.'),
+        'message' => new TranslatableMarkup('At least one lesson needs to be added to the course.'),
       ])
       ->addConstraint('UnpublishedChildConstraint');
 
     $fields['revisit_mode'] = BaseFieldDefinition::create('boolean')
-      ->setLabel(new TranslatableMarkup('Allow to revisit finished course'))
-      ->setDescription(new TranslatableMarkup('Always allow to go back to the training, navigate freely and correct answers without the need to restart.'))
+      ->setLabel(new TranslatableMarkup('Revisits after completion'))
+      ->setDescription(new TranslatableMarkup('Allow students to re-enter the course after finishing. They can navigate freely, review content, and change answers without restarting the course.'))
       ->setRevisionable(TRUE)
       ->setTranslatable(FALSE)
       ->setDefaultValue(TRUE)
@@ -176,7 +178,7 @@ final class Course extends Group {
       ->setDisplayConfigurable('form', TRUE);
     $fields['free_navigation'] = BaseFieldDefinition::create('boolean')
       ->setLabel(new TranslatableMarkup('Free navigation'))
-      ->setDescription(new TranslatableMarkup('Check this to allow students to go back in a course or jump to any activity (always allowed when revisiting). Mandatory lessons are still required to pass but not to proceed to next lessons.'))
+      ->setDescription(new TranslatableMarkup('Allow students to jump to any activity in the course; also enables a Back button to return to the previous activity. Mandatory lessons are still required to pass the course but do not have to be completed before proceeding to later lessons.'))
       ->setDefaultValue(FALSE)
       ->setRevisionable(TRUE)
       ->setTranslatable(FALSE)

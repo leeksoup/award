@@ -13,11 +13,13 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\group\Access\GroupAccessResult;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Entity\CourseStatus;
 use Drupal\lms\Entity\CourseStatusInterface;
 use Drupal\lms\Entity\Handlers\LmsEntityAccessControlHandlerBase;
@@ -25,8 +27,7 @@ use Drupal\lms\Entity\LessonStatus;
 use Drupal\lms\Plugin\Field\FieldType\LMSReferenceItem;
 use Drupal\lms\TrainingManager;
 use Drupal\user\UserInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\DependencyInjection\Attribute\AutowireCallable;
+use Symfony\Component\DependencyInjection\Attribute\AutowireServiceClosure;
 
 /**
  * Centralized entity hooks logic.
@@ -39,12 +40,11 @@ final class LmsEntityHooks {
    * The constructor.
    */
   public function __construct(
-    #[Autowire(service: 'entity_type.manager', lazy: TRUE)]
     protected readonly EntityTypeManagerInterface $entityTypeManager,
-    #[AutowireCallable(service: 'queue', method: 'get', lazy: TRUE)]
-    private \Closure $getQueue,
-    #[Autowire(service: 'cache_tags.invalidator', lazy: TRUE)]
-    protected readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
+    #[AutowireServiceClosure(QueueFactory::class)]
+    private readonly \Closure $queueFactory,
+    #[AutowireServiceClosure(CacheTagsInvalidatorInterface::class)]
+    protected readonly \Closure $cacheTagsInvalidator,
   ) {}
 
   #[Hook('entity_base_field_info')]
@@ -109,7 +109,7 @@ final class LmsEntityHooks {
     if (\count($course_status_ids) === 0) {
       return;
     }
-    $queue = ($this->getQueue)('lms_delete_entities', TRUE);
+    $queue = ($this->queueFactory)()->get('lms_delete_entities', TRUE);
     foreach (\array_chunk($course_status_ids, 10) as $ids) {
       $queue->createItem(['entity_type' => 'lms_course_status', 'ids' => $ids]);
     }
@@ -117,7 +117,7 @@ final class LmsEntityHooks {
 
   #[Hook('group_delete')]
   public function groupDelete(GroupInterface $group): void {
-    if (!$group instanceof Course) {
+    if (!$group instanceof CourseInterface) {
       return;
     }
     $course_status_ids = $this->entityTypeManager->getStorage('lms_course_status')->getQuery()
@@ -127,7 +127,7 @@ final class LmsEntityHooks {
     if (\count($course_status_ids) === 0) {
       return;
     }
-    $queue = ($this->getQueue)('lms_delete_entities', TRUE);
+    $queue = ($this->queueFactory)()->get('lms_delete_entities', TRUE);
     foreach (\array_chunk($course_status_ids, 10) as $ids) {
       $queue->createItem(['entity_type' => 'lms_course_status', 'ids' => $ids]);
     }
@@ -140,18 +140,18 @@ final class LmsEntityHooks {
       ->accessCheck(FALSE)
       ->condition('course_status', $course_status->id())
       ->execute();
-    $queue = ($this->getQueue)('lms_delete_entities', TRUE);
+    $queue = ($this->queueFactory)()->get('lms_delete_entities', TRUE);
     foreach (\array_chunk($lesson_status_ids, 10) as $ids) {
       $queue->createItem(['entity_type' => 'lms_lesson_status', 'ids' => $ids]);
     }
-    $this->cacheTagsInvalidator->invalidateTags([
+    ($this->cacheTagsInvalidator)()->invalidateTags([
       TrainingManager::trainingStatusTag($course_status->getCourseId(), $course_status->getUserId()),
     ]);
   }
 
   #[Hook('lms_course_status_presave')]
   public function lmsCourseStatusPresave(CourseStatus $course_status): void {
-    $this->cacheTagsInvalidator->invalidateTags([
+    ($this->cacheTagsInvalidator)()->invalidateTags([
       TrainingManager::trainingStatusTag($course_status->getCourseId(), $course_status->getUserId()),
     ]);
   }
@@ -163,7 +163,7 @@ final class LmsEntityHooks {
       ->accessCheck(FALSE)
       ->condition('lesson_status', $lesson_status->id())
       ->execute();
-    $queue = ($this->getQueue)('lms_delete_entities', TRUE);
+    $queue = ($this->queueFactory)()->get('lms_delete_entities', TRUE);
     foreach (array_chunk($answer_ids, 10) as $ids) {
       $queue->createItem(['entity_type' => 'lms_answer', 'ids' => $ids]);
     }
@@ -171,20 +171,29 @@ final class LmsEntityHooks {
 
   #[Hook('group_access')]
   public function groupAccess(GroupInterface $group, string $operation, AccountInterface $account): AccessResultInterface {
-    if ($group instanceof Course) {
-      if ($operation === 'take') {
-        return $group->takeAccess($account);
-      }
-      if ($operation === 'results') {
-        $access = $group->takeAccess($account);
-        if (!$access->isAllowed()) {
-          return GroupAccessResult::allowedIfHasGroupPermission($group, $account, 'grade students');
-        }
-        return $access;
-      }
+    if ($operation !== 'take' && $operation !== 'results') {
+      return AccessResult::neutral();
     }
 
-    return AccessResult::neutral();
+    if (!$group instanceof CourseInterface) {
+      return AccessResult::neutral();
+    }
+
+    if ($operation === 'take') {
+      return $group->takeAccess($account);
+    }
+
+    // 'results' operation
+    $access = $group->takeAccess($account);
+    if (!$access->isAllowed()) {
+      return GroupAccessResult::allowedIfHasGroupPermission($group, $account, 'grade students');
+    }
+    return $access;
+  }
+
+  #[Hook('field_formatter_info_alter')]
+  public function fieldFormatterInfoAlter(array &$info): void {
+    $info['entity_reference_entity_view']['field_types'][] = 'lms_reference';
   }
 
   #[Hook('entity_field_access')]

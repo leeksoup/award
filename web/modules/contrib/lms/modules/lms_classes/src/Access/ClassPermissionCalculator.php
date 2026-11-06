@@ -7,13 +7,13 @@ namespace Drupal\lms_classes\Access;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\flexible_permissions\CalculatedPermissionsItem;
 use Drupal\flexible_permissions\PermissionCalculatorBase;
 use Drupal\flexible_permissions\RefinableCalculatedPermissionsInterface;
 use Drupal\group\PermissionScopeInterface;
+use Drupal\lms\LmsCourseStorage;
 
 /**
  * Calculates inherited group permissions for an account.
@@ -21,39 +21,36 @@ use Drupal\group\PermissionScopeInterface;
 final class ClassPermissionCalculator extends PermissionCalculatorBase {
 
   /**
-   * Group relationship storage.
-   */
-  private readonly EntityStorageInterface $groupRelationshipStorage;
-
-  /**
    * The constructor.
    */
   public function __construct(
     private readonly ConfigFactoryInterface $configFactory,
     private readonly Connection $database,
-    EntityTypeManagerInterface $entityTypeManager,
-  ) {
-    $this->groupRelationshipStorage = $entityTypeManager->getStorage('group_relationship');
-  }
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly LmsCourseStorage $lmsCourseStorage,
+  ) {}
 
   /**
    * Performance: find relationships using IDs only.
    *
+   * @param array<int|string> $group_ids
+   *   Course group IDs.
+   *
    * @return array<\Drupal\group\Entity\GroupRelationshipInterface>
    *   Group relationships.
    */
-  private function getClassRelationshipsByEntityId(string $group_id): array {
+  private function getClassRelationshipsByGroupIds(array $group_ids): array {
     $relationship_ids = $this->database
       // So that method exists.
       // @phpstan-ignore-next-line
-      ->select($this->groupRelationshipStorage->getDataTable(), 'd')
+      ->select($this->entityTypeManager->getStorage('group_relationship')->getDataTable(), 'd')
       ->fields('d', ['id'])
-      ->condition('gid', $group_id)
+      ->condition('gid', $group_ids, 'IN')
       ->condition('plugin_id', 'lms_classes')
       ->execute()
       ->fetchCol();
     /** @var \Drupal\group\Entity\GroupRelationshipInterface[] */
-    $relationships = $this->groupRelationshipStorage->loadMultiple($relationship_ids);
+    $relationships = $this->entityTypeManager->getStorage('group_relationship')->loadMultiple($relationship_ids);
     return $relationships;
   }
 
@@ -125,12 +122,12 @@ final class ClassPermissionCalculator extends PermissionCalculatorBase {
     $calculated_permissions->addCacheTags(['group_relationship_list:plugin:group_membership:entity:' . $account->id()]);
 
     // Grant permissions on classes based on course membership.
-    $memberships = $this->groupRelationshipStorage->loadByProperties([
+    $memberships = $this->lmsCourseStorage->loadGroupRelationshipsByCourseBundles([
       'plugin_id' => 'group_membership',
       'entity_id' => $account->id(),
-      'group_type' => 'lms_course',
     ]);
     $permissions_by_group_id = [];
+    $class_permissions_by_course_id = [];
     /** @var \Drupal\group\Entity\GroupMembershipInterface $membership */
     foreach ($memberships as $membership) {
       $calculated_permissions->addCacheableDependency($membership);
@@ -147,9 +144,11 @@ final class ClassPermissionCalculator extends PermissionCalculatorBase {
         }
       }
 
-      $course_id = (string) $membership->getGroupId();
+      $class_permissions_by_course_id[$membership->getGroupId()] = $class_permissions;
+    }
+    if ($class_permissions_by_course_id !== []) {
       /** @var \Drupal\group\Entity\GroupRelationshipInterface $relationship */
-      foreach ($this->getClassRelationshipsByEntityId($course_id) as $relationship) {
+      foreach ($this->getClassRelationshipsByGroupIds(\array_keys($class_permissions_by_course_id)) as $relationship) {
         $calculated_permissions->addCacheableDependency($relationship);
 
         $class_id = $relationship->getEntityId();
@@ -158,7 +157,7 @@ final class ClassPermissionCalculator extends PermissionCalculatorBase {
         }
         // Merge permissions in case a user is in two or more classes of
         // the same course so nothing is lost.
-        $permissions_by_group_id[$class_id] += $class_permissions;
+        $permissions_by_group_id[$class_id] += $class_permissions_by_course_id[$relationship->getGroupId()];
       }
     }
     foreach ($permissions_by_group_id as $class_id => $class_permissions) {
@@ -172,11 +171,12 @@ final class ClassPermissionCalculator extends PermissionCalculatorBase {
 
     // Grant permissions on courses based on class memberships.
     $permissions_by_group_id = [];
-    $memberships = $this->groupRelationshipStorage->loadByProperties([
+    $memberships = $this->entityTypeManager->getStorage('group_relationship')->loadByProperties([
       'plugin_id' => 'group_membership',
       'entity_id' => $account->id(),
       'group_type' => 'lms_class',
     ]);
+    $course_permissions_by_class_id = [];
     /** @var \Drupal\group\Entity\GroupMembershipInterface $membership */
     foreach ($memberships as $membership) {
       $calculated_permissions->addCacheableDependency($membership);
@@ -193,10 +193,12 @@ final class ClassPermissionCalculator extends PermissionCalculatorBase {
         }
       }
 
-      $course_relationships = $this->groupRelationshipStorage->loadByProperties([
+      $course_permissions_by_class_id[$membership->getGroupId()] = $course_permissions;
+    }
+    if ($course_permissions_by_class_id !== []) {
+      $course_relationships = $this->lmsCourseStorage->loadGroupRelationshipsByCourseBundles([
         'plugin_id' => 'lms_classes',
-        'entity_id' => $membership->getGroupId(),
-        'group_type' => 'lms_course',
+        'entity_id' => \array_keys($course_permissions_by_class_id),
       ]);
       /** @var \Drupal\group\Entity\GroupRelationshipInterface $relationship */
       foreach ($course_relationships as $relationship) {
@@ -207,7 +209,7 @@ final class ClassPermissionCalculator extends PermissionCalculatorBase {
         }
         // Merge permissions in case a user is in two or more classes of
         // the same course so nothing is lost.
-        $permissions_by_group_id[$course_id] += $course_permissions;
+        $permissions_by_group_id[$course_id] += $course_permissions_by_class_id[$relationship->getEntityId()];
       }
     }
 

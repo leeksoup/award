@@ -6,7 +6,7 @@ namespace Drupal\lms_classes;
 
 use Drupal\Core\Session\AccountInterface;
 use Drupal\group\Entity\GroupInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 
 /**
@@ -20,7 +20,7 @@ final class ClassHelper {
    * @return \Drupal\group\Entity\GroupInterface[]
    *   Class groups array.
    */
-  public static function getClasses(Course $course): array {
+  public static function getClasses(CourseInterface $course): array {
     $classes = [];
     $relationships = $course->getRelationships('lms_classes');
     foreach ($relationships as $relationship) {
@@ -37,7 +37,7 @@ final class ClassHelper {
    * Checks if the given account is a member of any of the classes of this
    * learning path.
    */
-  public static function isClassMember(AccountInterface $account, Course $course, ?RefinableCacheableDependencyInterface $cacheable_metadata = NULL): bool {
+  public static function isClassMember(AccountInterface $account, CourseInterface $course, ?RefinableCacheableDependencyInterface $cacheable_metadata = NULL): bool {
     $classes = self::getClasses($course);
     foreach ($classes as $class) {
       $member = $class->getMember($account);

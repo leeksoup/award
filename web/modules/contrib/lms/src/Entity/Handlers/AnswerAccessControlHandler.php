@@ -37,6 +37,7 @@ final class AnswerAccessControlHandler extends EntityAccessControlHandler {
       // Allow access if the answer belongs to the current user.
       // @todo Use a strict comparison when we're 100% sure
       // AccountInterface::id actually returns int.
+      // @phpstan-ignore equal.notAllowed
       if ($account->id() == $entity->getUserId()) {
         return AccessResult::allowed()->addCacheableDependency($entity);
       }

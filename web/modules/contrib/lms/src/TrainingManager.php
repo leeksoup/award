@@ -7,19 +7,19 @@ namespace Drupal\lms;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\group\Entity\GroupInterface;
 use Drupal\lms\Plugin\ActivityAnswerInterface;
 use Drupal\lms\Entity\ActivityInterface;
 use Drupal\lms\Entity\AnswerInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Entity\CourseStatusInterface;
 use Drupal\lms\Entity\LessonInterface;
 use Drupal\lms\Entity\LessonStatusInterface;
 use Drupal\lms\Exception\TrainingException;
 use Drupal\lms\Plugin\Field\FieldType\LMSReferenceItem;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\Attribute\AutowireCallable;
+use Symfony\Component\DependencyInjection\Attribute\AutowireServiceClosure;
 
 /**
  * The Training manager.
@@ -34,18 +34,17 @@ class TrainingManager {
     protected \Closure $getStorage,
     #[AutowireCallable(service: TimeInterface::class, method: 'getRequestTime')]
     private \Closure $getRequestTime,
-    #[Autowire(service: 'logger.channel.training_manager', lazy: TRUE)]
-    protected readonly LoggerChannelInterface $logger,
-    #[Autowire(service: ActivityAnswerManager::class, lazy: TRUE)]
-    protected readonly ActivityAnswerManager $activityAnswerManager,
-    #[Autowire(service: ModuleHandlerInterface::class, lazy: TRUE)]
+    #[AutowireServiceClosure('logger.channel.training_manager')]
+    protected readonly \Closure $logger,
+    #[AutowireServiceClosure(ActivityAnswerManager::class)]
+    protected readonly \Closure $activityAnswerManager,
     protected readonly ModuleHandlerInterface $moduleHandler,
   ) {}
 
   /**
-   * Gets a learning path status entity given a learning path and user.
+   * Gets a course status entity given a course and user.
    *
-   * @param \Drupal\lms\Entity\Bundle\Course $training
+   * @param \Drupal\group\Entity\GroupInterface $course
    *   The training.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The user account.
@@ -55,11 +54,11 @@ class TrainingManager {
    * @return \Drupal\lms\Entity\CourseStatusInterface|null
    *   Course Status entity or NULL.
    */
-  public function loadCourseStatus(Course $training, AccountInterface $account, array $conditions = []): ?CourseStatusInterface {
+  public function loadCourseStatus(GroupInterface $course, AccountInterface $account, array $conditions = []): ?CourseStatusInterface {
     $course_status_storage = ($this->getStorage)('lms_course_status');
     $query = $course_status_storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition(CourseStatusInterface::COURSE_FIELD, $training->id())
+      ->condition(CourseStatusInterface::COURSE_FIELD, $course->id())
       ->condition('uid', $account->id());
 
     foreach ($conditions as $property => $value) {
@@ -110,8 +109,8 @@ class TrainingManager {
    * @return array
    *   Steps data.
    */
-  public function getOrderedLessons(Course $group): array {
-    $lesson_items = $group->get(Course::LESSONS);
+  public function getOrderedLessons(CourseInterface $group): array {
+    $lesson_items = $group->get(CourseInterface::LESSONS);
     $result = [];
     /** @var \Drupal\lms\Plugin\Field\FieldType\LMSReferenceItem $lesson_item */
     foreach ($lesson_items as $lesson_delta => $lesson_item) {
@@ -282,7 +281,7 @@ class TrainingManager {
    * Get requested lesson and activity deltas for a course.
    */
   public function getRequestedLessonStatus(
-    Course $course,
+    CourseInterface $course,
     AccountInterface $account,
     ?array $requested_deltas = [],
   ): LessonStatusInterface {
@@ -296,10 +295,16 @@ class TrainingManager {
       throw new TrainingException(NULL, TrainingException::COURSE_NEEDS_EVALUATION);
     }
 
-    // Current lesson status must be set and exist at this point.
     $lesson_status = $course_status->getCurrentLessonStatus();
+
+    // We may not have a lesson status set yet.
     if ($lesson_status === NULL) {
-      throw new TrainingException(NULL, TrainingException::COURSE_INITIALIZATION_ERROR);
+      $current_lesson_item = $course->get(CourseInterface::LESSONS)->first();
+      if (!$current_lesson_item instanceof LMSReferenceItem) {
+        throw new TrainingException(NULL, TrainingException::NO_LESSONS);
+      }
+      $lesson_status = $this->initializeLesson($course_status, $current_lesson_item);
+      $lesson_status->save();
     }
 
     $lesson_delta = $lesson_status->getCurrentLessonDelta();
@@ -326,7 +331,7 @@ class TrainingManager {
       $same_activity = FALSE;
     }
 
-    $lessons_field = $course_status->getCourse()->get(Course::LESSONS);
+    $lessons_field = $course_status->getCourse()->get(CourseInterface::LESSONS);
 
     // Validate deltas if the expected next activity is requested.
     if ($same_lesson && $same_activity) {
@@ -430,7 +435,7 @@ class TrainingManager {
    * Validate lesson and activity delta on a course.
    */
   protected function validateCourseDeltas(CourseStatusInterface $course_status, LessonStatusInterface $lesson_status, array $deltas): void {
-    $lessons_field = $course_status->getCourse()->get(Course::LESSONS);
+    $lessons_field = $course_status->getCourse()->get(CourseInterface::LESSONS);
     if (!$lessons_field->offsetExists($deltas['lesson'])) {
       throw new TrainingException(NULL, TrainingException::LESSON_REMOVED);
     }
@@ -440,7 +445,7 @@ class TrainingManager {
       throw new TrainingException(NULL, TrainingException::LESSON_REMOVED);
     }
 
-    $activities_field = $lesson_status->get(LessonInterface::ACTIVITIES);
+    $activities_field = $lesson_status->get(LessonStatusInterface::ACTIVITIES_FIELD);
     if ($activities_field->isEmpty()) {
       return;
     }
@@ -471,7 +476,7 @@ class TrainingManager {
 
     $current_lesson_id = $lesson_status->getLessonId();
     $course = $course_status->getCourse();
-    $lesson_items = $course->get(Course::LESSONS);
+    $lesson_items = $course->get(CourseInterface::LESSONS);
     /** @var \Drupal\lms\Plugin\Field\FieldType\LMSReferenceItem $lesson_item */
     foreach ($lesson_items as $delta => $lesson_item) {
       if ($current_lesson_id === $lesson_item->get('target_id')->getValue()) {
@@ -498,7 +503,7 @@ class TrainingManager {
    * Get previous lesson reference item.
    */
   private function getPreviousLessonDelta(CourseStatusInterface $course_status, string $lesson_id): ?int {
-    $lesson_items = $course_status->getCourse()->get(Course::LESSONS);
+    $lesson_items = $course_status->getCourse()->get(CourseInterface::LESSONS);
     /** @var \Drupal\lms\Plugin\Field\FieldType\LMSReferenceItem $lesson_item */
     foreach ($lesson_items as $delta => $lesson_item) {
       if ($delta === 0) {
@@ -566,9 +571,7 @@ class TrainingManager {
           return [];
         }
       }
-      else {
-        $deltas['activity'] = $previous_lesson_status->getActivityCount() - 1;
-      }
+      $deltas['activity'] = $previous_lesson_status->getActivityCount() - 1;
     }
     else {
       $deltas['activity'] = $deltas['current_activity'] - 1;
@@ -587,8 +590,8 @@ class TrainingManager {
    * @return \Drupal\lms\Entity\CourseStatusInterface
    *   User status for the given course.
    */
-  public function initializeTraining(Course $group, AccountInterface $user): CourseStatusInterface {
-    $current_lesson_item = $group->get(Course::LESSONS)->first();
+  public function initializeTraining(CourseInterface $group, AccountInterface $user): CourseStatusInterface {
+    $current_lesson_item = $group->get(CourseInterface::LESSONS)->first();
     if (!$current_lesson_item instanceof LMSReferenceItem) {
       throw new TrainingException(NULL, TrainingException::NO_LESSONS);
     }
@@ -616,7 +619,7 @@ class TrainingManager {
   /**
    * Get learning path status.
    */
-  public function getCurrentCourseStatus(Course $group, AccountInterface $user): CourseStatusInterface {
+  public function getCurrentCourseStatus(CourseInterface $group, AccountInterface $user): CourseStatusInterface {
     $course_status = $this->loadCourseStatus($group, $user, $group->getInitialCourseStatusConditions());
 
     if ($course_status === NULL) {
@@ -675,11 +678,12 @@ class TrainingManager {
       return NULL;
     }
     $plugin_id = $activity_type->getPluginId();
-    if (!$this->activityAnswerManager->hasDefinition($plugin_id)) {
+    $activity_answer_manager = ($this->activityAnswerManager)();
+    if (!$activity_answer_manager->hasDefinition($plugin_id)) {
       return NULL;
     }
 
-    return $this->activityAnswerManager->createInstance($plugin_id, $activity_type->getPluginConfiguration());
+    return $activity_answer_manager->createInstance($plugin_id, $activity_type->getPluginConfiguration());
   }
 
   /**
@@ -700,7 +704,7 @@ class TrainingManager {
       $activity_id = $answer->get(AnswerInterface::ACTIVITY_FIELD)->target_id;
       // Dangling references in field items case.
       if ($activity_ids !== NULL && !\in_array((int) $activity_id, $activity_ids, TRUE)) {
-        $this->logger->warning('Answer (ID: %answer_id) to a activity (ID: %activity_id) that does not exist in lesson (ID: %lesson_id) found.', [
+        ($this->logger)()->warning('Answer (ID: %answer_id) to a activity (ID: %activity_id) that does not exist in lesson (ID: %lesson_id) found.', [
           '%answer_id' => $answer->id(),
           '%activity_id' => $activity_id,
           '%lesson_id' => $lesson_status->getLessonId(),
@@ -769,13 +773,6 @@ class TrainingManager {
    */
   public function updateCourseStatus(CourseStatusInterface $course_status, bool $last_activity = FALSE): void {
     $course = $course_status->getCourse();
-    $lesson_ids = [];
-
-    $lesson_items = $course->get(Course::LESSONS);
-    /** @var \Drupal\lms\Plugin\Field\FieldType\LMSReferenceItem $lesson_item */
-    foreach ($lesson_items as $lesson_item) {
-      $lesson_ids[$lesson_item->target_id] = $lesson_item->target_id;
-    }
 
     /** @var \Drupal\lms\Entity\LessonStatusInterface[] */
     $lesson_statuses = ($this->getStorage)('lms_lesson_status')->loadByProperties([
@@ -793,8 +790,9 @@ class TrainingManager {
     $all_mandatory_completed = TRUE;
     $max_score = 0;
     $score_weighted_sum = 0;
+
     /** @var \Drupal\lms\Plugin\Field\FieldType\LMSReferenceItem $lesson_item */
-    foreach ($lesson_items as $lesson_item) {
+    foreach ($course->get(CourseInterface::LESSONS) as $lesson_item) {
       $lesson_id = $lesson_item->target_id;
 
       // Lesson not started.
@@ -911,7 +909,7 @@ class TrainingManager {
   public function updateUserCourseData(string $group_id, string $user_id): bool {
 
     $group = ($this->getStorage)('group')->load($group_id);
-    if ($group === NULL || !$group instanceof Course) {
+    if ($group === NULL || !$group instanceof CourseInterface) {
       return FALSE;
     }
     $user = ($this->getStorage)('user')->load($user_id);
@@ -964,11 +962,11 @@ class TrainingManager {
 
         // If $preserve_id is still set to an empty string, looks like
         // we can delete all anyway.
-        foreach ($lesson_statuses as $id => $lesson_status) {
+        foreach ($lesson_statuses as $id => $lesson_status_to_delete) {
           if ($id === $preserve_id) {
             continue;
           }
-          $lesson_status->delete();
+          $lesson_status_to_delete->delete();
         }
       }
 

@@ -10,7 +10,7 @@ field_name: question
 entity_type: lms_activity
 bundle: _bundle_placeholder_
 label: Question
-description: 'The question or instruction that you want the student to respond to. You may want to include some guidance on what they should write about.'
+description: 'The learning content and question the student will respond to with a long-form text answer. Consider including guidance on what to write about.'
 required: true
 translatable: false
 default_value: {  }

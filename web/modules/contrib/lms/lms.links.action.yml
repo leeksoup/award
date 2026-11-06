@@ -10,7 +10,7 @@ lms.add_course:
     group_type: 'lms_course'
   title: 'Add course'
   appears_on:
-    - 'view.lms_courses.page'
+    - 'view.courses_admin.page'
 
 lms.add_lesson:
   route_name: 'entity.lms_lesson.add_page'

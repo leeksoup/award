@@ -165,6 +165,10 @@ final class GeneralLmsTest extends WebDriverTestBase {
    * {@inheritdoc}
    */
   protected function tearDown(): void {
+    // Do this first: watchdogTest() throws on failure, which would skip
+    // everything after it.
+    $this->storeJsConsoleLog();
+
     // Always display watchdog information on tear down.
     $this->watchdogTest();
 
@@ -193,10 +197,10 @@ final class GeneralLmsTest extends WebDriverTestBase {
       $this->pressButton('Edit');
       $this->setFormElementValue('input', 'id', $activity_type_data['id']);
       $this->setFormElementValue('select', 'pluginId', $activity_type_data['pluginId']);
+      $assert_session->assertWaitOnAjaxRequest();
 
       // Handle plugin configuration if present.
       if (\count($activity_type_data['pluginConfiguration']) !== 0) {
-        $assert_session->waitForElementVisible('css', '[name^="pluginConfiguration"]');
         foreach ($activity_type_data['pluginConfiguration'] as $config_key => $config_value) {
           $this->setFormElementValue('select', 'pluginConfiguration[' . $config_key . ']', $config_value);
         }
@@ -385,7 +389,7 @@ final class GeneralLmsTest extends WebDriverTestBase {
     $this->drupalLogin($this->users['student']);
     $this->takeCourse1((string) $this->users['student']->id(), enroll: TRUE);
 
-    $assert_session->pageTextContains('Course completed, please wait for evaluation.');
+    $assert_session->pageTextContains('Course completed! Your answers are awaiting teacher evaluation.');
   }
 
   /**
@@ -400,8 +404,8 @@ final class GeneralLmsTest extends WebDriverTestBase {
     // Answers are auto-evaluated for anonymous users, so the course resolves
     // to passed or failed immediately rather than waiting for teacher grading.
     $page = $this->getSession()->getPage();
-    $passed = $page->hasContent('Course completed.');
-    $failed = $page->hasContent('Course failed.');
+    $passed = $page->hasContent('Course completed! You achieved a passing score.');
+    $failed = $page->hasContent('Course completed. Your score did not meet the passing requirement, so the course is marked as failed.');
     self::assertTrue($passed || $failed, 'Expected course to be passed or failed after anonymous completion.');
   }
 
@@ -593,7 +597,7 @@ final class GeneralLmsTest extends WebDriverTestBase {
       'activity_delta' => 2,
     ];
     $this->drupalGet(Url::fromRoute('lms.group.answer_form', $arbitrary_activity_route_parameters));
-    $assert_session->pageTextContains('This course does not allow free navigation.');
+    $assert_session->pageTextContains('This course requires activities to be completed in order. Submit each activity to continue to the next one.');
 
     $activity_count = 0;
     $back_nav_count = 0;
@@ -744,7 +748,7 @@ final class GeneralLmsTest extends WebDriverTestBase {
     // Wait until the time is finished.
     // @todo Evil but is there a different solution really?
     \sleep($time_limit);
-    $assert_session->pageTextContains('Lesson is over time, course finished.');
+    $assert_session->pageTextContains('The last lesson reached its time limit. The course is now finished.');
 
     // Evaluate course programmatically so further tests are not affected.
     $this->evaluateCourse($course_id, $this->users['student']->id());
@@ -867,7 +871,7 @@ final class GeneralLmsTest extends WebDriverTestBase {
     $assert_session = $this->assertSession();
 
     // Add an existing lesson.
-    $this->pressButton('Reference lessons');
+    $this->pressButton('Add existing lessons');
     $modal_selector = '[role="dialog"].modal-view-lessons-selection';
     $modal = $assert_session->waitForElementVisible('css', $modal_selector);
     $lesson = $this->getEntityByProperties('lms_lesson', [
@@ -884,13 +888,13 @@ final class GeneralLmsTest extends WebDriverTestBase {
     $assert_session->waitForElementRemoved('css', $modal_selector);
 
     // Create a new lesson.
-    $this->pressButton('Create lesson');
+    $this->pressButton('Create new lesson');
     $lesson_modal_selector = '[role="dialog"].modal-entity-lms-lesson';
     $lesson_modal = $assert_session->waitForElementVisible('css', $lesson_modal_selector);
     // Create 2 activities in a nested modal.
     $activity_ids = [];
     foreach ($activity_names as $activity_name) {
-      $lesson_modal->find('named', ['button', 'Create activity'])->click();
+      $lesson_modal->find('named', ['button', 'Create new activity'])->click();
 
       $activity_modal_selector = '[role="dialog"].modal-entity-lms-activity';
       $activity_modal = $assert_session->waitForElementVisible('css', $activity_modal_selector);
@@ -901,7 +905,7 @@ final class GeneralLmsTest extends WebDriverTestBase {
       $assert_session->waitForElementRemoved('css', $activity_modal_selector);
       // Assert focus returned to the button that opened the activity modal.
       // See js/dialog-scroll-fix.js.
-      $this->checkButtonFocus('Create activity');
+      $this->checkButtonFocus('Create new activity');
       // Check if activity has been created.
       $activity = $this->getEntityByProperties('lms_activity', [
         'name' => $activity_name,
@@ -920,7 +924,7 @@ final class GeneralLmsTest extends WebDriverTestBase {
     $assert_session->waitForElementRemoved('css', $lesson_modal_selector);
     // Assert focus returned to the button that opened the lesson modal.
     // See js/dialog-scroll-fix.js.
-    $this->checkButtonFocus('Create lesson');
+    $this->checkButtonFocus('Create new lesson');
 
     // Set parameters for the newly created lesson and verify the lesson
     // got created at the same time.
@@ -937,6 +941,23 @@ final class GeneralLmsTest extends WebDriverTestBase {
     $parameters_modal->find('css', '[name="required_score"]')->setValue('80');
     $parameters_modal->find('css', '.ui-dialog-buttonset > button')->click();
     $assert_session->waitForElementRemoved('css', $parameters_modal_selector);
+
+    // Verify parameter values are shown in the table row after the modal
+    // closes.
+    $parameters_selector = \sprintf('[data-lms-selector="lms-parameters-lms-lesson-%d"]', $lesson->id());
+    $parameters_cell = $page->find('css', $parameters_selector);
+    self::assertNotNull($parameters_cell);
+    self::assertSame(
+      'Required score: 80 %',
+      \trim($parameters_cell->find('css', '.lms-param-item--required_score')->getText()),
+    );
+    self::assertSame(
+      'Mandatory: Yes',
+      \trim($parameters_cell->find('css', '.lms-param-item--mandatory')->getText()),
+    );
+    self::assertFalse(
+      $parameters_cell->find('css', '.lms-param-item--auto_repeat_failed')->isVisible(),
+    );
 
     // Save course, verify data.
     $this->pressButton('[data-drupal-selector="group-lms-course-add-form"] #edit-submit', 'css');

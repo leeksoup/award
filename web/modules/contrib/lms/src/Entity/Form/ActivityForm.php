@@ -30,7 +30,7 @@ final class ActivityForm extends ContentEntityForm {
    */
   public static function create(ContainerInterface $container): static {
     $instance = parent::create($container);
-    $instance->pathValidator = $container->get('path.validator');
+    $instance->pathValidator = $container->get(PathValidatorInterface::class);
     return $instance;
   }
 
@@ -39,7 +39,6 @@ final class ActivityForm extends ContentEntityForm {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $form = parent::buildForm($form, $form_state);
-    $this->adaptFormToModal($form, $form_state);
 
     // Add a Cancel button returning to the destination or fallback collection.
     $destination = $this->getRequest()->query->get('destination');
@@ -62,6 +61,9 @@ final class ActivityForm extends ContentEntityForm {
       '#attributes' => ['class' => ['button']],
       '#weight' => 10,
     ];
+
+    // Runs after the Cancel button is added so it can be hidden in a modal.
+    $this->adaptFormToModal($form, $form_state);
 
     if (!\array_key_exists('delete', $form['actions'])) {
       return $form;

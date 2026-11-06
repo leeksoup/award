@@ -9,8 +9,6 @@ lms_classes.group.add_student:
     parameters:
       group:
         type: entity:group
-        bundle:
-          - lms_course
 
 lms.settings.lms_classes:
   path: '/admin/lms/settings/lms-classes'

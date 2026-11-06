@@ -108,3 +108,34 @@ function lms_update_11017(): void {
     ->set('show_editor_reset_button', TRUE)
     ->save(TRUE);
 }
+
+/**
+ * Uninstall legacy field storage definitions.
+ */
+function lms_update_12001(): void {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  foreach ([
+    'lms_lesson_status' => ['lesson', 'activities'],
+    'lms_answer' => ['activity'],
+    'lms_course_status' => ['gid'],
+  ] as $entity_type_id => $legacy_fields) {
+    foreach ($legacy_fields as $field) {
+      $field_storage_definition = $update_manager->getFieldStorageDefinition($field, $entity_type_id);
+      if ($field_storage_definition === NULL) {
+        continue;
+      }
+      $update_manager->uninstallFieldStorageDefinition($field_storage_definition);
+    }
+  }
+}
+
+/**
+ * Add activity_page_title setting to lms.settings.
+ */
+function lms_update_12002(): void {
+  \Drupal::configFactory()->getEditable('lms.settings')
+    ->set('langcode', 'en')
+    ->set('activity_page_title', '[lms_lesson:label] - [lms_activity:label]')
+    ->save(TRUE);
+}

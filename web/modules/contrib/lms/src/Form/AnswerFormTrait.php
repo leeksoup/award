@@ -17,16 +17,16 @@ trait AnswerFormTrait {
    */
   private function handleFinishedCourse(CourseStatusInterface $course_status): Url {
     if ($course_status->getStatus() === CourseStatusInterface::STATUS_PROGRESS) {
-      $this->messenger()->addWarning($this->t('Last activity completed, training still has unfinished activities.'));
+      $this->messenger()->addWarning($this->t('You have reached the end of the course, but some earlier activities are incomplete. Complete them, then return here to finish the course.'));
     }
     elseif ($course_status->getStatus() === CourseStatusInterface::STATUS_NEEDS_EVALUATION) {
-      $this->messenger()->addStatus($this->t('Course completed, please wait for evaluation.'));
+      $this->messenger()->addStatus($this->t('Course completed! Your answers are awaiting teacher evaluation.'));
     }
     elseif ($course_status->getStatus() === CourseStatusInterface::STATUS_PASSED) {
-      $this->messenger()->addStatus($this->t('Course completed.'));
+      $this->messenger()->addStatus($this->t('Course completed! You achieved a passing score.'));
     }
     elseif ($course_status->getStatus() === CourseStatusInterface::STATUS_FAILED) {
-      $this->messenger()->addError($this->t('Course failed.'));
+      $this->messenger()->addError($this->t('Course completed. Your score did not meet the passing requirement, so the course is marked as failed.'));
     }
 
     // @todo Optional redirection to results?

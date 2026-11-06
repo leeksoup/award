@@ -20,6 +20,8 @@ use Drupal\user\EntityOwnerTrait;
  * @ContentEntityType(
  *   id = "lms_lesson",
  *   label = @Translation("Lesson"),
+ *   label_collection = @Translation("Lessons"),
+ *   label_plural = @Translation("lessons"),
  *   handlers = {
  *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
  *     "list_builder" = "Drupal\lms\Entity\Handlers\LessonListBuilder",
@@ -144,6 +146,13 @@ class Lesson extends EditorialContentEntityBase implements LessonInterface {
    */
   public function getLessonHandlerService(): LmsLessonHandlerInterface {
     return \Drupal::service('lms.lesson_handler.default');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function createNewRevisionByDefault(): bool {
+    return TRUE;
   }
 
   /**
@@ -305,7 +314,9 @@ class Lesson extends EditorialContentEntityBase implements LessonInterface {
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);
 
-    $fields['status']
+    /** @var \Drupal\Core\Field\BaseFieldDefinition $status_field */
+    $status_field = $fields['status'];
+    $status_field
       ->setDescription(new TranslatableMarkup('Unpublished lessons cannot be a part of a published course.'))
       ->setDisplayOptions('form', [
         'type' => 'boolean_checkbox',

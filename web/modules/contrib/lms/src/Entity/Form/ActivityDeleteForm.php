@@ -7,6 +7,7 @@ namespace Drupal\lms\Entity\Form;
 use Drupal\Core\Entity\ContentEntityDeleteForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Markup;
+use Drupal\lms\DataIntegrityChecker;
 use Drupal\lms\Form\DataIntegrityWarningTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -21,7 +22,7 @@ final class ActivityDeleteForm extends ContentEntityDeleteForm {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): self {
-    return parent::create($container)->setDataIntegrityChecker($container->get('lms.data_integrity_checker'));
+    return parent::create($container)->setDataIntegrityChecker($container->get(DataIntegrityChecker::class));
   }
 
   /**

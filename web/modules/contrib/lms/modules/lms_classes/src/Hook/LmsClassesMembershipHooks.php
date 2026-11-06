@@ -13,7 +13,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\group\Entity\Form\GroupRelationshipDeleteForm;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\group\Entity\GroupRelationshipInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Plugin\Block\CourseStartLink;
 use Drupal\lms_classes\ClassHelper;
 
@@ -44,7 +44,7 @@ final class LmsClassesMembershipHooks extends LmsClassesMembershipHooksBase {
     }
 
     $course = $relationship->getGroup();
-    if (!$course instanceof Course) {
+    if (!$course instanceof CourseInterface) {
       return;
     }
 
@@ -85,10 +85,10 @@ final class LmsClassesMembershipHooks extends LmsClassesMembershipHooksBase {
     // Invalidate course classes tag.
     if ($group_relationship->getPluginId() === 'lms_classes') {
       $parent_group = $group_relationship->getGroup();
-      if (!$parent_group instanceof Course) {
+      if (!$parent_group instanceof CourseInterface) {
         return;
       }
-      $this->cacheTagsInvalidator->invalidateTags(['group.classes:' . $parent_group->id()]);
+      ($this->cacheTagsInvalidator)()->invalidateTags(['group.classes:' . $parent_group->id()]);
     }
 
   }
@@ -97,7 +97,7 @@ final class LmsClassesMembershipHooks extends LmsClassesMembershipHooksBase {
    * Alter the course start link.
    */
   #[Hook('lms_course_link')]
-  public function lmsCourseLink(Course $course, AccountInterface $current_user, CacheableMetadata $cacheability): array {
+  public function lmsCourseLink(CourseInterface $course, AccountInterface $current_user, CacheableMetadata $cacheability): array {
     $cacheability->addCacheTags(['group.classes:' . $course->id()]);
 
     if (!$course->takeAccess($current_user)->isAllowed()) {
@@ -116,15 +116,15 @@ final class LmsClassesMembershipHooks extends LmsClassesMembershipHooksBase {
   #[Hook('group_insert')]
   public function groupInsert(GroupInterface $group): void {
     if ($group->bundle() === 'lms_class') {
-      $this->classNameGenerator->setCurrentClassNumber();
+      ($this->classNameGenerator)()->setCurrentClassNumber();
       return;
     }
 
-    if (!$group instanceof Course || $group->isSyncing()) {
+    if (!$group instanceof CourseInterface || $group->isSyncing()) {
       return;
     }
 
-    if ($this->configFactory->get('lms_classes.settings')->get('create_default_class') !== TRUE) {
+    if (($this->configFactory)()->get('lms_classes.settings')->get('create_default_class') !== TRUE) {
       return;
     }
 
@@ -134,7 +134,7 @@ final class LmsClassesMembershipHooks extends LmsClassesMembershipHooksBase {
      */
     $class = $this->entityTypeManager->getStorage('group')->create([
       'type' => 'lms_class',
-      'label' => $this->classNameGenerator->generateDefaultClassName($group),
+      'label' => ($this->classNameGenerator)()->generateDefaultClassName($group),
       'uid' => $group->getOwnerId(),
     ]);
     $class->save();

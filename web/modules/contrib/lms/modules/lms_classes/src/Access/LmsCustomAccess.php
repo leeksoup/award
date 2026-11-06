@@ -9,7 +9,7 @@ use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\DependencyInjection\AutowireTrait;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms_classes\ClassHelper;
 
 /**
@@ -26,7 +26,7 @@ final class LmsCustomAccess implements ContainerInjectionInterface {
   /**
    * Access to add a student to a class.
    */
-  public function addStudentAccess(Course $group): AccessResultInterface {
+  public function addStudentAccess(CourseInterface $group): AccessResultInterface {
     $result = AccessResult::forbidden();
     foreach (ClassHelper::getClasses($group) as $class) {
       if ($class->hasPermission('administer members', $this->currentUser)) {

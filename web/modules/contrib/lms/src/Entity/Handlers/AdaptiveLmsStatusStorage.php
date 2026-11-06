@@ -12,6 +12,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\TempStore\PrivateTempStore;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Storage handler for LMS progress entities supporting anonymous users.
@@ -25,6 +26,11 @@ class AdaptiveLmsStatusStorage extends SqlContentEntityStorage {
   private const TEMPSTORE_NAME = 'lms_entity_storage';
 
   /**
+   * Whether session-backed storage is switched off for the current operation.
+   */
+  protected static bool $noSessionStorage = FALSE;
+
+  /**
    * The private tempstore factory.
    */
   protected PrivateTempStoreFactory $tempStoreFactory;
@@ -35,9 +41,14 @@ class AdaptiveLmsStatusStorage extends SqlContentEntityStorage {
   protected AccountProxyInterface $currentUser;
 
   /**
+   * The request stack.
+   */
+  protected RequestStack $requestStack;
+
+  /**
    * Prototype query instance cloned for each getQuery() call.
    */
-  private TempStoreEntityQuery $tempStoreEntityQuery;
+  protected TempStoreEntityQuery $tempStoreEntityQuery;
 
   /**
    * In-memory cache of all entity field-data arrays for this entity type.
@@ -46,15 +57,16 @@ class AdaptiveLmsStatusStorage extends SqlContentEntityStorage {
    *
    * @var array<int, array<string, mixed>>|null
    */
-  private ?array $entities = NULL;
+  protected ?array $entities = NULL;
 
   /**
    * {@inheritdoc}
    */
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type): static {
     $instance = parent::createInstance($container, $entity_type);
-    $instance->tempStoreFactory = $container->get('tempstore.private');
-    $instance->currentUser = $container->get('current_user');
+    $instance->tempStoreFactory = $container->get(PrivateTempStoreFactory::class);
+    $instance->currentUser = $container->get(AccountProxyInterface::class);
+    $instance->requestStack = $container->get(RequestStack::class);
     $instance->tempStoreEntityQuery = $container->get(TempStoreEntityQuery::class);
     return $instance;
   }
@@ -107,6 +119,58 @@ class AdaptiveLmsStatusStorage extends SqlContentEntityStorage {
 
   /**
    * {@inheritdoc}
+   */
+  public function getQuery($conjunction = 'AND') {
+    if ($this->shouldUseTempStore()) {
+      $query = clone $this->tempStoreEntityQuery;
+      $query->configure(
+        fn() => $this->getEntitiesArray(),
+        fn($data, $field, $value, $op) => $this->matchesCondition($data, $field, $value, $op),
+      );
+      // @phpstan-ignore return.type
+      return $query;
+    }
+    return parent::getQuery($conjunction);
+  }
+
+  /**
+   * Wipes all tempstore progress for this entity type in the current session.
+   */
+  public function clearAnonymousProgress(): void {
+    if (!$this->shouldUseTempStore()) {
+      return;
+    }
+
+    $this->entities = [];
+    $this->getTempStore()->delete($this->entityTypeId);
+  }
+
+  /**
+   * Runs an operation with session-backed progress storage switched off.
+   *
+   * For code acting on a known account while nobody is logged in — API
+   * endpoint callbacks, cron, queue workers — which must reach SQL rather than
+   * the browsing visitor's anonymous sandbox.
+   *
+   * @param callable $fn
+   *   The operation to run.
+   *
+   * @return mixed
+   *   Whatever the operation returns.
+   */
+  public static function withoutSessionStorage(callable $fn): mixed {
+    $previous = self::$noSessionStorage;
+    self::$noSessionStorage = TRUE;
+    try {
+      return $fn();
+    }
+    finally {
+      self::$noSessionStorage = $previous;
+    }
+  }
+
+  /**
+   * {@inheritdoc}
    *
    * Skip module hooks (e.g. comment_entity_insert) for tempstore entities.
    * Those hooks assume SQL-backed IDs and fail with tempstore IDs.
@@ -121,22 +185,6 @@ class AdaptiveLmsStatusStorage extends SqlContentEntityStorage {
       return;
     }
     parent::doPostSave($entity, $update);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getQuery($conjunction = 'AND') {
-    if ($this->shouldUseTempStore()) {
-      $query = clone $this->tempStoreEntityQuery;
-      $query->configure(
-        fn() => $this->getEntitiesArray(),
-        fn($data, $field, $value, $op) => $this->matchesCondition($data, $field, $value, $op),
-      );
-      // @phpstan-ignore return.type
-      return $query;
-    }
-    return parent::getQuery($conjunction);
   }
 
   /**
@@ -161,10 +209,6 @@ class AdaptiveLmsStatusStorage extends SqlContentEntityStorage {
     parent::doDelete($entities);
   }
 
-  // ---------------------------------------------------------------------------
-  // Private helpers
-  // ---------------------------------------------------------------------------
-
   /**
    * Returns TRUE when anonymous tempstore should be used instead of SQL.
    *
@@ -172,7 +216,14 @@ class AdaptiveLmsStatusStorage extends SqlContentEntityStorage {
    * entities there must go to SQL — only real browser sessions use tempstore.
    */
   private function shouldUseTempStore(): bool {
-    return $this->currentUser->isAnonymous() && \PHP_SAPI !== 'cli';
+    if (self::$noSessionStorage || !$this->currentUser->isAnonymous() || \PHP_SAPI === 'cli') {
+      return FALSE;
+    }
+
+    $request = $this->requestStack->getCurrentRequest();
+    return $request !== NULL
+      && $request->hasSession()
+      && ($request->getSession()->isStarted() || !\headers_sent());
   }
 
   /**
@@ -250,18 +301,6 @@ class AdaptiveLmsStatusStorage extends SqlContentEntityStorage {
   }
 
   /**
-   * Wipes all tempstore progress for this entity type in the current session.
-   */
-  public function clearAnonymousProgress(): void {
-    if (!$this->shouldUseTempStore()) {
-      return;
-    }
-
-    $this->entities = [];
-    $this->getTempStore()->delete($this->entityTypeId);
-  }
-
-  /**
    * Strips PHP entity objects from entity reference field values.
    *
    * EntityReferenceItem::getValue() includes the live entity object under the
@@ -313,6 +352,7 @@ class AdaptiveLmsStatusStorage extends SqlContentEntityStorage {
         // phpcs:ignore SlevomatCodingStandard.Operators.DisallowEqualOperators
         'IN' => \in_array(NULL, (array) $expectedValue, TRUE),
         // phpcs:ignore SlevomatCodingStandard.Operators.DisallowEqualOperators
+        // @phpstan-ignore equal.notAllowed (intentional type coercion, see method docblock)
         default => $expectedValue == NULL,
       };
     }
@@ -323,13 +363,16 @@ class AdaptiveLmsStatusStorage extends SqlContentEntityStorage {
     return match($operator) {
       'IN' => (static function () use ($actualValue, $expectedValue): bool {
         foreach ((array) $expectedValue as $candidate) {
+          // @phpstan-ignore equal.notAllowed (intentional type coercion, see method docblock)
           if ($actualValue == $candidate) {
             return TRUE;
           }
         }
         return FALSE;
       })(),
+      // @phpstan-ignore notEqual.notAllowed (intentional type coercion, see method docblock)
       '<>' => $actualValue != $expectedValue,
+      // @phpstan-ignore equal.notAllowed (intentional type coercion, see method docblock)
       default => $actualValue == $expectedValue,
     };
     // phpcs:enable SlevomatCodingStandard.Operators.DisallowEqualOperators

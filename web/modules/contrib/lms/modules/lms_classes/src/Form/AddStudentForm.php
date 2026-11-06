@@ -7,7 +7,7 @@ namespace Drupal\lms_classes\Form;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms_classes\ClassHelper;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -20,7 +20,7 @@ final class AddStudentForm extends FormBase {
    * Constructor.
    */
   public function __construct(
-    protected readonly EntityTypeManagerInterface $entityTypeManager,
+    protected EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -40,7 +40,7 @@ final class AddStudentForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, ?Course $group = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?CourseInterface $group = NULL): array {
     if ($group === NULL) {
       return [];
     }

@@ -80,12 +80,12 @@ abstract class RevisionDeleteForm extends ConfirmFormBase implements EntityFormI
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('date.formatter'),
-      $container->get('entity_type.manager'),
-      $container->get('entity_type.bundle.info'),
-      $container->get('messenger'),
-      $container->get('datetime.time'),
-      $container->get('current_user')
+      $container->get(DateFormatterInterface::class),
+      $container->get(EntityTypeManagerInterface::class),
+      $container->get(EntityTypeBundleInfoInterface::class),
+      $container->get(MessengerInterface::class),
+      $container->get(TimeInterface::class),
+      $container->get(AccountInterface::class)
     );
   }
 

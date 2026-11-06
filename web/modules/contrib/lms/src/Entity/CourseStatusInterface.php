@@ -7,17 +7,19 @@ namespace Drupal\lms\Entity;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 
 /**
  * Provides a CourseStatus interface.
  */
 interface CourseStatusInterface extends ContentEntityInterface {
 
+  public const STATUS_NEW = 'new';
   public const STATUS_PROGRESS = 'in progress';
   public const STATUS_PASSED = 'passed';
   public const STATUS_FAILED = 'failed';
   public const STATUS_NEEDS_EVALUATION = 'evaluation';
+  public const STATUS_EXPIRED = 'expired';
   public const COURSE_FIELD = 'course';
 
   /**
@@ -31,10 +33,10 @@ interface CourseStatusInterface extends ContentEntityInterface {
   /**
    * Gets the related course entity of the course status entity.
    *
-   * @return \Drupal\lms\Entity\Bundle\Course|null
+   * @return \Drupal\lms\Entity\Bundle\CourseInterface
    *   The related course entity.
    */
-  public function getCourse(): ?Course;
+  public function getCourse(): CourseInterface;
 
   /**
    * Gets the related user ID of the course status entity.

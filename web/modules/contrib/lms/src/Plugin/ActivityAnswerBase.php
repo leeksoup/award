@@ -50,8 +50,8 @@ abstract class ActivityAnswerBase extends PluginBase implements ActivityAnswerIn
    *   The dependency injection container.
    */
   public function injectServices(ContainerInterface $container): void {
-    $this->pluginConfigInstaller = $container->get('plugin.config_installer.activity_answer');
-    $this->entityTypeManager = $container->get('entity_type.manager');
+    $this->pluginConfigInstaller = $container->get(PluginConfigInstaller::class);
+    $this->entityTypeManager = $container->get(EntityTypeManagerInterface::class);
   }
 
   /**

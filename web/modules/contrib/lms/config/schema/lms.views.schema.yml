@@ -8,10 +8,6 @@ views.access.lms_course_permission:
       type: 'string'
       label: 'Group permission'
 
-views.filter.lms_parent_class:
-  type: views.filter.in_operator
-  label: 'LMS parent class'
-
 views.field.lms_course_results_link:
   type: views_field
   label: 'Course results link'

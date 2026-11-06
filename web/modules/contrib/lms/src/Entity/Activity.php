@@ -17,6 +17,8 @@ use Drupal\user\EntityOwnerTrait;
  * @ContentEntityType(
  *   id = "lms_activity",
  *   label = @Translation("Activity"),
+ *   label_collection = @Translation("Activities"),
+ *   label_plural = @Translation("activities"),
  *   bundle_label = @Translation("Activity type"),
  *   handlers = {
  *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
@@ -163,7 +165,9 @@ class Activity extends EditorialContentEntityBase implements ActivityInterface {
       ->setRevisionable(TRUE)
       ->setTranslatable(TRUE);
 
-    $fields['status']
+    /** @var \Drupal\Core\Field\BaseFieldDefinition $status_field */
+    $status_field = $fields['status'];
+    $status_field
       ->setDescription(\t('Unpublished activities cannot be a part of a published lesson.'))
       ->setDisplayOptions('form', [
         'type' => 'boolean_checkbox',

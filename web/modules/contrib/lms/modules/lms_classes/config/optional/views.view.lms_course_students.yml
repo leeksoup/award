@@ -557,7 +557,7 @@ display:
           exposed: true
           expose:
             operator_id: uid_op
-            label: Student
+            label: 'Filter by student'
             description: ''
             use_operator: false
             operator: uid_op
@@ -597,7 +597,7 @@ display:
           exposed: true
           expose:
             operator_id: classes_filter_op
-            label: Class
+            label: 'Filter by class'
             description: ''
             use_operator: false
             operator: classes_filter_op
