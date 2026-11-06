@@ -6,7 +6,7 @@ namespace Drupal\lms\Plugin\views\field;
 
 use Drupal\Core\Link;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Entity\CourseStatus;
 use Drupal\lms\TrainingManager;
 use Drupal\views\Attribute\ViewsField;
@@ -26,8 +26,8 @@ final class CourseTakeLink extends FieldPluginBase {
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    protected readonly TrainingManager $trainingManager,
-    protected readonly AccountProxyInterface $currentUser,
+    protected TrainingManager $trainingManager,
+    protected AccountProxyInterface $currentUser,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -40,8 +40,8 @@ final class CourseTakeLink extends FieldPluginBase {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('lms.training_manager'),
-      $container->get('current_user')
+      $container->get(TrainingManager::class),
+      $container->get(AccountProxyInterface::class)
     );
   }
 
@@ -57,7 +57,7 @@ final class CourseTakeLink extends FieldPluginBase {
    */
   public function render(ResultRow $values): string {
     $course = $this->getEntity($values);
-    if (!$course instanceof Course) {
+    if (!$course instanceof CourseInterface) {
       return '';
     }
 

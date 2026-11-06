@@ -6,6 +6,7 @@ namespace Drupal\lms\Entity\Form;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\ContentEntityForm;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -13,6 +14,7 @@ use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\lms\Controller\CourseControllerTrait;
 use Drupal\lms\Entity\Answer;
+use Drupal\lms\Entity\CourseStatusInterface;
 use Drupal\lms\Entity\LessonStatusInterface;
 use Drupal\lms\Form\AnswerFormTrait;
 use Drupal\lms\Plugin\ActivityAnswerInterface;
@@ -47,10 +49,10 @@ final class AnswerForm extends ContentEntityForm {
    */
   public static function create(ContainerInterface $container): self {
     return new static(
-      $container->get('entity.repository'),
-      $container->get('entity_type.bundle.info'),
-      $container->get('datetime.time'),
-      $container->get('lms.training_manager')
+      $container->get(EntityRepositoryInterface::class),
+      $container->get(EntityTypeBundleInfoInterface::class),
+      $container->get(TimeInterface::class),
+      $container->get(TrainingManager::class)
     );
   }
 
@@ -90,7 +92,7 @@ final class AnswerForm extends ContentEntityForm {
     // Backwards navigation.
     $back_deltas = $this->trainingManager->getBackNavDeltas($this->entity);
     if (\count($back_deltas) !== 0) {
-      $form['actions']['back'] = Link::createFromRoute($this->t('Back'), 'lms.group.answer_form', [
+      $form['actions']['back'] = Link::createFromRoute($this->t('Previous activity'), 'lms.group.answer_form', [
         'group' => $lesson_status->getCourseStatus()->getCourseId(),
         'lesson_delta' => $back_deltas['lesson'],
         'activity_delta' => $back_deltas['activity'],
@@ -109,7 +111,7 @@ final class AnswerForm extends ContentEntityForm {
 
     // Actions tweaks.
     $form['actions']['submit']['#submit'] = ['::submitForm'];
-    $form['actions']['submit']['#value'] = $this->t('Submit');
+    $form['actions']['submit']['#value'] = $this->t('Submit answer');
     // Last activity of the course.
     if ($lesson_status->getNextActivityDelta() === NULL && $lesson_status->getNextLessonDelta() === NULL) {
       $form['actions']['submit']['#value'] = $this->t('Finish course');
@@ -125,7 +127,7 @@ final class AnswerForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, FormStateInterface $form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state): ContentEntityInterface {
     $this->entity = parent::validateForm($form, $form_state);
     \assert($this->entity instanceof Answer);
     if ($this->plugin === NULL) {
@@ -222,7 +224,11 @@ final class AnswerForm extends ContentEntityForm {
     else {
       $lesson_status->setCurrentActivityDelta($next_activity_delta);
       $lesson_status->save();
-      // We also need to save Course status to update last activity time.
+
+      // Save Course status to update last activity time and status.
+      if ($course_status->getStatus() === CourseStatusInterface::STATUS_NEW) {
+        $course_status->setStatus(CourseStatusInterface::STATUS_PROGRESS);
+      }
       $course_status->save();
     }
 
@@ -254,13 +260,13 @@ final class AnswerForm extends ContentEntityForm {
       $next_lesson_status = $this->trainingManager->getNextLessonStatus($course_status);
     }
     catch (\Exception $e) {
-      $this->messenger()->addError('Lesson is over time.');
+      $this->messenger()->addError('The last lesson reached its time limit.');
       $this->trainingManager->updateCourseStatus($course_status);
       return $this->handleError($course_status->getCourse(), $e);
     }
 
     if ($next_lesson_status !== NULL) {
-      $this->messenger()->addError("Lesson is over time, you've been redirected to the next lesson.");
+      $this->messenger()->addError('The last lesson reached its time limit. You have been redirected to the next lesson.');
       $next_lesson_status->save();
       $course_status->set('current_lesson_status', $next_lesson_status);
       $this->trainingManager->updateCourseStatus($course_status);
@@ -271,7 +277,7 @@ final class AnswerForm extends ContentEntityForm {
       ]);
     }
     else {
-      $this->messenger()->addError('Lesson is over time, course finished.');
+      $this->messenger()->addError('The last lesson reached its time limit. The course is now finished.');
       $this->trainingManager->updateCourseStatus($course_status, TRUE);
       return Url::fromRoute('entity.group.canonical', [
         'group' => $course_status->getCourseId(),

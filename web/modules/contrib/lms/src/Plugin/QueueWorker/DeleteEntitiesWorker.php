@@ -38,7 +38,7 @@ final class DeleteEntitiesWorker extends QueueWorkerBase implements ContainerFac
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity_type.manager'),
+      $container->get(EntityTypeManagerInterface::class),
     );
   }
 

@@ -7,7 +7,10 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Hook\Attribute\LegacyHook;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\lms\Entity\Bundle\Course;
 use Drupal\lms\Entity\LessonStatusInterface;
 use Drupal\lms_hooks_test\Hook\LmsTestHooks;
 
@@ -17,4 +20,20 @@ use Drupal\lms_hooks_test\Hook\LmsTestHooks;
 #[LegacyHook]
 function lms_hooks_test_lms_initialize_lesson(LessonStatusInterface $lesson_status): void {
   \Drupal::service(LmsTestHooks::class)->lmsInitializeLesson($lesson_status);
+}
+
+/**
+ * Implements hook_lms_course_link().
+ */
+#[LegacyHook]
+function lms_hooks_test_lms_course_link(Course $course, AccountInterface $current_user, CacheableMetadata $cacheability): ?array {
+  $test_hooks = \Drupal::service(LmsTestHooks::class);
+  // On Drupal 10 OOP hook implementations are not discovered, emulate both
+  // ordered implementations here: the next one executes only when the
+  // previous one returned no build.
+  $build = $test_hooks->lmsCourseLinkFirst($course, $current_user, $cacheability);
+  if (\is_array($build) && \count($build) !== 0) {
+    return $build;
+  }
+  return $test_hooks->lmsCourseLinkLast($course, $current_user, $cacheability);
 }

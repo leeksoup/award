@@ -72,4 +72,12 @@ interface LessonInterface extends ContentEntityInterface, EntityChangedInterface
    */
   public function getLessonHandlerService(): LmsLessonHandlerInterface;
 
+  /**
+   * Whether the "Create new revision" option defaults to on for this lesson.
+   *
+   * @return bool
+   *   TRUE to pre-check the option on the edit form, FALSE otherwise.
+   */
+  public function createNewRevisionByDefault(): bool;
+
 }

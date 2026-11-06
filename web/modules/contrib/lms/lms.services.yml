@@ -1,14 +1,17 @@
 services:
   _defaults:
     autowire: true
+    autoconfigure: true
 
   lms.training_manager:
     class: Drupal\lms\TrainingManager
   Drupal\lms\TrainingManager: '@lms.training_manager'
 
-  lms.block_builder:
-    class: Drupal\lms\BlockBuilder
-  Drupal\lms\BlockBuilder: '@lms.block_builder'
+  Drupal\lms\CourseNavBlockBuilder: ~
+
+  Drupal\lms\LmsCourseStorage:
+    tags:
+      - { name: cache_tags_invalidator }
 
   Drupal\lms\LmsBreadcrumbBuilder:
     tags:
@@ -49,6 +52,8 @@ services:
   Drupal\lms\LmsContentImporter: ~
 
   Drupal\lms\RevisionLoadChecker: ~
+
+  Drupal\lms\EventSubscriber\DefaultContentSubscriber: ~
 
   # Cache contexts.
   cache_context.user.lms_activity_access:

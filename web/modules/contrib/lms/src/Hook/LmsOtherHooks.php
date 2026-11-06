@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Drupal\lms\Hook;
 
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\Sql\SqlEntityStorageInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Path\PathValidatorInterface;
@@ -12,8 +15,11 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
-use Drupal\lms\Entity\CourseStatusInterface;
+use Drupal\lms\Entity\Bundle\CourseInterface;
+use Drupal\lms\LmsCourseStorage;
+use Drupal\lms\TrainingManager;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\DependencyInjection\Attribute\AutowireServiceClosure;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
@@ -26,16 +32,22 @@ final class LmsOtherHooks {
   use StringTranslationTrait;
 
   public function __construct(
-    #[Autowire(service: 'module_handler', lazy: TRUE)]
     protected readonly ModuleHandlerInterface $moduleHandler,
-    #[Autowire(service: 'current_route_match', lazy: TRUE)]
     protected readonly RouteMatchInterface $routeMatch,
-    #[Autowire(service: 'request_stack')]
+    #[Autowire(service: RequestStack::class)]
     protected readonly RequestStack $requestStack,
-    #[Autowire(service: 'path.validator')]
+    #[Autowire(service: PathValidatorInterface::class)]
     protected readonly PathValidatorInterface $pathValidator,
-    #[Autowire(service: 'current_user')]
+    #[Autowire(service: AccountInterface::class)]
     protected readonly AccountInterface $currentUser,
+    #[AutowireServiceClosure(TrainingManager::class)]
+    protected readonly \Closure $trainingManager,
+    #[AutowireServiceClosure(LmsCourseStorage::class)]
+    protected readonly \Closure $lmsCourseStorage,
+    #[AutowireServiceClosure(EntityFieldManagerInterface::class)]
+    protected readonly \Closure $entityFieldManager,
+    #[AutowireServiceClosure(EntityTypeManagerInterface::class)]
+    protected readonly \Closure $entityTypeManager,
   ) {}
 
   #[Hook('theme_suggestions_container_alter')]
@@ -76,31 +88,43 @@ final class LmsOtherHooks {
       ],
     ];
 
-    $data['group_relationship_field_data']['classes_filter'] = [
-      'title' => t('Filter relationships by child class'),
-      'filter' => [
-        'title' => t('Is content of selected classes'),
-        'real field' => CourseStatusInterface::COURSE_FIELD,
-        'id' => 'lms_parent_class',
-      ],
-      'argument' => [
-        'title' => t('Group relationships of Course classes'),
-        'id' => 'course_classes_relationships',
-        'real field' => CourseStatusInterface::COURSE_FIELD,
-      ],
-    ];
+    $this->useEntityReferenceFilters($data);
+  }
 
-    $data['group_relationship_field_data']['course_status'] = [
-      'title' => t('Course status'),
-      'help' => t('Relates memberships to the current Course Status entity. Requires Course (lms_course group bundle) context.'),
-      'relationship' => [
-        'label' => t('Course status'),
-        'group' => t('LMS'),
-        'real field' => CourseStatusInterface::COURSE_FIELD,
-        'base' => 'lms_course_status',
-        'id' => 'class_member_to_course_status',
-      ],
-    ];
+  /**
+   * Use the entity_reference filter for LMS's custom reference field types.
+   *
+   * Both 'lms_reference' and 'lms_revision_reference' extend
+   * EntityReferenceItem but, since Views only special-cases the core
+   * 'entity_reference' field type, their target_id columns otherwise default
+   * to a plain numeric filter.
+   */
+  private function useEntityReferenceFilters(array &$data): void {
+    $entity_field_manager = ($this->entityFieldManager)();
+    $entity_type_manager = ($this->entityTypeManager)();
+
+    foreach (['lms_reference', 'lms_revision_reference'] as $field_type) {
+      foreach ($entity_field_manager->getFieldMapByFieldType($field_type) as $entity_type_id => $fields) {
+        $storage = $entity_type_manager->getStorage($entity_type_id);
+        if (!$storage instanceof SqlEntityStorageInterface) {
+          continue;
+        }
+        $table_mapping = $storage->getTableMapping();
+
+        foreach (\array_keys($fields) as $field_name) {
+          $table = $table_mapping->getFieldTableName($field_name);
+          $column = $table_mapping->getColumnNames($field_name)['target_id'] ?? NULL;
+          if (
+            $column === NULL ||
+            !\array_key_exists($table, $data) ||
+            !\array_key_exists($column, $data[$table])
+          ) {
+            continue;
+          }
+          $data[$table][$column]['filter']['id'] = 'entity_reference';
+        }
+      }
+    }
   }
 
   #[Hook('page_top')]
@@ -111,8 +135,8 @@ final class LmsOtherHooks {
 
     $route_name = $this->routeMatch->getRouteName();
     $is_relevant = match ($route_name) {
-      'entity.group.add_form' => $this->routeMatch->getParameter('group_type')?->id() === 'lms_course',
-      'entity.group.edit_form' => $this->routeMatch->getParameter('group')?->bundle() === 'lms_course',
+      'entity.group.add_form' => \in_array($this->routeMatch->getParameter('group_type')?->id(), ($this->lmsCourseStorage)()->getCourseBundleIds(), TRUE),
+      'entity.group.edit_form' => $this->routeMatch->getParameter('group') instanceof CourseInterface,
       // Lessons have their canonical route set to the edit form one.
       'entity.lms_lesson.add_form', 'entity.lms_lesson.edit_form', 'entity.lms_lesson.canonical' => TRUE,
       default => FALSE,
@@ -193,6 +217,28 @@ final class LmsOtherHooks {
           $query['destination'] = $destination;
           $tab['#link']['url']->setOption('query', $query);
         }
+      }
+    }
+  }
+
+  #[Hook('preprocess_html')]
+  public function preprocessHtml(array &$variables): void {
+    // Add Course and Lesson context to the <title> element.
+    if ($this->routeMatch->getRouteName() === 'lms.group.answer_form') {
+      try {
+        $group = $this->routeMatch->getParameter('group');
+        $lesson_delta = (int) $this->routeMatch->getParameter('lesson_delta');
+        $training_manager = ($this->trainingManager)();
+        $course_status = $training_manager->getCurrentCourseStatus($group, $this->currentUser);
+        $lesson = $training_manager->getLessonByDelta($course_status, $lesson_delta);
+
+        if ($lesson !== NULL) {
+          $current_title = $variables['head_title']['title'] ?? '';
+          $variables['head_title']['title'] = $current_title . ' | ' . $lesson->label() . ' | ' . $group->label();
+        }
+      }
+      catch (\Exception $e) {
+        // Fail silently and fallback to default title.
       }
     }
   }

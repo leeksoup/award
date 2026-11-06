@@ -11,6 +11,9 @@ lms.settings:
     show_editor_reset_button:
       label: '"Reset for updates" button for course editors'
       type: boolean
+    activity_page_title:
+      label: 'Activity page title pattern'
+      type: required_label
 
 lms.lms_activity_type.*:
   type: config_entity
@@ -69,3 +72,11 @@ field.widget.settings.lms_reference:
     placeholder:
       type: label
       label: 'Placeholder'
+
+field.formatter.settings.lms_reference_label:
+  type: mapping
+  label: 'LMS entity reference label display format settings'
+  mapping:
+    link:
+      type: boolean
+      label: 'Link label to the referenced entity'

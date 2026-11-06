@@ -12,6 +12,8 @@ use Drupal\Core\Config\Entity\ConfigEntityBundleBase;
  * @ConfigEntityType(
  *   id = "lms_activity_type",
  *   label = @Translation("Activity type"),
+ *   label_collection = @Translation("Activity types"),
+ *   label_plural = @Translation("activity types"),
  *   handlers = {
  *     "list_builder" = "Drupal\lms\Entity\Handlers\ActivityTypeListBuilder",
  *     "form" = {

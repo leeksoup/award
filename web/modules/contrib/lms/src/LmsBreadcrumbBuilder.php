@@ -39,7 +39,7 @@ class LmsBreadcrumbBuilder implements BreadcrumbBuilderInterface {
     $breadcrumb->addCacheContexts(['route']);
     $breadcrumb->addLink(Link::createFromRoute($this->t('Home'), '<front>'));
 
-    /** @var \Drupal\lms\Entity\Bundle\Course $course */
+    /** @var \Drupal\lms\Entity\Bundle\CourseInterface $course */
     $course = $route_match->getParameter('group');
     $breadcrumb->addLink($course->toLink());
     $breadcrumb->addCacheableDependency($course);

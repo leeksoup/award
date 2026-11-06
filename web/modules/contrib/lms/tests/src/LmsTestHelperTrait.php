@@ -91,7 +91,7 @@ trait LmsTestHelperTrait {
     $assert_session = $this->assertSession();
 
     foreach ($values as $item) {
-      $this->pressButton(\sprintf('Reference %s', $field_name));
+      $this->pressButton(\sprintf('Add existing %s', $field_name));
       $modal = $assert_session->waitForElementVisible('css', $modal_view_selector);
       if (\array_key_exists('entity', $item)) {
         $entity = $item['entity'];
@@ -669,16 +669,16 @@ trait LmsTestHelperTrait {
         'location',
       ])
       ->execute()
-      ->fetchAll(\PDO::FETCH_ASSOC);
+      ->fetchAll();
 
     $messages = [];
     foreach ($results as $result) {
-      $variables = \unserialize($result['variables'], ['allowed_classes' => [Markup::class]]);
-      $message = new FormattableMarkup($result['message'], $variables);
+      $variables = \unserialize($result->variables, ['allowed_classes' => [Markup::class]]);
+      $message = new FormattableMarkup($result->message, $variables);
       $messages[] = \sprintf('Severity: %d, type: %s, location: %s, message: %s',
-        $result['severity'],
-        $result['type'],
-        $result['location'],
+        $result->severity,
+        $result->type,
+        $result->location,
         \strip_tags((string) $message)
       );
     }
@@ -710,6 +710,28 @@ trait LmsTestHelperTrait {
   }
 
   /**
+   * Store browser console output captured during the current test.
+   *
+   * Uses the WebDriver session's own log, not the sessionStorage-based
+   * approach core's failOnJavaScriptErrors() uses - that relies on a page
+   * JS listener, which can itself lose the race against an early
+   * script-load-order error.
+   */
+  private function storeJsConsoleLog(): void {
+    /** @var \Behat\Mink\Driver\Selenium2Driver $driver */
+    $driver = $this->getSession()->getDriver();
+    $entries = $driver->getWebDriverSession()->log('browser');
+    if (\count($entries) === 0) {
+      return;
+    }
+    $lines = \array_map(
+      static fn (array $entry) => \sprintf('%s: %s', $entry['level'], $entry['message']),
+      $entries
+    );
+    \file_put_contents($this->htmlOutputDirectory . '/js_console_log.txt', \implode(\PHP_EOL, $lines));
+  }
+
+  /**
    * Override the pressButton method.
    *
    * @todo Track https://www.drupal.org/project/drupal/issues/2936122
@@ -726,9 +748,20 @@ trait LmsTestHelperTrait {
     }
     self::assertNotNull($button, \sprintf('Button "%s" not found.', $selector));
     $button->press();
-    $result = $page->waitFor(5, function (DocumentElement $page) use ($before, $session) {
+    // Page must be fully loaded and no AJAX requests may be in progress,
+    // otherwise a subsequent form submit can race with an in-flight AJAX
+    // request and lose its results. jQuery is consulted only if present,
+    // Drupal.ajax.instances covers AJAX requests without it.
+    $idle_script = <<<'JS'
+document.readyState === "complete" &&
+(typeof jQuery === "undefined" || jQuery.active === 0) &&
+(typeof Drupal === "undefined" || typeof Drupal.ajax === "undefined" || !Drupal.ajax.instances.some(function (instance) {
+  return instance && instance.ajaxing === true;
+}))
+JS;
+    $result = $page->waitFor(5, function (DocumentElement $page) use ($before, $session, $idle_script) {
       $page_html = $page->getHtml();
-      return $page_html !== '' && \strcmp($page_html, $before) !== 0 && (bool) $session->evaluateScript('document.readyState === "complete"');
+      return $page_html !== '' && \strcmp($page_html, $before) !== 0 && (bool) $session->evaluateScript($idle_script);
     });
     self::assertTrue($result, \sprintf("Pressing of the %s button didn't produce any results or page wasn't properly loaded afterwards.", $selector));
   }

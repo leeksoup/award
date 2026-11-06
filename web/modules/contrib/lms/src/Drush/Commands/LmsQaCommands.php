@@ -9,7 +9,7 @@ use Consolidation\AnnotatedCommand\Hooks\HookManager;
 use Consolidation\SiteAlias\SiteAliasManagerAwareInterface;
 use Consolidation\SiteAlias\SiteAliasManagerAwareTrait;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\TrainingManager;
 use Drupal\lms\LmsContentImporter;
 use Drupal\user\UserInterface;
@@ -116,7 +116,7 @@ final class LmsQaCommands extends DrushCommands implements SiteAliasManagerAware
   public function validateResetCourseArguments(CommandData $commandData): void {
     $args = $commandData->input()->getArguments();
     $course = $this->entityTypeManager->getStorage('group')->load($args['course_id']);
-    if (!$course instanceof Course) {
+    if (!$course instanceof CourseInterface) {
       throw new \InvalidArgumentException("A course with ID {$args['course_id']} does not exist.");
     }
     if ($args['user_id'] !== NULL) {

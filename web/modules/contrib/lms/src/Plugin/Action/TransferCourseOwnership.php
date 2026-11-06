@@ -13,7 +13,7 @@ use Drupal\Core\Plugin\PluginFormInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\lms\Entity\ActivityInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Entity\LessonInterface;
 use Drupal\views_bulk_operations\Action\ViewsBulkOperationsActionBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -56,8 +56,8 @@ final class TransferCourseOwnership extends ViewsBulkOperationsActionBase implem
    * {@inheritdoc}
    */
   public function execute(?EntityInterface $entity = NULL): TranslatableMarkup {
-    if (!$entity instanceof Course) {
-      return $this->t('Skipped: not an lms_course group.');
+    if (!$entity instanceof CourseInterface) {
+      return $this->t('Skipped: not a course group.');
     }
 
     $new_owner_id = (int) $this->configuration['new_owner'];
@@ -68,7 +68,7 @@ final class TransferCourseOwnership extends ViewsBulkOperationsActionBase implem
     $entity->setOwnerId($new_owner_id);
     $entity->save();
 
-    foreach ($entity->get(Course::LESSONS) as $lesson_item) {
+    foreach ($entity->get(CourseInterface::LESSONS) as $lesson_item) {
       /** @var \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem<\Drupal\lms\Entity\LessonInterface> $lesson_item */
       $lesson = $lesson_item->entity;
       if (!$lesson instanceof LessonInterface) {

@@ -23,7 +23,7 @@ final class CourseStatus extends FieldPluginBase {
   /**
    * The current user.
    */
-  private AccountInterface $currentUser;
+  protected AccountInterface $currentUser;
 
   /**
    * Injects services.
@@ -32,7 +32,7 @@ final class CourseStatus extends FieldPluginBase {
    *   The dependency injection container.
    */
   public function injectServices(ContainerInterface $container): void {
-    $this->currentUser = $container->get('current_user');
+    $this->currentUser = $container->get(AccountInterface::class);
   }
 
   /**

@@ -13,7 +13,7 @@ use Drupal\Core\Queue\QueueWorkerManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\group\Entity\GroupRelationshipInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\TrainingManager;
 use Drupal\views_bulk_operations\Action\ViewsBulkOperationsActionBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -33,7 +33,7 @@ final class ResetCourseProgress extends ViewsBulkOperationsActionBase implements
   /**
    * Static storage.
    */
-  private ?Course $course = NULL;
+  protected ?CourseInterface $course = NULL;
 
   /**
    * {@inheritdoc}
@@ -42,10 +42,10 @@ final class ResetCourseProgress extends ViewsBulkOperationsActionBase implements
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    protected readonly EntityTypeManagerInterface $entityTypeManager,
-    protected readonly TrainingManager $trainingManager,
-    protected readonly QueueFactory $queueFactory,
-    protected readonly QueueWorkerManagerInterface $queueWorkerManager,
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected TrainingManager $trainingManager,
+    protected QueueFactory $queueFactory,
+    protected QueueWorkerManagerInterface $queueWorkerManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -111,7 +111,7 @@ final class ResetCourseProgress extends ViewsBulkOperationsActionBase implements
   /**
    * Course getter.
    */
-  private function getCourse(): ?Course {
+  private function getCourse(): ?CourseInterface {
     if ($this->course !== NULL) {
       return $this->course;
     }
@@ -120,7 +120,7 @@ final class ResetCourseProgress extends ViewsBulkOperationsActionBase implements
     if (\array_key_exists(0, $this->context['arguments'])) {
       $course = $this->entityTypeManager->getStorage('group')->load($this->context['arguments'][0]);
     }
-    if ($course instanceof Course) {
+    if ($course instanceof CourseInterface) {
       $this->course = $course;
       return $course;
     }

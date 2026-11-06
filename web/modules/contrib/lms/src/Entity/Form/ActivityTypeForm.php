@@ -29,7 +29,7 @@ final class ActivityTypeForm extends EntityForm {
    */
   public static function create(ContainerInterface $container): self {
     return new static(
-      $container->get('plugin.manager.activity_answer')
+      $container->get(ActivityAnswerManager::class)
     );
   }
 
@@ -108,7 +108,7 @@ final class ActivityTypeForm extends EntityForm {
 
     $form['defaultMaxScore'] = [
       '#title' => $this->t('Default maximum score'),
-      '#description' => $this->t('Applied when assigning activities to a lesson.'),
+      '#description' => $this->t('The default score this activity is marked out of when assigned to a lesson. Set to 0 if the activity does not require evaluation.'),
       '#type' => 'number',
       '#min' => 0,
       '#step' => 1,

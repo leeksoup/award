@@ -10,7 +10,7 @@ field_name: question
 entity_type: lms_activity
 bundle: _bundle_placeholder_
 label: Question
-description: ''
+description: 'The learning content and question the student will respond to.'
 required: true
 translatable: false
 default_value: {  }

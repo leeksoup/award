@@ -28,8 +28,8 @@ abstract class ModalSubformBase extends PluginBase implements ModalSubformInterf
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    protected readonly FormBuilderInterface $formBuilder,
-    protected readonly ClassResolverInterface $classResolver,
+    protected FormBuilderInterface $formBuilder,
+    protected ClassResolverInterface $classResolver,
   ) {
     $this->validateConfiguration($configuration);
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -48,8 +48,8 @@ abstract class ModalSubformBase extends PluginBase implements ModalSubformInterf
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('form_builder'),
-      $container->get('class_resolver')
+      $container->get(FormBuilderInterface::class),
+      $container->get(ClassResolverInterface::class)
     );
   }
 

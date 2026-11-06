@@ -33,8 +33,6 @@ lms.course.start:
     parameters:
       group:
         type: entity:group
-        bundle:
-          - lms_course
 
 lms.course.reset_test:
   path: '/course/{group}/reset-test'
@@ -48,8 +46,6 @@ lms.course.reset_test:
     parameters:
       group:
         type: entity:group
-        bundle:
-          - lms_course
 
 lms.group.answer_form:
   path: 'course/{group}/{lesson_delta}/{activity_delta}'
@@ -63,8 +59,6 @@ lms.group.answer_form:
     parameters:
       group:
         type: entity:group
-        bundle:
-          - lms_course
       lesson_delta:
         type: integer
       activity_delta:
@@ -82,8 +76,6 @@ lms.group.results:
     parameters:
       group:
         type: entity:group
-        bundle:
-          - lms_course
       user:
         type: entity:user
 
@@ -98,8 +90,6 @@ lms.group.self_results:
     parameters:
       group:
         type: entity:group
-        bundle:
-          - lms_course
 
 lms.answer.details:
   path: 'answer/{lms_answer}/{js}/details'

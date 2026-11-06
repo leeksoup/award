@@ -86,7 +86,7 @@ final class LMSReferenceItemWidget extends EntityReferenceAutocompleteWidget {
       '#min' => 0,
       '#max' => 100,
       '#title' => $this->t('Maximum score'),
-      '#description' => $this->t('Setting this value to 0 will set all answers to the activity as evaluated.'),
+      '#description' => $this->t('The score this activity is marked out of. Set to 0 if the activity does not require evaluation.'),
       '#default_value' => 5,
     ];
     $element['target_id']['#ajax'] = [
@@ -111,21 +111,24 @@ final class LMSReferenceItemWidget extends EntityReferenceAutocompleteWidget {
     $element['data']['auto_repeat_failed'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Auto-repeat if failed'),
-      '#description' => $this->t("If a student didn't get the score required to pass this lesson, it will be restarted when trying to navigate to the next one."),
+      '#description' => $this->t('If a student does not achieve the required score on this lesson, the lesson restarts when they attempt to continue to the next one.'),
       '#default_value' => FALSE,
     ];
     $element['data']['required_score'] = [
       '#type' => 'number',
       '#min' => 0,
       '#max' => 100,
-      '#title' => $this->t('Required score [%]'),
+      '#title' => $this->t('Required score'),
+      '#field_suffix' => '%',
+      '#description' => $this->t('The minimum percentage a student must score to pass this lesson.'),
       '#default_value' => 50,
     ];
     $element['data']['time_limit'] = [
       '#type' => 'number',
       '#min' => 0,
-      '#title' => $this->t('Time limit [min]'),
-      '#description' => $this->t('After this much time has passed, the lesson will be finished with all remaining activities unanswered.'),
+      '#title' => $this->t('Time limit'),
+      '#field_suffix' => t('min'),
+      '#description' => $this->t('After this much time has passed, the lesson is closed automatically and remaining activities are left unanswered. Set to 0 for no time limit.'),
       '#default_value' => 0,
     ];
   }

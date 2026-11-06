@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\lms\Entity\Handlers;
 
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Entity\EntityFormBuilderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -26,9 +28,9 @@ abstract class LmsLessonHandlerBase implements LmsLessonHandlerInterface {
   use StringTranslationTrait;
 
   public function __construct(
-    #[AutowireCallable(service: 'entity.form_builder', method: 'getForm')]
+    #[AutowireCallable(service: EntityFormBuilderInterface::class, method: 'getForm')]
     protected \Closure $getEntityForm,
-    #[AutowireCallable(service: 'datetime.time', method: 'getRequestTime')]
+    #[AutowireCallable(service: TimeInterface::class, method: 'getRequestTime')]
     protected \Closure $getRequestTime,
     protected readonly EntityTypeManagerInterface $entityTypeManager,
     protected readonly TrainingManager $trainingManager,

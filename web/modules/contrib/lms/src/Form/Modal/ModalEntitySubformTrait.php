@@ -33,6 +33,12 @@ trait ModalEntitySubformTrait {
     // We don't want delete action in a modal edit form.
     $form['actions']['delete']['#access'] = FALSE;
 
+    // We don't want a Cancel action in a modal edit form either — the modal
+    // dialog itself already provides a way to close/cancel.
+    if (\array_key_exists('cancel', $form['actions'])) {
+      $form['actions']['cancel']['#access'] = FALSE;
+    }
+
     // We need to modify submit element name not to have duplicate
     // data-drupal-selector in DOM (scroll issues) and add AJAX callback.
     $submit_name = 'create_' . $this->entity->getEntityTypeId();

@@ -9,8 +9,8 @@ id: lms_activity._bundle_placeholder_.field_question_text
 field_name: field_question_text
 entity_type: lms_activity
 bundle: _bundle_placeholder_
-label: 'Question Text'
-description: 'Enter the full text, enclosing the correct answer words or phrases in [square brackets]. Example: "The capital of France is [Paris]."'
+label: 'Question text'
+description: 'Enter the learning content followed by the fill-in-the-blanks text, with the correct answer words or phrases enclosed in [square brackets]. Example: "The capital of France is [Paris]."'
 required: true
 translatable: false
 default_value: {  }

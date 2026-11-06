@@ -15,10 +15,10 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\image\ImageStyleStorageInterface;
 use Drupal\image\Plugin\Field\FieldType\ImageItem;
 use Drupal\Core\Security\Attribute\TrustedCallback;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
+use Drupal\lms\LmsCourseStorage;
 use Drupal\media\MediaInterface;
 use Drupal\text\Plugin\Field\FieldType\TextWithSummaryItem;
 use Drupal\views\Attribute\ViewsRow;
@@ -40,27 +40,20 @@ final class CourseCardRow extends RowPluginBase implements ContainerFactoryPlugi
   use StringTranslationTrait;
 
   /**
-   * The image style storage.
-   *
-   * This service is optional and only loaded if the Image module is enabled.
-   */
-  protected ?ImageStyleStorageInterface $imageStyleStorage;
-
-  /**
    * The constructor.
    */
   public function __construct(
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    protected readonly EntityTypeManagerInterface $entityTypeManager,
-    protected readonly EntityFieldManagerInterface $entityFieldManager,
-    protected readonly FileUrlGeneratorInterface $fileUrlGenerator,
-    protected readonly ModuleHandlerInterface $moduleHandler,
-    protected readonly EntityDisplayRepositoryInterface $entityDisplayRepository,
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected EntityFieldManagerInterface $entityFieldManager,
+    protected FileUrlGeneratorInterface $fileUrlGenerator,
+    protected ModuleHandlerInterface $moduleHandler,
+    protected EntityDisplayRepositoryInterface $entityDisplayRepository,
+    protected LmsCourseStorage $lmsCourseStorage,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->imageStyleStorage = $this->entityTypeManager->hasDefinition('image_style') ? $this->entityTypeManager->getStorage('image_style') : NULL;
   }
 
   /**
@@ -76,6 +69,7 @@ final class CourseCardRow extends RowPluginBase implements ContainerFactoryPlugi
       $container->get(FileUrlGeneratorInterface::class),
       $container->get(ModuleHandlerInterface::class),
       $container->get(EntityDisplayRepositoryInterface::class),
+      $container->get(LmsCourseStorage::class),
     );
   }
 
@@ -93,6 +87,21 @@ final class CourseCardRow extends RowPluginBase implements ContainerFactoryPlugi
   }
 
   /**
+   * Gets merged field definitions from all CourseInterface bundles.
+   *
+   * @return \Drupal\Core\Field\FieldDefinitionInterface[]
+   */
+  private function getCourseFieldDefinitions(): array {
+    $definitions = [];
+    foreach ($this->lmsCourseStorage->getCourseBundleIds() as $bundle_id) {
+      foreach ($this->entityFieldManager->getFieldDefinitions('group', $bundle_id) as $field_name => $definition) {
+        $definitions[$field_name] ??= $definition;
+      }
+    }
+    return $definitions;
+  }
+
+  /**
    * {@inheritdoc}
    *
    * Method buildOptionsForm has required terms that phpstan doesn't like.
@@ -102,7 +111,7 @@ final class CourseCardRow extends RowPluginBase implements ContainerFactoryPlugi
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
 
-    $field_definitions = $this->entityFieldManager->getFieldDefinitions('group', 'lms_course');
+    $field_definitions = $this->getCourseFieldDefinitions();
     $image_or_media_field_options = ['' => $this->t('- None (Use default image) -')];
     $text_field_options = ['' => $this->t('- None -')];
     $display_field_options = ['' => $this->t('- None -')];
@@ -201,8 +210,8 @@ final class CourseCardRow extends RowPluginBase implements ContainerFactoryPlugi
       '#fieldset' => 'background_image_settings',
     ];
 
-    if ($this->imageStyleStorage !== NULL) {
-      $image_styles = $this->imageStyleStorage->loadMultiple();
+    if ($this->entityTypeManager->hasDefinition('image_style')) {
+      $image_styles = $this->entityTypeManager->getStorage('image_style')->loadMultiple();
       $style_options = ['' => $this->t('- Original image -')];
       foreach ($image_styles as $name => $style) {
         $style_options[$name] = $style->label();
@@ -242,7 +251,7 @@ final class CourseCardRow extends RowPluginBase implements ContainerFactoryPlugi
    */
   public function render($row) {
     $entity = $row->_entity;
-    if ($entity instanceof Course) {
+    if ($entity instanceof CourseInterface) {
       // @phpstan-ignore-next-line - wants a string but array return required.
       return $this->buildCard($entity);
     }
@@ -253,7 +262,7 @@ final class CourseCardRow extends RowPluginBase implements ContainerFactoryPlugi
   /**
    * Builds a single course card render array.
    */
-  private function buildCard(Course $entity): array {
+  private function buildCard(CourseInterface $entity): array {
     $cacheability = new CacheableMetadata();
     $cacheability->addCacheableDependency($entity);
 
@@ -299,7 +308,7 @@ final class CourseCardRow extends RowPluginBase implements ContainerFactoryPlugi
     $course = \Drupal::entityTypeManager()
       ->getStorage('group')
       ->load($course_id);
-    if (!$course instanceof Course) {
+    if (!$course instanceof CourseInterface) {
       return [];
     }
     return $course->get('start_link')->view();
@@ -308,7 +317,7 @@ final class CourseCardRow extends RowPluginBase implements ContainerFactoryPlugi
   /**
    * Gets the background image render array for the course card.
    */
-  private function getBackgroundImageUrl(Course $entity): ?string {
+  private function getBackgroundImageUrl(CourseInterface $entity): ?string {
     $source_field_name = $this->options['background_image_field'] ?? '';
 
     if ($source_field_name === '' || !$entity->hasField($source_field_name) || $entity->get($source_field_name)->isEmpty()) {
@@ -349,9 +358,9 @@ final class CourseCardRow extends RowPluginBase implements ContainerFactoryPlugi
     if ($image_uri === NULL) {
       return NULL;
     }
-    if ($this->imageStyleStorage !== NULL) {
+    if ($this->entityTypeManager->hasDefinition('image_style')) {
       $style_name = $this->options['image_style'] ?? '';
-      $style = $this->imageStyleStorage->load($style_name) ?? '';
+      $style = $this->entityTypeManager->getStorage('image_style')->load($style_name) ?? '';
       if ($style_name !== '' && $style !== '') {
         return $style->buildUrl($image_uri);
       }
@@ -362,7 +371,7 @@ final class CourseCardRow extends RowPluginBase implements ContainerFactoryPlugi
   /**
    * Gets the description text for the course card.
    */
-  private function getDescriptionText(Course $entity): ?string {
+  private function getDescriptionText(CourseInterface $entity): ?string {
     $description_field_name = $this->options['description_field'] ?? '';
 
     if ($description_field_name === '' || !$entity->hasField($description_field_name) || $entity->get($description_field_name)->isEmpty()) {
@@ -387,7 +396,12 @@ final class CourseCardRow extends RowPluginBase implements ContainerFactoryPlugi
 
     $format = $field_item->format;
     if (!\is_null($format)) {
-      $processed = \check_markup((string) $value, $format);
+      $build = [
+        '#type' => 'processed_text',
+        '#text' => (string) $value,
+        '#format' => $format,
+      ];
+      $processed = $this->getRenderer()->renderInIsolation($build);
       return \trim((string) $processed);
     }
 

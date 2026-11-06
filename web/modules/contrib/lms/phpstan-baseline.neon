@@ -6,6 +6,11 @@ parameters:
 			path: src/Drush/Commands/LmsQaCommands.php
 
 		-
+			message: "#^Method Drupal\\\\lms\\\\Plugin\\\\views\\\\field\\\\CourseProgress\\:\\:buildOptionsForm\\(\\) has parameter \\$form with no type specified\\.$#"
+			count: 1
+			path: src/Plugin/views/field/CourseProgress.php
+
+		-
 			message: "#^Method Drupal\\\\lms\\\\Plugin\\\\views\\\\field\\\\CourseResultsLink\\:\\:buildOptionsForm\\(\\) has parameter \\$form with no type specified\\.$#"
 			count: 1
 			path: src/Plugin/views/field/CourseResultsLink.php

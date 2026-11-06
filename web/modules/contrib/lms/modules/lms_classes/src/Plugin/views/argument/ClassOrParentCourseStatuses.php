@@ -7,7 +7,8 @@ namespace Drupal\lms_classes\Plugin\views\argument;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\group\Entity\GroupMembership;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
+use Drupal\lms\LmsCourseStorage;
 use Drupal\views\Attribute\ViewsArgument;
 use Drupal\views\Plugin\views\argument\ArgumentPluginBase;
 use Drupal\views\Plugin\views\query\Sql;
@@ -31,7 +32,8 @@ final class ClassOrParentCourseStatuses extends ArgumentPluginBase {
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    protected readonly EntityTypeManagerInterface $entityTypeManager,
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected LmsCourseStorage $lmsCourseStorage,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -44,7 +46,8 @@ final class ClassOrParentCourseStatuses extends ArgumentPluginBase {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity_type.manager')
+      $container->get(EntityTypeManagerInterface::class),
+      $container->get(LmsCourseStorage::class),
     );
   }
 
@@ -62,7 +65,7 @@ final class ClassOrParentCourseStatuses extends ArgumentPluginBase {
 
     \assert($this->query instanceof Sql);
 
-    if ($group instanceof Course) {
+    if ($group instanceof CourseInterface) {
       $this->query->addWhere('0', "$this->tableAlias.gid", $this->argument, '=');
       return;
     }
@@ -73,10 +76,9 @@ final class ClassOrParentCourseStatuses extends ArgumentPluginBase {
     $course_ids = [];
 
     /** @var \Drupal\group\Entity\GroupRelationshipInterface[] */
-    $course_relationships = $this->entityTypeManager->getStorage('group_relationship')->loadByProperties([
+    $course_relationships = $this->lmsCourseStorage->loadGroupRelationshipsByCourseBundles([
       'plugin_id' => 'lms_classes',
       'entity_id' => $group->id(),
-      'group_type' => 'lms_course',
     ]);
     foreach ($course_relationships as $relationship) {
       $gid = $relationship->getGroupId();

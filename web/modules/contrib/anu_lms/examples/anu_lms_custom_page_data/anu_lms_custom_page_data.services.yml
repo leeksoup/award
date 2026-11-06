@@ -1,6 +1,0 @@
-services:
-  anu_lms_custom_page_data.event_subscriber:
-    class: Drupal\anu_lms_custom_page_data\EventSubscriber\CustomPageDataSubscriber
-    arguments: ['@messenger']
-    tags:
-      - { name: event_subscriber }

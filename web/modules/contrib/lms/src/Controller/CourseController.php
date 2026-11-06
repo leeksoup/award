@@ -9,9 +9,11 @@ use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\OpenModalDialogCommand;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Utility\Token;
 use Drupal\lms\Entity\AnswerInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Entity\LessonStatusInterface;
 use Drupal\lms\TrainingManager;
 use Drupal\user\UserInterface;
@@ -27,6 +29,7 @@ final class CourseController extends ControllerBase {
 
   public function __construct(
     protected readonly TrainingManager $trainingManager,
+    protected readonly Token $token,
   ) {}
 
   /**
@@ -34,7 +37,7 @@ final class CourseController extends ControllerBase {
    *
    * This page will redirect the user to the first learning path content.
    */
-  public function start(Course $group): RedirectResponse {
+  public function start(CourseInterface $group): RedirectResponse {
     try {
       $lesson_status = $this->trainingManager->getRequestedLessonStatus($group, $this->currentUser());
     }
@@ -54,36 +57,48 @@ final class CourseController extends ControllerBase {
   /**
    * Returns lesson question answer form title.
    */
-  public function activityFormTitle(Course $group, int $lesson_delta): string|TranslatableMarkup {
+  public function activityFormTitle(CourseInterface $group, int $lesson_delta): array|string|TranslatableMarkup {
     try {
       $course_status = $this->trainingManager->getCurrentCourseStatus($group, $this->currentUser());
     }
     catch (\Exception $e) {
-      return $this->t('Invalid request.');
+      return $this->t('The requested course could not be retrieved because the request is invalid.');
     }
 
     $lesson = $this->trainingManager->getLessonByDelta($course_status, $lesson_delta);
     if ($lesson === NULL) {
-      return $this->t('Invalid lesson delta.');
+      return $this->t('The requested lesson could not be retrieved because the lesson number is invalid.');
     }
 
     $lesson_status = $this->trainingManager->loadLessonStatus($course_status->id(), $lesson->id());
     if ($lesson_status === NULL) {
-      return $this->t('Invalid lesson delta.');
+      return $this->t('The status of the requested lesson could not be retrieved because the lesson number is invalid.');
     }
     $activity = $lesson_status->getCurrentActivity();
     if ($activity === NULL) {
       return $lesson->label();
     }
 
-    return $lesson->label() . ' - ' . $activity->label();
+    $config = $this->config('lms.settings');
+    $bubbleable_metadata = BubbleableMetadata::createFromObject($config);
+    $build = [
+      '#plain_text' => $this->token->replacePlain($config->get('activity_page_title'), [
+        'group' => $course_status->getCourse(),
+        'lms_lesson' => $lesson,
+        'lms_activity' => $activity,
+        'lms_lesson_status' => $lesson_status,
+      ], ['clear' => TRUE], $bubbleable_metadata),
+    ];
+    $bubbleable_metadata->applyTo($build);
+
+    return $build;
   }
 
   /**
    * Specific activity callback.
    */
   public function activity(
-    Course $group,
+    CourseInterface $group,
     int $lesson_delta,
     int $activity_delta,
   ): array|RedirectResponse {
@@ -104,7 +119,7 @@ final class CourseController extends ControllerBase {
   /**
    * Results page title callback.
    */
-  public function resultsTitle(Course $group, ?UserInterface $user = NULL): TranslatableMarkup {
+  public function resultsTitle(CourseInterface $group, ?UserInterface $user = NULL): TranslatableMarkup {
     return $this->t('@course results for @user', [
       '@course' => $group->label(),
       '@user' => $user === NULL ? $this->getCurrentUser()->label() : $user->label(),
@@ -114,7 +129,7 @@ final class CourseController extends ControllerBase {
   /**
    * Results page callback.
    */
-  public function results(Course $group, ?UserInterface $user = NULL): array {
+  public function results(CourseInterface $group, ?UserInterface $user = NULL): array {
     $build = [
       'course_status' => [
         '#type' => 'fieldset',
@@ -153,7 +168,7 @@ final class CourseController extends ControllerBase {
       // Reload group from status since we may have a different revision.
       $group = $course_status->getCourse();
       /** @var \Drupal\lms\Plugin\Field\FieldType\LMSReferenceItem */
-      foreach ($group->get(Course::LESSONS) as $lesson_item) {
+      foreach ($group->get(CourseInterface::LESSONS) as $lesson_item) {
         $lesson_status = $this->trainingManager->loadLessonStatus($course_status->id(), $lesson_item->target_id);
         if ($lesson_status === NULL) {
           $lesson_status = $this->entityTypeManager()->getStorage('lms_lesson_status')->create([
@@ -247,7 +262,7 @@ final class CourseController extends ControllerBase {
   /**
    * Reset test progress for course editors.
    */
-  public function resetTest(Course $group, Request $request): RedirectResponse {
+  public function resetTest(CourseInterface $group, Request $request): RedirectResponse {
     $this->trainingManager->resetTraining($group->id(), (string) $this->currentUser()->id());
     $this->messenger()->addStatus($this->t('Your course progress has been reset so you can view the latest updates.'));
 

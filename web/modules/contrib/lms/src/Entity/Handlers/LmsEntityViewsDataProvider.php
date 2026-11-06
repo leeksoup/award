@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\lms\Entity\Handlers;
 
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\lms\LmsCourseStorage;
 use Drupal\views\EntityViewsData;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides Views data for LMS entity types (Activities, Lessons).
@@ -13,6 +16,20 @@ use Drupal\views\EntityViewsData;
 final class LmsEntityViewsDataProvider extends EntityViewsData {
 
   use StringTranslationTrait;
+
+  /**
+   * The LMS course storage.
+   */
+  protected LmsCourseStorage $lmsCourseStorage;
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
+    $instance = parent::createInstance($container, $entity_type);
+    $instance->lmsCourseStorage = $container->get(LmsCourseStorage::class);
+    return $instance;
+  }
 
   /**
    * {@inheritdoc}
@@ -58,6 +75,16 @@ final class LmsEntityViewsDataProvider extends EntityViewsData {
           'id' => 'lms_parent_entity',
           'ancestor_entity_type' => 'group',
         ],
+        'relationship' => [
+          'id' => 'entity_reverse',
+          'base' => 'groups_field_data',
+          'base field' => 'id',
+          'field table' => 'group__lessons',
+          'field field' => 'lessons_target_id',
+          'field_name' => 'course',
+          'label' => $this->t('Course'),
+        ],
+
       ];
     }
     elseif ($entity_type_id === 'lms_activity') {
@@ -68,6 +95,15 @@ final class LmsEntityViewsDataProvider extends EntityViewsData {
         'filter' => [
           'id' => 'lms_parent_entity',
           'ancestor_entity_type' => 'lms_lesson',
+        ],
+        'relationship' => [
+          'id' => 'entity_reverse',
+          'base' => 'lms_lesson_field_data',
+          'base field' => 'id',
+          'field table' => 'lms_lesson__activities',
+          'field field' => 'activities_target_id',
+          'field_name' => 'lesson',
+          'label' => $this->t('Lesson'),
         ],
       ];
       $data[$this->entityType->getDataTable()]['grandparent_course'] = [
@@ -93,6 +129,7 @@ final class LmsEntityViewsDataProvider extends EntityViewsData {
       return;
     }
 
+    $course_bundles = $this->lmsCourseStorage->getCourseBundleIds();
     $data[$this->entityType->getDataTable()]['reverse_lessons_group'] = [
       'title' => $this->t('Course'),
       'help' => $this->t('Relate the lesson to the course(s) it belongs to via the course lessons field.'),
@@ -116,7 +153,8 @@ final class LmsEntityViewsDataProvider extends EntityViewsData {
           ],
           [
             'field' => 'bundle',
-            'value' => 'lms_course',
+            'value' => $course_bundles,
+            'operator' => 'IN',
           ],
         ],
       ],

@@ -6,6 +6,8 @@ namespace Drupal\lms\Cache;
 
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\Context\UserCacheContextBase;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\PermissionsHashGeneratorInterface;
 use Drupal\lms\Entity\Handlers\LmsEntityAccessControlHandlerBase;
 
 /**
@@ -16,6 +18,13 @@ use Drupal\lms\Entity\Handlers\LmsEntityAccessControlHandlerBase;
  * query-alter logic in LmsQueryHooks.
  */
 abstract class LmsEntityAccessCacheContextBase extends UserCacheContextBase {
+
+  public function __construct(
+    AccountInterface $user,
+    protected readonly PermissionsHashGeneratorInterface $permissionsHashGenerator,
+  ) {
+    parent::__construct($user);
+  }
 
   /**
    * Returns the entity type ID this context applies to.
@@ -43,8 +52,7 @@ abstract class LmsEntityAccessCacheContextBase extends UserCacheContextBase {
    * {@inheritdoc}
    */
   public function getCacheableMetadata(): CacheableMetadata {
-    // The context is fully encoded in the string; no additional tags needed.
-    return new CacheableMetadata();
+    return $this->permissionsHashGenerator->getCacheableMetadata($this->user);
   }
 
 }

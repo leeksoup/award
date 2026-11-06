@@ -4,3 +4,10 @@ lms_classes.add_student:
   title: 'Add student'
   appears_on:
     - 'view.lms_course_students.page'
+lms_classes.add_class:
+  route_name: 'entity.group.add_form'
+  route_parameters:
+    group_type: 'lms_class'
+  title: 'Add class'
+  appears_on:
+    - 'view.classes_admin.page'

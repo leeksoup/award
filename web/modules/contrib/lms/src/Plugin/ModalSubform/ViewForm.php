@@ -28,13 +28,13 @@ final class ViewForm extends PluginBase implements ModalSubformInterface, Contai
   /**
    * The view with the form.
    */
-  private ViewExecutable $view;
+  protected ViewExecutable $view;
 
   public function __construct(
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
+    protected EntityTypeManagerInterface $entityTypeManager,
     ViewExecutableFactory $viewsExecutableFactory,
   ) {
     $this->validateConfiguration($configuration);
@@ -59,8 +59,8 @@ final class ViewForm extends PluginBase implements ModalSubformInterface, Contai
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity_type.manager'),
-      $container->get('views.executable')
+      $container->get(EntityTypeManagerInterface::class),
+      $container->get(ViewExecutableFactory::class)
     );
   }
 

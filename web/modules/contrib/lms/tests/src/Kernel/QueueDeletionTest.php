@@ -5,20 +5,22 @@ declare(strict_types=1);
 namespace Drupal\Tests\lms\Kernel;
 
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\lms\LmsKernelTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
-use Drupal\group\Entity\Group;
 use Drupal\lms\Entity\Answer;
 use Drupal\lms\Entity\CourseStatus;
-use Drupal\lms\Entity\CourseStatusInterface;
 use Drupal\lms\Entity\LessonStatus;
 use PHPUnit\Framework\Attributes\Group as AttributesGroup;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests lesson status deletion.
  */
 #[AttributesGroup('lms')]
+#[RunTestsInSeparateProcesses]
 final class QueueDeletionTest extends KernelTestBase {
 
+  use LmsKernelTestTrait;
   use UserCreationTrait;
 
   /**
@@ -58,14 +60,14 @@ final class QueueDeletionTest extends KernelTestBase {
     parent::setUp();
 
     $this->installEntitySchema('action');
+    $this->installEntitySchema('group');
+    $this->installEntitySchema('group_relationship');
+    $this->installEntitySchema('group_config_wrapper');
     $this->installConfig(['group']);
     $this->installConfig(['lms']);
     $this->installEntitySchema('user');
     $this->installSchema('user', ['users_data']);
     $this->installEntitySchema('view');
-    $this->installEntitySchema('group');
-    $this->installEntitySchema('group_relationship');
-    $this->installEntitySchema('group_config_wrapper');
     $this->installEntitySchema('lms_course_status');
     $this->installEntitySchema('lms_lesson_status');
     $this->installEntitySchema('lms_answer');
@@ -76,18 +78,9 @@ final class QueueDeletionTest extends KernelTestBase {
    */
   public function testDeletion(): void {
     // User deletion case.
-    $course = Group::create([
-      'type' => 'lms_course',
-      'name' => 'Test course',
-      'uid' => $this->createUser(),
-    ]);
-    $course->save();
+    [$course] = $this->createCourse('Test course', 0, (int) $this->createUser()->id());
     $student = $this->createUser();
-    $courseStatus = CourseStatus::create([
-      CourseStatusInterface::COURSE_FIELD => $course->id(),
-      'uid' => $student,
-    ]);
-    $courseStatus->save();
+    $courseStatus = $this->createCourseStatus($course, (int) $student->id());
 
     // Create lesson statuses and answers based on the course status.
     $this->createContent($courseStatus);
@@ -106,11 +99,7 @@ final class QueueDeletionTest extends KernelTestBase {
     $this->assertContentDeleted();
 
     // Course deletion case.
-    $courseStatus = CourseStatus::create([
-      CourseStatusInterface::COURSE_FIELD => $course->id(),
-      'uid' => $this->createUser(),
-    ]);
-    $courseStatus->save();
+    $courseStatus = $this->createCourseStatus($course, (int) $this->createUser()->id());
     $this->createContent($courseStatus);
     $course->delete();
     $reloaded = CourseStatus::load($courseStatus->id());

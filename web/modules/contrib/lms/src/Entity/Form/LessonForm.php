@@ -7,6 +7,7 @@ namespace Drupal\lms\Entity\Form;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Markup;
+use Drupal\lms\DataIntegrityChecker;
 use Drupal\lms\Entity\LessonInterface;
 use Drupal\lms\Form\DataIntegrityWarningTrait;
 use Drupal\lms\Form\Modal\ModalEntitySubformTrait;
@@ -24,7 +25,7 @@ final class LessonForm extends ContentEntityForm {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): self {
-    return parent::create($container)->setDataIntegrityChecker($container->get('lms.data_integrity_checker'));
+    return parent::create($container)->setDataIntegrityChecker($container->get(DataIntegrityChecker::class));
   }
 
   /**
@@ -53,8 +54,8 @@ final class LessonForm extends ContentEntityForm {
         if (\array_key_exists($field, $form)) {
           $this->addDataWarning($form[$field], $this->formatPlural(
             \count($links),
-            'This lesson has already been started by certain students in the following course: @courses. Changing the field below may cause their current progress to become inconsistent with the new value.',
-            'This lesson has already been started by certain students in the following courses: @courses. Changing the field below may cause their current progress to become inconsistent with the new value.',
+            'This lesson has active students in the following course: @courses. Making structural or scoring changes to the field below may break their progress, unless you save with a new Revision.',
+            'This lesson has active students in the following courses: @courses. Making structural or scoring changes to the field below may break their progress, unless you save with a new Revision.',
             ['@courses' => Markup::create(\implode(', ', $links))]
           ));
         }
@@ -102,7 +103,9 @@ final class LessonForm extends ContentEntityForm {
    * {@inheritdoc}
    */
   protected function getNewRevisionDefault() {
-    return TRUE;
+    /** @var \Drupal\lms\Entity\LessonInterface $lesson */
+    $lesson = $this->entity;
+    return $lesson->createNewRevisionByDefault();
   }
 
 }

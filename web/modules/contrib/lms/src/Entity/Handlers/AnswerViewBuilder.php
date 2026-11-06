@@ -22,7 +22,7 @@ final class AnswerViewBuilder extends EntityViewBuilder {
   /**
    * The training manager.
    */
-  private TrainingManager $trainingManager;
+  protected TrainingManager $trainingManager;
 
   /**
    * {@inheritdoc}
@@ -40,7 +40,7 @@ final class AnswerViewBuilder extends EntityViewBuilder {
    *   The dependency injection container.
    */
   public function injectServices(ContainerInterface $container): void {
-    $this->trainingManager = $container->get('lms.training_manager');
+    $this->trainingManager = $container->get(TrainingManager::class);
   }
 
   /**

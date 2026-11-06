@@ -8,9 +8,8 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Utility\Token;
-use Drupal\lms\Entity\Bundle\Course;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\DependencyInjection\Attribute\AutowireCallable;
+use Drupal\lms\Entity\Bundle\CourseInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutowireServiceClosure;
 
 /**
  * Service for generating class names.
@@ -23,27 +22,25 @@ class ClassNameGenerator {
    * The constructor.
    */
   public function __construct(
-    #[Autowire(service: EntityTypeManagerInterface::class, lazy: TRUE)]
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    #[Autowire(service: ConfigFactoryInterface::class, lazy: TRUE)]
-    private readonly ConfigFactoryInterface $configFactory,
-    #[Autowire(service: StateInterface::class, lazy: TRUE)]
     private readonly StateInterface $state,
-    #[AutowireCallable(service: Token::class, method: 'replacePlain', lazy: TRUE)]
-    private readonly \Closure $tokenReplacePlain,
+    #[AutowireServiceClosure(ConfigFactoryInterface::class)]
+    private readonly \Closure $configFactory,
+    #[AutowireServiceClosure(Token::class)]
+    private readonly \Closure $token,
   ) {}
 
   /**
    * Generate default class name.
    */
-  public function generateDefaultClassName(Course $course, ?string $pattern = NULL): string {
+  public function generateDefaultClassName(CourseInterface $course, ?string $pattern = NULL): string {
     if ($pattern === NULL) {
-      $pattern = $this->configFactory->get('lms_classes.settings')->get('class_name_pattern');
+      $pattern = ($this->configFactory)()->get('lms_classes.settings')->get('class_name_pattern');
     }
     if ($pattern === '' || $pattern === NULL) {
       return self::generateRandomClassName($course);
     }
-    return ($this->tokenReplacePlain)($pattern, ['group' => $course], [
+    return ($this->token)()->replacePlain($pattern, ['group' => $course], [
       'callback' => [$this, 'getClassNameReplacements'],
       // Pass pattern to callback options to generate replacements
       // for used tokens only.
@@ -126,7 +123,7 @@ class ClassNameGenerator {
   /**
    * Generate default class name.
    */
-  public static function generateRandomClassName(Course $course): string {
+  public static function generateRandomClassName(CourseInterface $course): string {
     // Generate a class name based on the learning path. Using the learning
     // path name could make group listings hard to scan. Using the learning
     // path ID could create confusion with the class's own numeric ID. To

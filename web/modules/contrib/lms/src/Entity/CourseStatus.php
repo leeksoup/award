@@ -10,7 +10,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Exception\TrainingException;
 
 /**
@@ -45,10 +45,10 @@ class CourseStatus extends ContentEntityBase implements CourseStatusInterface {
   /**
    * {@inheritdoc}
    */
-  public function getCourse(): Course {
+  public function getCourse(): CourseInterface {
     /** @var \Drupal\Core\Entity\EntityInterface|null */
     $course = $this->get(self::COURSE_FIELD)->entity;
-    if (!$course instanceof Course) {
+    if (!$course instanceof CourseInterface) {
       throw new TrainingException(NULL, TrainingException::COURSE_REMOVED);
     }
     return $course;
@@ -257,17 +257,6 @@ class CourseStatus extends ContentEntityBase implements CourseStatusInterface {
       ->setSetting('handler', 'default')
       ->setRequired(TRUE);
 
-    // Legacy field.
-    // @todo Remove in the next major.
-    $fields['gid'] = BaseFieldDefinition::create('entity_reference')
-      ->setLabel(\t('Course'))
-      ->setDescription(\t('The Course the status entity refers to.'))
-      ->setSettings([
-        'target_type' => 'group',
-        'default_value' => 0,
-      ])
-      ->setRequired(TRUE);
-
     $fields[self::COURSE_FIELD] = BaseFieldDefinition::create('lms_revision_reference')
       ->setLabel(\t('Course'))
       ->setDescription(\t('The Course the status entity refers to.'))
@@ -339,10 +328,12 @@ class CourseStatus extends ContentEntityBase implements CourseStatusInterface {
    */
   public static function getStatusOptions(): array {
     return [
+      self::STATUS_NEW => new TranslatableMarkup('New'),
       self::STATUS_PROGRESS => new TranslatableMarkup('In progress'),
       self::STATUS_NEEDS_EVALUATION => new TranslatableMarkup('Needs grading'),
       self::STATUS_PASSED => new TranslatableMarkup('Passed'),
       self::STATUS_FAILED => new TranslatableMarkup('Failed'),
+      self::STATUS_EXPIRED => new TranslatableMarkup('Expired'),
     ];
   }
 

@@ -10,7 +10,7 @@ field_name: questions
 entity_type: lms_activity
 bundle: _bundle_placeholder_
 label: Questions
-description: ''
+description: 'Each item combines learning content with a question that requires a long-form text answer. Items are displayed on one page in the order arranged here.'
 required: true
 translatable: false
 default_value: {  }

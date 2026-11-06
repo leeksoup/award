@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\lms\Entity\Handlers;
 
+use Drupal\lms\Entity\LessonStatusInterface;
 use Drupal\views\EntityViewsData;
 
 /**
@@ -17,14 +18,17 @@ final class LessonStatusViewsData extends EntityViewsData {
   public function getViewsData(): array {
     $data = parent::getViewsData();
 
-    $data['lms_lesson_status']['lesson_revision__target_id']['relationship'] = [
+    $data['lms_lesson_status'][LessonStatusInterface::LESSON_FIELD . '__target_id']['relationship'] = [
       'base' => 'lms_lesson_field_data',
       'base field' => 'id',
       'id' => 'standard',
       'label' => $this->t('Lesson'),
     ];
 
-    $data['lms_lesson_status']['activity_revisions__target_id']['relationship'] = [
+    $table_mapping = $this->storage->getTableMapping();
+    $activity_revisions_table = $table_mapping->getFieldTableName(LessonStatusInterface::ACTIVITIES_FIELD);
+    $activity_revisions_column = $table_mapping->getColumnNames(LessonStatusInterface::ACTIVITIES_FIELD)['target_id'];
+    $data[$activity_revisions_table][$activity_revisions_column]['relationship'] = [
       'base' => 'lms_activity_field_data',
       'base field' => 'id',
       'id' => 'standard',

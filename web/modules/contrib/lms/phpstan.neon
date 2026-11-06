@@ -14,10 +14,23 @@ parameters:
     -
       # Very annoying one especially with the LMSReferenceItem class.
       identifier: varTag.type
+    -
+      # @todo Drop this ignore and use Drupal\comment\CommentingStatus directly
+      # once the module's core_version_requirement no longer includes ^10.3
+      # (CommentingStatus was only added in Drupal 11.4).
+      identifier: classConstant.deprecated
+      path: modules/lms_answer_comments/src/Hook/AnswerCommentsHooks.php
+    -
+      # @todo Drop this ignore and use Drupal\Core\Database\Statement\FetchAs
+      # directly once the module's core_version_requirement no longer
+      # includes ^10.3 (FetchAs does not exist in Drupal 10).
+      identifier: argument.type
+      path: tests/src/LmsTestHelperTrait.php
     # new static() is a best practice in Drupal, so we cannot fix that.
     - '#^Unsafe usage of new static#'
     # No point creating more time-consuming solutions.
     - '#Method [a-zA-Z0-9\\_]+::[a-zA-Z0-9\\_]+\(\) has a nullable return type declaration#'
+    - '#Function [a-zA-Z0-9\\_]+\(\) has a nullable return type declaration#'
     # No point creating more time-consuming solutions.
     - '#Method [a-zA-Z0-9\\_]+::[a-zA-Z0-9\\_]+\(\) has parameter \$[a-zA-Z0-9\\_]+ with a nullable type declaration#'
     # Those messages just add additional work and don't bring much added

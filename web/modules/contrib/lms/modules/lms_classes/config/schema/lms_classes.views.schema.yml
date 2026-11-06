@@ -1,0 +1,5 @@
+# Schema for the views plugins of the LMS Classes module.
+
+views.filter.lms_parent_class:
+  type: views.filter.in_operator
+  label: 'LMS parent class'

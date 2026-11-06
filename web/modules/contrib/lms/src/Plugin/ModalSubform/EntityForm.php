@@ -28,7 +28,7 @@ class EntityForm extends ModalSubformBase {
     $plugin_definition,
     FormBuilderInterface $formBuilder,
     ClassResolverInterface $classResolver,
-    protected readonly EntityTypeManagerInterface $entityTypeManager,
+    protected EntityTypeManagerInterface $entityTypeManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $formBuilder, $classResolver);
   }
@@ -46,9 +46,9 @@ class EntityForm extends ModalSubformBase {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('form_builder'),
-      $container->get('class_resolver'),
-      $container->get('entity_type.manager')
+      $container->get(FormBuilderInterface::class),
+      $container->get(ClassResolverInterface::class),
+      $container->get(EntityTypeManagerInterface::class)
     );
   }
 

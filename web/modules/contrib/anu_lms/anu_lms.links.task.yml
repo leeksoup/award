@@ -1,5 +1,0 @@
-anu_lms.entity_labels:
-  route_name: anu_lms.entity_labels
-  base_route: anu_lms.entity_labels
-  title: 'Entity labels'
-  parent: anu_lms.entity_labels

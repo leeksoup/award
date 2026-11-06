@@ -34,8 +34,8 @@ final class AnswerEvaluationForm extends ContentEntityForm {
     EntityRepositoryInterface $entity_repository,
     EntityTypeBundleInfoInterface $entity_type_bundle_info,
     TimeInterface $time,
-    protected readonly TrainingManager $trainingManager,
-    protected readonly AccountInterface $currentUser,
+    protected TrainingManager $trainingManager,
+    protected AccountInterface $currentUser,
   ) {
     parent::__construct($entity_repository, $entity_type_bundle_info, $time);
   }
@@ -45,11 +45,11 @@ final class AnswerEvaluationForm extends ContentEntityForm {
    */
   public static function create(ContainerInterface $container): self {
     return new static(
-      $container->get('entity.repository'),
-      $container->get('entity_type.bundle.info'),
-      $container->get('datetime.time'),
-      $container->get('lms.training_manager'),
-      $container->get('current_user')
+      $container->get(EntityRepositoryInterface::class),
+      $container->get(EntityTypeBundleInfoInterface::class),
+      $container->get(TimeInterface::class),
+      $container->get(TrainingManager::class),
+      $container->get(AccountInterface::class)
     );
   }
 

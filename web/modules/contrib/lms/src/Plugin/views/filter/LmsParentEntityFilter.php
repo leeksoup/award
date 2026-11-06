@@ -7,6 +7,7 @@ namespace Drupal\lms\Plugin\views\filter;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\lms\LmsCourseStorage;
 use Drupal\views\Attribute\ViewsFilter;
 use Drupal\views\Plugin\views\filter\InOperator;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -47,8 +48,9 @@ final class LmsParentEntityFilter extends InOperator {
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    protected readonly EntityTypeManagerInterface $entityTypeManager,
-    protected readonly Connection $database,
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected Connection $database,
+    protected LmsCourseStorage $lmsCourseStorage,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -61,13 +63,19 @@ final class LmsParentEntityFilter extends InOperator {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity_type.manager'),
-      $container->get('database'),
+      $container->get(EntityTypeManagerInterface::class),
+      $container->get(Connection::class),
+      $container->get(LmsCourseStorage::class),
     );
   }
 
   /**
    * {@inheritdoc}
+   *
+   * @todo Drop this ignore once core's InOperator/ManyToOne type hints
+   *   correctly reflect that getValueOptions() can return NULL.
+   *
+   * @phpstan-ignore-next-line return.unusedType
    */
   public function getValueOptions(): ?array {
     return $this->valueOptions;
@@ -93,7 +101,8 @@ final class LmsParentEntityFilter extends InOperator {
     ];
 
     if ($ancestor === 'group') {
-      $form['value']['#selection_settings']['target_bundles'] = ['lms_course' => 'lms_course'];
+      $course_bundles = $this->lmsCourseStorage->getCourseBundleIds();
+      $form['value']['#selection_settings']['target_bundles'] = \array_combine($course_bundles, $course_bundles);
     }
   }
 
@@ -182,7 +191,7 @@ final class LmsParentEntityFilter extends InOperator {
     // Populate $this->valueOptions with entity labels so the parent summary
     // can render them (mirrors TaxonomyIndexTid::adminSummary()).
     $this->valueOptions = [];
-    $value = \is_array($this->value) ? \array_filter($this->value) : [];
+    $value = \is_array($this->value) ? \array_filter($this->value, static fn ($id): bool => (bool) $id) : [];
     if ($value !== []) {
       $storage = $this->entityTypeManager->getStorage(
         (string) ($this->definition['ancestor_entity_type'] ?? ''),

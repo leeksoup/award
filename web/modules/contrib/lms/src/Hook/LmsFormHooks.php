@@ -10,9 +10,9 @@ use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\lms\DataIntegrityChecker;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Form\DataIntegrityWarningTrait;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\DependencyInjection\Attribute\AutowireServiceClosure;
 
 /**
  * Simple form alter hooks.
@@ -23,8 +23,8 @@ final class LmsFormHooks {
   use DataIntegrityWarningTrait;
 
   public function __construct(
-    #[Autowire(service: DataIntegrityChecker::class, lazy: TRUE)]
-    protected DataIntegrityChecker $integrityChecker,
+    #[AutowireServiceClosure(DataIntegrityChecker::class)]
+    protected \Closure $integrityCheckerFactory,
   ) {}
 
   #[Hook('form_views_exposed_form_alter')]
@@ -41,23 +41,24 @@ final class LmsFormHooks {
     $form_object = $form_state->getFormObject();
     \assert($form_object instanceof EntityFormInterface);
     $group = $form_object->getEntity();
-    if (!$group instanceof Course) {
+    if (!$group instanceof CourseInterface) {
       return;
     }
-    $in_progress = $this->integrityChecker->checkCourseProgress($group);
+    $integrity_checker = ($this->integrityCheckerFactory)();
+    $in_progress = $integrity_checker->checkCourseProgress($group);
     if (!$in_progress) {
       return;
     }
 
-    if ($this->integrityChecker->revisionsUsed()) {
-      $form['revision']['#description'] = $this->t('This course has already been started by certain students, it is advised to create a new revision to avoid data inconsistency issues.');
+    if ($integrity_checker->revisionsUsed()) {
+      $form['revision']['#description'] = $this->t('Students are currently taking this course. Choose how your updates will affect them by checking or unchecking the "Create new revision" box below.');
     }
     else {
       $affected_fields = [
         'lessons',
       ];
       foreach ($affected_fields as $field) {
-        $this->addDataWarning($form[$field], $this->t('This course has already been started by certain students, changing the field below may cause their current progress to become inconsistent with the new value.'));
+        $this->addDataWarning($form[$field], $this->t('Students are currently taking this course. Making structural or scoring changes to the fields below may cause their progress to break. If you need to make changes for new enrollments without affecting current students, you can enable "Use revisions" in the <a href="@general_settings_url">LMS general settings</a>.', ['@general_settings_url' => '/admin/lms/settings/lms']));
       }
     }
   }

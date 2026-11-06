@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\lms\Config;
 
-use Symfony\Component\DependencyInjection\Attribute\AutowireCallable;
+use Drupal\Core\Config\ConfigInstallerInterface;
+use Drupal\Core\Extension\ModuleExtensionList;
+use Symfony\Component\DependencyInjection\Attribute\AutowireServiceClosure;
 
 /**
  * Service to allow lazy loading of dependencies used in certain cases.
@@ -15,17 +17,17 @@ final class PluginConfigInstaller {
    * The constructor.
    */
   public function __construct(
-    #[AutowireCallable(service: 'extension.list.module', method: 'getPath', lazy: TRUE)]
-    protected \Closure $getModulePath,
-    #[AutowireCallable(service: 'config.installer', method: 'installOptionalConfig', lazy: TRUE)]
-    protected \Closure $installOptionalConfig,
+    #[AutowireServiceClosure(ModuleExtensionList::class)]
+    protected \Closure $moduleList,
+    #[AutowireServiceClosure(ConfigInstallerInterface::class)]
+    protected \Closure $configInstaller,
   ) {}
 
   /**
    * Installs additional plugin config.
    */
   public function install(array $definition, string $activity_type_id): void {
-    $config_path = ($this->getModulePath)($definition['provider']);
+    $config_path = ($this->moduleList)()->getPath($definition['provider']);
     $config_path .= '/config/activity_answer/' . $definition['id'];
 
     // Nothing to install for this plugin.
@@ -33,7 +35,7 @@ final class PluginConfigInstaller {
       return;
     }
     $storage = new PluginStorage($config_path, $activity_type_id);
-    ($this->installOptionalConfig)($storage);
+    ($this->configInstaller)()->installOptionalConfig($storage);
   }
 
 }

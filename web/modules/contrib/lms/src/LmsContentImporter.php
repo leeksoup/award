@@ -11,7 +11,7 @@ use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Password\PasswordGeneratorInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\lms\Config\PluginConfigInstaller;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Entity\LessonInterface;
 use Drupal\lms\Event\QaContentEvent;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -186,7 +186,7 @@ final class LmsContentImporter {
       $output['type'] = 'lms_course';
       $output += $input['values'];
 
-      $output[Course::LESSONS] = [];
+      $output[CourseInterface::LESSONS] = [];
       foreach ($input['lessons'] as $lesson_data) {
         $target_id = $this->getValueFromUuid('lms_lesson', $lesson_data['target_uuid']);
         unset($lesson_data['target_uuid']);
@@ -194,7 +194,7 @@ final class LmsContentImporter {
           'target_id' => $target_id,
           'data' => $lesson_data,
         ];
-        $output[Course::LESSONS][] = $new_lesson_data;
+        $output[CourseInterface::LESSONS][] = $new_lesson_data;
       }
     }
 

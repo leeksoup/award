@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Drupal\lms_classes\Plugin\Group\Relation;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\group\Plugin\Attribute\GroupRelationType;
 use Drupal\group\Plugin\Group\Relation\GroupRelationBase;
 
 /**
  * Provides a group relation for users as members.
  *
- * @todo Convert to Attributes when dropping Group 3.2 support.
+ * @todo Remove the annotation when dropping Group 3.2 support.
  *
  * @GroupRelationType(
  *   id = "lms_classes",
@@ -25,6 +27,18 @@ use Drupal\group\Plugin\Group\Relation\GroupRelationBase;
  *   enforced = FALSE,
  * )
  */
+#[GroupRelationType(
+  id: 'lms_classes',
+  entity_type_id: 'group',
+  label: new TranslatableMarkup('LMS Class'),
+  description: new TranslatableMarkup('Adds classes to groups.'),
+  reference_label: new TranslatableMarkup('Class'),
+  reference_description: new TranslatableMarkup('Class you want to make a part of the Course.'),
+  entity_bundle: 'lms_class',
+  admin_permission: 'administer lms',
+  pretty_path_key: 'class',
+  enforced: FALSE,
+)]
 final class LmsClasses extends GroupRelationBase {
 
   /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\lms_answer_plugins\Plugin;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element\Checkboxes;
 use Drupal\Core\Plugin\PluginFormInterface;
 use Drupal\lms\Entity\Answer;
 use Drupal\lms\Plugin\ActivityAnswerBase;
@@ -110,11 +111,16 @@ abstract class SelectBase extends ActivityAnswerBase implements PluginFormInterf
     }
 
     $element_type = $this->getElementType();
+    $default_value = $data['answer'] ?? [];
+    if ($element_type === 'checkboxes' && \is_array($default_value)) {
+      $default_value = Checkboxes::getCheckedCheckboxes($default_value);
+    }
+
     $form['answer'] = [
       '#title' => $this->t('Your answer'),
       '#type' => $element_type,
       '#options' => $options,
-      '#default_value' => $data['answer'] ?? [],
+      '#default_value' => $default_value,
       '#required' => $element_type === 'radios',
     ];
   }

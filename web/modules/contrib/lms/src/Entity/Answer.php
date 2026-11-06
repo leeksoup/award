@@ -177,14 +177,6 @@ class Answer extends ContentEntityBase implements AnswerInterface {
       ->setSetting('target_type', 'user')
       ->setSetting('handler', 'default');
 
-    // Legacy field.
-    // @todo Remove in the next major.
-    $fields['activity'] = BaseFieldDefinition::create('entity_reference')
-      ->setLabel(\t('Activity'))
-      ->setSetting('target_type', 'lms_activity')
-      ->setDisplayConfigurable('view', FALSE)
-      ->setReadOnly(TRUE);
-
     $fields[self::ACTIVITY_FIELD] = BaseFieldDefinition::create('lms_revision_reference')
       ->setLabel(\t('Activity'))
       ->setSetting('target_type', 'lms_activity')

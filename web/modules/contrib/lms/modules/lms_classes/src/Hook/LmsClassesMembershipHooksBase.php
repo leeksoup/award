@@ -12,10 +12,10 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Messenger\MessengerTrait;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\group\Entity\GroupRelationshipInterface;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms_classes\ClassHelper;
 use Drupal\lms_classes\Service\ClassNameGenerator;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\DependencyInjection\Attribute\AutowireServiceClosure;
 
 /**
  * Membership form alter hooks logic.
@@ -29,14 +29,13 @@ abstract class LmsClassesMembershipHooksBase {
    * The constructor.
    */
   public function __construct(
-    #[Autowire(service: EntityTypeManagerInterface::class, lazy: TRUE)]
     protected readonly EntityTypeManagerInterface $entityTypeManager,
-    #[Autowire(service: CacheTagsInvalidatorInterface::class, lazy: TRUE)]
-    protected readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
-    #[Autowire(service: ClassNameGenerator::class, lazy: TRUE)]
-    protected readonly ClassNameGenerator $classNameGenerator,
-    #[Autowire(service: ConfigFactoryInterface::class, lazy: TRUE)]
-    protected readonly ConfigFactoryInterface $configFactory,
+    #[AutowireServiceClosure(CacheTagsInvalidatorInterface::class)]
+    protected readonly \Closure $cacheTagsInvalidator,
+    #[AutowireServiceClosure(ClassNameGenerator::class)]
+    protected readonly \Closure $classNameGenerator,
+    #[AutowireServiceClosure(ConfigFactoryInterface::class)]
+    protected readonly \Closure $configFactory,
   ) {}
 
   /**
@@ -50,7 +49,7 @@ abstract class LmsClassesMembershipHooksBase {
   public function membershipFormValidate(array $form, FormStateInterface $form_state): void {
     $relationship = self::getGroupRelationship($form_state);
     $course = $relationship->getGroup();
-    if (!$course instanceof Course) {
+    if (!$course instanceof CourseInterface) {
       return;
     }
 
@@ -74,7 +73,7 @@ abstract class LmsClassesMembershipHooksBase {
   /**
    * Code saver.
    */
-  protected function addClassSelector(array &$form, Course $course, bool $self_join = FALSE): void {
+  protected function addClassSelector(array &$form, CourseInterface $course, bool $self_join = FALSE): void {
     $classes = ClassHelper::getClasses($course);
     $options = [];
     foreach ($classes as $class) {

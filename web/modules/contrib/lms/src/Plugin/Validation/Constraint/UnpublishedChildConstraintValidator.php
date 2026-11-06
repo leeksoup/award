@@ -6,7 +6,7 @@ namespace Drupal\lms\Plugin\Validation\Constraint;
 
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\lms\Entity\Bundle\Course;
+use Drupal\lms\Entity\Bundle\CourseInterface;
 use Drupal\lms\Entity\LessonInterface;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Constraint;
@@ -29,7 +29,7 @@ final class UnpublishedChildConstraintValidator extends ConstraintValidator {
       return;
     }
 
-    if ($entity instanceof Course) {
+    if ($entity instanceof CourseInterface) {
       $type = new TranslatableMarkup('course');
     }
     elseif ($entity instanceof LessonInterface) {
