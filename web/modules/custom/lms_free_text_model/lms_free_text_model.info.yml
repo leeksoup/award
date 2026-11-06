@@ -1,0 +1,10 @@
+name: 'LMS Free Text Model Response'
+type: module
+description: 'Free-text answer plugin that reveals an admin-authored model response.'
+package: Custom
+core_version_requirement: ^10.3 || ^11
+dependencies:
+  - drupal:field
+  - drupal:text
+  - lms:lms
+  - lms:lms_answer_plugins

@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.minimum_characters
+    - lms.lms_activity_type._bundle_placeholder_
+id: lms_activity._bundle_placeholder_.minimum_characters
+field_name: minimum_characters
+entity_type: lms_activity
+bundle: _bundle_placeholder_
+label: 'Minimum characters'
+description: 'The minimum number of characters required for the answer to be accepted. Use 0 for no minimum.'
+required: false
+translatable: false
+default_value:
+  - value: 50
+default_value_callback: ''
+settings:
+  min: 0
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - lms
+    - lms_free_text_model
+id: lms_activity.model_response
+field_name: model_response
+entity_type: lms_activity
+type: string_long
+settings:
+  case_sensitive: false
+module: core
+locked: true
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

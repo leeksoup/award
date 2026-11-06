@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.model_response_heading
+    - lms.lms_activity_type._bundle_placeholder_
+  module:
+    - lms_free_text_model
+id: lms_activity._bundle_placeholder_.model_response_heading
+field_name: model_response_heading
+entity_type: lms_activity
+bundle: _bundle_placeholder_
+label: 'Model response heading'
+description: 'Plain-text heading shown above the model response. The suggested text is "Compare your response:". Clear the field to show no heading.'
+required: false
+translatable: false
+default_value:
+  - value: 'Compare your response:'
+default_value_callback: ''
+settings: {  }
+field_type: string
