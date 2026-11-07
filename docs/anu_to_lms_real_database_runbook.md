@@ -489,6 +489,39 @@ checks:
 drush php:eval '$gid = 13; $uid = \Drupal::currentUser()->id(); $group = \Drupal::entityTypeManager()->getStorage("group")->load($gid); echo "user:$uid relationship_perm:", $group->hasPermission("view group_node:discussion relationship", \Drupal::currentUser()) ? "yes" : "no", PHP_EOL; echo "entity_perm:", $group->hasPermission("view group_node:discussion entity", \Drupal::currentUser()) ? "yes" : "no", PHP_EOL; $ids = \Drupal::entityQuery("group_relationship")->accessCheck(FALSE)->condition("gid", $gid)->condition("type", "lms_course-group_node-discussion")->execute(); echo "raw_relationships:", count($ids), PHP_EOL; foreach (\Drupal::entityTypeManager()->getStorage("group_relationship")->loadMultiple($ids) as $relationship) { $node = $relationship->getEntity(); echo "relationship:", $relationship->id(), " node:", $relationship->getEntityId(), " published:", ($node && $node->isPublished() ? "yes" : "no"), " node_access:", ($node && $node->access("view") ? "yes" : "no"), PHP_EOL; }'
 ```
 
+### Optional: validate a single-lesson content transfer
+
+On 2026-11-07, the operator confirmed a production-to-dev lesson transfer and
+repeat import without duplicates. Content, activity order, maximum scores, and
+playback were reported correct for the accepted lesson. This was not a
+whole-course or exhaustive activity/media test.
+
+For another transfer, use trusted administrators and enable `lms_content_sync`
+with Single Content Sync on both sites. Back up the destination database before
+importing: matching UUIDs update existing content, including referenced
+activities that other lessons may share.
+
+1. On the source, open `/admin/config/content/single-content-sync` and enable
+   export for the lesson and activity entity types and relevant bundles.
+2. Open the source lesson at `/admin/lms/lesson/LESSON_ID/edit` and use its
+   Export tab/action to generate a fresh export with the custom module enabled.
+3. Inspect `base_fields.activities`: each reference must retain its `data`
+   map, including the source `max_score`. Retain a record of source activity
+   order and settings for comparison. Keep exports private; they can include
+   referenced user information.
+4. On the separate destination site, upload the export at
+   `/admin/content/import`.
+5. Compare activity order, maximum scores, formatted bodies, media, and learner
+   playback. Reimport the same file and confirm that existing UUIDs are reused
+   without duplicate lessons or activities.
+
+An initial lesson exported zero scores; a second lesson passed. The cause of
+the first lesson's zeroes was not established. If repeated, compare saved source
+reference values with the export before attributing the result to the importer.
+No historical revisions are transferred. Keep import/export permissions with
+trusted administrators; the outstanding access concerns are documented in
+`docs/lms_content_sync_security_review.md`.
+
 ## 4. Verify target configuration
 
 ```bash

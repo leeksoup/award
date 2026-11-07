@@ -147,6 +147,27 @@ the temporary admin-View bypass from update `10008`.
 
 ## Validated behavior versus pending behavior
 
+### Operator confirmation, 2026-11-07
+
+The user confirmed that production recovery into an empty database and the
+shared body/revision audits passed. They reported that all previous work except
+content sync and ClickBank had been deployed and tested.
+
+The user then validated a single-lesson production-to-dev transfer with
+`lms_content_sync`: the lesson content, activity order, maximum scores, and
+playback looked correct. Reimporting the same export also passed without
+duplicate lessons or activities. This is operator-reported runtime evidence;
+no site commands were run from this checkout. The supplied Composer lock now
+specifies LMS 1.2.4 and Single Content Sync 1.4.18; installed runtime versions
+were not independently checked.
+
+An earlier test lesson had `max_score: 0` in its export. A second lesson
+preserved its scores correctly, so no exporter defect or cause of the first
+lesson's zeroes was established and no code fix was made. This acceptance
+covers the tested lesson and repeat import, not whole-course transfers,
+delegated permissions, or every activity/media type. ClickBank remains outside
+this validation. See the runbook's single-lesson content-sync section.
+
 The user confirmed on dev that a single Views field using
 `lms_activity__body.body` displays both checklist and content activity text.
 The old and new field instance labels were ambiguous in the picker; runtime
