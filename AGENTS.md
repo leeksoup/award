@@ -100,5 +100,10 @@ passing test. Use the runbook for staging `drush` validation.
 - Keep commands copyable and distinguish repository checks from staging-only
   checks.
 - Commit completed changes on the current branch with a focused message.
+- After committing, generate a `git format-patch` file for the commits delivered
+  in that task and provide its path and a copyable `git am` command. The user
+  applies the patch to their separate checkout and pushes to GitHub from there.
+  Keep generated delivery patches outside the tracked worktree, and exclude
+  unrelated user changes from both commits and patches.
 - Do not overwrite unrelated user changes. If the worktree is dirty, inspect
   and preserve those changes.
