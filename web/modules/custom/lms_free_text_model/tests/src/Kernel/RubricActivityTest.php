@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Drupal\Tests\lms_free_text_model\Kernel;
 
 use Drupal\Core\Form\FormState;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\lms\Entity\Activity;
 use Drupal\lms\Entity\ActivityType;
 use Drupal\lms\Entity\Answer;
 use Drupal\lms_free_text_model\Plugin\ActivityAnswer\FreeTextModelResponse;
+use Drupal\lms_free_text_model\Plugin\Field\FieldWidget\RubricCheckWidget;
 
 /**
  * Tests persisted rubric fields and model visibility across answer saving.
@@ -89,6 +91,55 @@ final class RubricActivityTest extends KernelTestBase {
     self::assertGreaterThan(0, $activity->get('rubric_checks')->validate()->count());
     $activity->set('rubric_checks', array_fill(0, 6, ['pattern' => 'word', 'mode' => 'phrases', 'weight' => 1]));
     self::assertGreaterThan(0, $activity->get('rubric_checks')->validate()->count());
+  }
+
+  /**
+   * Authoring starts with three defaults and adds rows without changing storage.
+   */
+  public function testProgressiveRubricRows(): void {
+    $activity = Activity::create(['type' => 'rubric_question']);
+    $items = $activity->get('rubric_checks');
+    $widget = EntityFormDisplay::load('lms_activity.rubric_question.default')->getRenderer('rubric_checks');
+    $state = new FormState();
+    $form = ['#parents' => []];
+    $build = $widget->form($items, $form, $state);
+    $rows = static fn(array $element): array => array_values(array_filter(array_keys($element), 'is_int'));
+    self::assertSame([0, 1, 2], $rows($build['widget']));
+    self::assertSame('Verse reference', $build['widget'][0]['label']['#default_value']);
+    self::assertSame('Key word', $build['widget'][1]['label']['#default_value']);
+    self::assertSame('Question back', $build['widget'][2]['label']['#default_value']);
+    for ($count = 4; $count <= 5; $count++) {
+      $form['rubric_checks'] = $build;
+      $button = $build['widget']['add_more'];
+      $button['#array_parents'] = ['rubric_checks', 'widget', 'add_more'];
+      $state->setTriggeringElement($button);
+      RubricCheckWidget::addCheckSubmit($form, $state);
+      self::assertTrue($state->isRebuilding());
+      $build = $widget->form($items, $form, $state);
+      self::assertCount($count, $rows($build['widget']));
+      self::assertSame('Verse reference', $build['widget'][0]['label']['#default_value']);
+    }
+    self::assertArrayNotHasKey('add_more', $build['widget']);
+    self::assertSame(5, $items->getFieldDefinition()->getFieldStorageDefinition()->getCardinality());
+    // Even a stale click cannot reveal a sixth item.
+    $form['rubric_checks'] = $build;
+    RubricCheckWidget::addCheckSubmit($form, $state);
+    $build = $widget->form($items, $form, $state);
+    self::assertCount(5, $rows($build['widget']));
+    // Reopening an existing four-check activity must not hide the fourth check.
+    $activity->set('rubric_checks', array_fill(0, 4, ['label' => 'Saved', 'pattern' => 'word', 'mode' => 'phrases', 'weight' => 1]));
+    $activity->save();
+    $activity = Activity::load($activity->id());
+    $form = ['#parents' => []];
+    $build = $widget->form($activity->get('rubric_checks'), $form, new FormState());
+    self::assertCount(4, $rows($build['widget']));
+    self::assertSame('Saved', $build['widget'][3]['label']['#default_value']);
+    self::assertArrayHasKey('add_more', $build['widget']);
+    // Older activities do not acquire configured checks just by opening a form.
+    $activity->set('rubric_checks', []);
+    $build = $widget->form($activity->get('rubric_checks'), $form, new FormState());
+    self::assertCount(3, $rows($build['widget']));
+    self::assertSame('', $build['widget'][0]['pattern']['#default_value']);
   }
 
   /**

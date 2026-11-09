@@ -38,6 +38,12 @@ The blank Key word item is skipped until filled in. The other two defaults split
 credit equally. Patterns check textual features, not whether the answer is true
 or demonstrates understanding. Use teacher review when that distinction matters.
 
+The authoring form initially shows three rows. **Add another check** reveals a
+fourth and then a fifth row; the button disappears at five. New activities have
+the three defaults above. Existing empty rubrics show three blank rows, and
+editing activities with four or five saved checks shows all their saved rows.
+This widget-only change needs `drush cr`, with no additional database update.
+
 Require teacher review defaults **off**. When off, LMS automatically evaluates
 new submissions. When on, LMS keeps the answer unevaluated for the standard
 course-results **Details > Evaluate** workflow, with the rubric score as its
@@ -133,8 +139,11 @@ environment; syntax checks alone do not establish a runtime pass.
 On staging:
 
 1. Confirm built-in Evidence Checks retain their normal behavior.
-2. Create a new Questions activity: three defaults, editable weights, and teacher
-   review unchecked. Add up to five checks. Invalid regexes must prevent saving.
+2. Create a new Questions activity: only three default rows, editable weights,
+   and teacher review unchecked. Add another check must reveal one row at a
+   time, preserve entered values, and disappear after the fifth row. Save and
+   reopen four/five-check activities to confirm all saved rows remain visible.
+   Invalid regexes must prevent saving.
 3. Check short, partially matching, fully matching, and blank-pattern answers.
    Confirm only plain-text nudges/readiness messages appear before submission.
    Inspect the AJAX response too: no model, labels, patterns, or score.

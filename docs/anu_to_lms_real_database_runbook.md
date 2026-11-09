@@ -540,6 +540,11 @@ included. Export updated staging configuration and review it before production
 import; old configuration must not remove the new fields. The separate
 formatted-field experiment is not included.
 
+The rubric authoring widget now starts with three rows and offers Add another
+check until five are visible. Deploying this widget adjustment after update
+`10002` only requires `drush cr`; field cardinality and stored data are unchanged.
+Existing four/five-check activities show all their saved rows when edited.
+
 The update does not add checks to saved activities or rescore answers. Three
 prefilled checks apply only to newly created activities. Existing Questions
 activities with no rubric values, including 467, 468, and 469, retain full

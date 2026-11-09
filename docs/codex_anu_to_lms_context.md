@@ -149,6 +149,14 @@ the temporary admin-View bypass from update `10008`.
 
 ### Rubric coaching and partial credit (2026-11-09, pending kernel/staging validation)
 
+The rubric widget now initially displays three rows with Add another check up
+to five. New activities keep the three configured defaults; existing empty
+rubrics remain blank and existing four/five-check activities show all saved
+rows. This UI adjustment changes neither storage cardinality nor update hooks;
+deploy and rebuild caches. Kernel coverage was extended for progressive rows,
+the five-row cap, and preservation of existing values; runtime validation is
+still pending in the full Drupal environment.
+
 `lms_free_text_model` now adds up to five per-activity checks (three defaults on
 new activities), phrase/regex selection, relative weights, plain-text nudges,
 and an optional Require teacher review checkbox. Check Answer coaches without
