@@ -61,13 +61,11 @@
         "drupal/webform": "^6",
         "drush/drush": "^13.",
         "getbrevo/brevo-php": "^1.0",
-        "twig/twig": "3.29.0",
         "wikimedia/composer-merge-plugin": "^2.1"
     },
     "replace": {
     },
     "conflict": {
-        "twig/twig": ">=3.30"
     },
     "require-dev": {
         "drupal/core-dev": "^10.6",
