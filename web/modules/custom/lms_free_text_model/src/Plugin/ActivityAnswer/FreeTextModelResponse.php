@@ -7,18 +7,18 @@ namespace Drupal\lms_free_text_model\Plugin\ActivityAnswer;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 use Drupal\lms\Attribute\ActivityAnswer;
 use Drupal\lms\Entity\ActivityInterface;
 use Drupal\lms\Entity\Answer;
 use Drupal\lms\Plugin\ActivityAnswerBase;
-use Drupal\lms_answer_plugins\Plugin\WithFeedbackPluginTrait;
 use Drupal\lms_free_text_model\ModelResponseEvaluator;
 
 /**
  * Free-text answer plugin that reveals one model response.
  *
- * The answer is accepted once it meets the activity minimum length. Checking
- * it always shows the configured model response. Phrase matching and the
+ * The answer is accepted once it meets the activity minimum length. Saving
+ * it reveals the configured model response. Phrase matching and the
  * correct or incorrect feedback styling used by other answer plugins are not
  * applied.
  */
@@ -28,13 +28,11 @@ use Drupal\lms_free_text_model\ModelResponseEvaluator;
 )]
 final class FreeTextModelResponse extends ActivityAnswerBase {
 
-  use WithFeedbackPluginTrait;
-
   /**
    * {@inheritdoc}
    */
   public function evaluatedOnSave(Answer $activity): bool {
-    // Teacher grades the answer; the model response still shows on Check Answer.
+    // Teacher grades the answer; submission reveals the model response.
     return FALSE;
   }
 
@@ -56,33 +54,42 @@ final class FreeTextModelResponse extends ActivityAnswerBase {
     FormStateInterface $form_state,
     Answer $answer,
   ): void {
+    $submitted = !$answer->isNew();
     $form['#attached']['library'][] = 'lms_free_text_model/model_response';
     $form['answer'] = [
       '#title' => $this->t('Your answer'),
       '#type' => 'textarea',
       '#default_value' => $this->storedAnswer($answer),
       '#rows' => 10,
-      '#required' => TRUE,
+      '#required' => !$submitted,
+      '#disabled' => $submitted,
       '#element_validate' => [[$this, 'validateAnswer']],
       '#minimum_characters' => $this->minimumCharacters(
         $answer->getActivity(),
       ),
     ];
 
-    $this->addFeedbackElementsToAnsweringForm($form, $form_state, $answer);
+    if ($submitted) {
+      $form['model_response'] = $this->modelResponse($answer);
+      $form['actions']['submit']['#access'] = FALSE;
+      $form['actions']['return_to_course'] = [
+        '#type' => 'link',
+        '#title' => $this->t('Return to course'),
+        '#url' => Url::fromRoute('entity.group.canonical', [
+          'group' => $answer->getLessonStatus()->getCourseStatus()->getCourseId(),
+        ]),
+      ];
+    }
   }
 
   /**
-   * Builds the model-response feedback.
-   *
-   * The correct flag is unused. Every answer that reaches this display gets
-   * the same model response, with no correct or incorrect marker.
+   * Builds model feedback only for a persisted answer.
    */
-  private function buildFeedbackRenderArray(
-    bool $is_correct,
-    Answer $answer,
-    ActivityInterface $activity,
-  ): array {
+  public function modelResponse(Answer $answer): array {
+    if ($answer->isNew()) {
+      return [];
+    }
+    $activity = $answer->getActivity();
     return $this->evaluator()->feedbackRenderArray(
       $this->fieldString($activity, 'model_response_heading'),
       $this->fieldString($activity, 'model_response'),
@@ -90,14 +97,20 @@ final class FreeTextModelResponse extends ActivityAnswerBase {
   }
 
   /**
-   * Leaves the answer textarea visually neutral.
+   * Prevents resubmitting a saved response after the model has been revealed.
    */
-  private function addAnswerClassesToForm(
-    array &$form,
-    bool $is_correct,
-    Answer $answer,
-  ): void {
-    // The textarea is not marked correct or incorrect.
+  public function validateAnsweringForm(array &$form, FormStateInterface $form_state, Answer $answer): void {
+    if (!$answer->isNew()) {
+      $form_state->setErrorByName('answer', $this->t('This answer has already been submitted.'));
+    }
+  }
+
+  /**
+   * Marks submissions that reach LMS saving, after its overtime check.
+   */
+  public function submitAnsweringForm(array &$form, FormStateInterface $form_state, Answer $answer): void {
+    parent::submitAnsweringForm($form, $form_state, $answer);
+    $form_state->set('lms_free_text_model_submitted', TRUE);
   }
 
   /**
@@ -163,7 +176,7 @@ final class FreeTextModelResponse extends ActivityAnswerBase {
       ],
     ];
 
-    $feedback = $this->buildFeedbackRenderArray(TRUE, $answer, $activity);
+    $feedback = $this->modelResponse($answer);
     if ($feedback !== []) {
       $build['model_response'] = $feedback;
     }

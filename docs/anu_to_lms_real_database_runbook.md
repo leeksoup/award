@@ -522,6 +522,48 @@ No historical revisions are transferred. Keep import/export permissions with
 trusted administrators; the outstanding access concerns are documented in
 `docs/lms_content_sync_security_review.md`.
 
+### Optional: deploy model-response review after submission
+
+For an existing `lms_free_text_model` installation, deploy the code and run:
+
+```bash
+drush updb -y
+drush cr
+```
+
+Module update `10001` changes the Model response field's authoring hint while
+preserving field IDs and values. This change adds a service and a route and
+does not convert the response field or rewrite saved answers. Export wanted
+configuration from the updated staging site and review it before production
+import. Do not deploy the separate unfinished formatted-field experiment.
+
+On staging, test a fresh learner attempt with a positive activity max score:
+no Check Answer button or model-response markup before submission; short
+answers fail validation; a valid answer saves unevaluated and then shows the
+model response. Continue must retain LMS navigation within lessons, across
+lessons, and on course completion. Refreshing review must not save again.
+Confirm learner revisits are read-only and a stale form in another tab cannot
+replace an already submitted answer. Teacher evaluation remains available.
+
+Review access requires the saved answer's owner, matching course, model-response
+plugin, and normal Group `take` access. Test another account and another course
+ID against the review URL: neither may expose the response. If anonymous
+attempts are enabled, test isolation between browser sessions too. The module
+README includes the complete manual checklist and unit-test commands. No
+runtime pass is claimed until staging results are provided.
+
+For editor testing, use Reset for updates only for the editor's own course
+progress. Editors need course membership and a synchronized role with course
+update access; `lms_teacher` alone is insufficient. Reset discards that user's
+saved course answers. Do not reset learner progress merely to deploy this
+change. Previously saved model-response answers become read-only in the learner
+form; their stored values and grading flags are retained.
+
+For rollback, restore the previous module code and rebuild caches. The original
+answer form and Check Answer behavior return; no field data needs restoring.
+Any answers submitted during the deployment remain saved and learner progress
+already advanced by LMS is retained.
+
 ## 4. Verify target configuration
 
 ```bash

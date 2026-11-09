@@ -147,6 +147,23 @@ the temporary admin-View bypass from update `10008`.
 
 ## Validated behavior versus pending behavior
 
+### Model response submission review (2026-11-09, pending staging validation)
+
+The user confirmed the new Questions activity works after resetting stale test
+progress. User 163 needed membership in course 15 in addition to `lms_teacher`
+to obtain synchronized teacher access and the Reset for updates button.
+
+Branch `model-response-after-submit` removes Check Answer from
+`lms_free_text_model`. The normal LMS form saves the answer and advances the
+attempt, then a custom callback redirects to an owner-only saved-answer review.
+Continue uses the original LMS next/completion route from user-private
+tempstore. Learner revisits are read-only; validation rejects stale cached
+forms for an already submitted answer. Teacher grading and positive-score
+requirements remain unchanged. Update `10001` only changes the field's authoring
+hint. No field conversion or existing-answer rewrite is included. The unfinished
+formatted-field work is stashed separately. Runtime validation of this new flow
+is pending; syntax/config checks do not establish a real-site pass.
+
 ### Operator confirmation, 2026-11-07
 
 The user confirmed that production recovery into an empty database and the

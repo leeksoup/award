@@ -1,0 +1,14 @@
+lms_free_text_model.review:
+  path: '/course/{group}/model-response/{lms_answer}'
+  defaults:
+    _controller: '\Drupal\lms_free_text_model\Controller\ModelResponseController::review'
+    _title: 'Compare your response'
+  requirements:
+    _custom_access: '\Drupal\lms_free_text_model\Controller\ModelResponseController::access'
+  options:
+    no_cache: true
+    parameters:
+      group:
+        type: entity:group
+      lms_answer:
+        type: entity:lms_answer

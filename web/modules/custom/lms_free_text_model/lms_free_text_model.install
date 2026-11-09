@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * Update hooks for LMS Free Text Model Response.
+ */
+
+declare(strict_types=1);
+
+use Drupal\field\Entity\FieldConfig;
+
+/**
+ * Updates the authoring hint to describe feedback after submission.
+ */
+function lms_free_text_model_update_10001(): void {
+  foreach (FieldConfig::loadMultiple() as $field) {
+    if ($field->getTargetEntityTypeId() === 'lms_activity' && $field->getName() === 'model_response') {
+      $field->setDescription('HTML shown after the student submits an answer that meets the minimum length. Paragraph markup is preserved. The text is not marked correct or incorrect.');
+      $field->save();
+    }
+  }
+}

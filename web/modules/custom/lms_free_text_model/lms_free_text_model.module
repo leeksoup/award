@@ -1,0 +1,42 @@
+<?php
+
+/**
+ * @file
+ * Adds post-submission review to model-response answer forms.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\lms\Entity\Form\AnswerForm;
+
+/**
+ * Implements hook_form_alter().
+ */
+function lms_free_text_model_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $form_object = $form_state->getFormObject();
+  if (!$form_object instanceof AnswerForm) {
+    return;
+  }
+  $submission = \Drupal::service('lms_free_text_model.submission');
+  if ($submission->applies($form_object->getEntity())) {
+    // Form alter runs after LMS has assigned its save-and-advance callback.
+    $form['actions']['submit']['#submit'][] = 'lms_free_text_model_after_submit';
+    $form['#validate'][] = 'lms_free_text_model_validate_submission';
+    $form['#cache']['max-age'] = 0;
+  }
+}
+
+/**
+ * Rejects an old cached form if the answer was submitted in another request.
+ */
+function lms_free_text_model_validate_submission(array &$form, FormStateInterface $form_state): void {
+  \Drupal::service('lms_free_text_model.submission')->validateUnsubmitted($form_state);
+}
+
+/**
+ * Redirects only after LMS has successfully saved and advanced the attempt.
+ */
+function lms_free_text_model_after_submit(array &$form, FormStateInterface $form_state): void {
+  \Drupal::service('lms_free_text_model.submission')->afterSubmit($form_state);
+}

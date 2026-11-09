@@ -6,7 +6,7 @@
  * This library keeps the model response in the normal text color.
  */
 
-.answer-feedback-wrapper .model-response-feedback {
+.model-response-feedback {
   margin-top: 1rem;
   padding: 0;
   color: CanvasText;
@@ -14,14 +14,14 @@
   border: 0;
 }
 
-.answer-feedback-wrapper .model-response-feedback .model-response-heading {
+.model-response-feedback .model-response-heading {
   margin: 0 0 0.5rem;
   color: CanvasText;
   background: transparent;
   font-weight: 600;
 }
 
-.answer-feedback-wrapper .model-response-feedback .model-response-body {
+.model-response-feedback .model-response-body {
   color: CanvasText;
   background: transparent;
 }

@@ -1,0 +1,4 @@
+services:
+  lms_free_text_model.submission:
+    class: Drupal\lms_free_text_model\ModelResponseSubmission
+    arguments: ['@lms.training_manager', '@tempstore.private']

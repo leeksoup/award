@@ -31,8 +31,8 @@ final class ModelResponseEvaluator {
    * Returns the fraction of the activity max score this answer earns.
    *
    * An empty answer scores 0. Any other answer whose countable length meets
-   * the minimum scores 1. LMS multiplies that fraction by the activity max
-   * score when the answer is saved.
+   * the minimum scores 1. Submitted answers still require teacher grading;
+   * this helper does not assign the teacher's grade.
    */
   public function score(string $answer, int $minimum_characters): float {
     if ($answer === '') {

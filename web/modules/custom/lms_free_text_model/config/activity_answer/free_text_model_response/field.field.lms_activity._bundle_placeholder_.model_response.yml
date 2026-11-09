@@ -11,7 +11,7 @@ field_name: model_response
 entity_type: lms_activity
 bundle: _bundle_placeholder_
 label: 'Model response'
-description: 'HTML shown after the student checks an answer that meets the minimum length. Paragraph markup is preserved. The text is not marked correct or incorrect.'
+description: 'HTML shown after the student submits an answer that meets the minimum length. Paragraph markup is preserved. The text is not marked correct or incorrect.'
 required: false
 translatable: false
 default_value: {  }
