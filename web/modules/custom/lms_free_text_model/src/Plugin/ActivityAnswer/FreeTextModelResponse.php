@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\lms_free_text_model\Plugin\ActivityAnswer;
 
 use Drupal\Component\Utility\Html;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
@@ -13,14 +15,16 @@ use Drupal\lms\Entity\ActivityInterface;
 use Drupal\lms\Entity\Answer;
 use Drupal\lms\Plugin\ActivityAnswerBase;
 use Drupal\lms_free_text_model\ModelResponseEvaluator;
+use Drupal\lms_free_text_model\ModelResponseSubmission;
+use Drupal\lms_free_text_model\RubricEvaluator;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Free-text answer plugin that reveals one model response.
  *
  * The answer is accepted once it meets the activity minimum length. Saving
- * it reveals the configured model response. Phrase matching and the
- * correct or incorrect feedback styling used by other answer plugins are not
- * applied.
+ * it reveals the configured model response. Optional rubric checks provide
+ * plain-text coaching and weighted credit without correctness styling.
  */
 #[ActivityAnswer(
   id: 'free_text_model_response',
@@ -29,11 +33,24 @@ use Drupal\lms_free_text_model\ModelResponseEvaluator;
 final class FreeTextModelResponse extends ActivityAnswerBase {
 
   /**
+   * Preserves post-submit navigation and suggested teacher-review scores.
+   */
+  protected ModelResponseSubmission $submission;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function injectServices(ContainerInterface $container): void {
+    parent::injectServices($container);
+    $this->submission = $container->get('lms_free_text_model.submission');
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function evaluatedOnSave(Answer $activity): bool {
-    // Teacher grades the answer; submission reveals the model response.
-    return FALSE;
+    $entity = $activity->getActivity();
+    return !$entity->hasField('require_teacher_review') || !(bool) $entity->get('require_teacher_review')->value;
   }
 
   /**
@@ -43,6 +60,7 @@ final class FreeTextModelResponse extends ActivityAnswerBase {
     return $this->evaluator()->score(
       $this->storedAnswer($answer),
       $this->minimumCharacters($answer->getActivity()),
+      $this->checks($answer->getActivity()),
     );
   }
 
@@ -80,6 +98,61 @@ final class FreeTextModelResponse extends ActivityAnswerBase {
         ]),
       ];
     }
+    else {
+      $wrapper_id = 'model-response-coaching-' . $answer->getActivity()->id();
+      $form['answer_feedback_wrapper'] = [
+        '#type' => 'container', '#attributes' => ['id' => $wrapper_id],
+        'answer' => $form['answer'],
+        'coaching' => ['#type' => 'container', '#weight' => 10],
+      ];
+      unset($form['answer']);
+      $form['actions']['check'] = [
+        '#type' => 'button', '#value' => $this->t('Check Answer'),
+        '#name' => 'model_response_check',
+        '#ajax' => ['callback' => [$this, 'ajaxCoaching']],
+        '#weight' => 1,
+      ];
+      $form['actions']['submit']['#weight'] = 2;
+
+    }
+  }
+
+  /**
+   * Updates coaching only; no model HTML or score is included in this response.
+   */
+  public function ajaxCoaching(array &$form, FormStateInterface $form_state): AjaxResponse {
+    $wrapper = $form['answer_feedback_wrapper'];
+    unset($wrapper['coaching']);
+    if (!$form_state->hasAnyErrors()) {
+      $answer = $form_state->getFormObject()->getEntity();
+      $value = $form_state->getValue('answer', '');
+      if ($answer->isNew()) {
+        $wrapper['coaching'] = $this->coachingFeedback($answer, is_string($value) ? $value : '');
+      }
+    }
+    $wrapper['messages'] = ['#type' => 'status_messages', '#weight' => -10];
+    $response = new AjaxResponse();
+    $response->addCommand(new ReplaceCommand('#' . $wrapper['#attributes']['id'], $wrapper));
+    return $response;
+  }
+
+  /**
+   * Builds plain-text coaching without exposing labels, patterns, or scores.
+   */
+  public function coachingFeedback(Answer $answer, string $value): array {
+    $result = (new RubricEvaluator())->evaluate(
+      $value,
+      $this->minimumCharacters($answer->getActivity()),
+      $this->checks($answer->getActivity()),
+    );
+    $build = ['#type' => 'container', '#weight' => 10];
+    foreach ($result['nudges'] as $nudge) {
+      $build[] = ['#type' => 'container', 'message' => ['#plain_text' => $nudge]];
+    }
+    if ($result['all_passed']) {
+      $build['ready'] = ['#plain_text' => $this->t('Looks good. Submit when ready.')];
+    }
+    return $build;
   }
 
   /**
@@ -110,6 +183,9 @@ final class FreeTextModelResponse extends ActivityAnswerBase {
    */
   public function submitAnsweringForm(array &$form, FormStateInterface $form_state, Answer $answer): void {
     parent::submitAnsweringForm($form, $form_state, $answer);
+    if (!$this->evaluatedOnSave($answer)) {
+      $this->submission->prepareReviewScore($answer, $this->getScore($answer));
+    }
     $form_state->set('lms_free_text_model_submitted', TRUE);
   }
 
@@ -206,6 +282,13 @@ final class FreeTextModelResponse extends ActivityAnswerBase {
       return 0;
     }
     return (int) $items->first()->getValue()['value'];
+  }
+
+  /**
+   * Existing activities without rubric items retain length-only scoring.
+   */
+  private function checks(ActivityInterface $activity): array {
+    return $activity->hasField('rubric_checks') ? $activity->get('rubric_checks')->getValue() : [];
   }
 
   /**

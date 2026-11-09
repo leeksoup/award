@@ -7,7 +7,10 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 
 /**
  * Updates the authoring hint to describe feedback after submission.
@@ -19,4 +22,67 @@ function lms_free_text_model_update_10001(): void {
       $field->save();
     }
   }
+}
+
+/**
+ * Adds optional rubric checks and teacher review without changing activities.
+ */
+function lms_free_text_model_update_10002(): void {
+  \Drupal::service('plugin.manager.field.field_type')->clearCachedDefinitions();
+  $defaults = new FileStorage(__DIR__ . '/config/install');
+  $templates = new FileStorage(__DIR__ . '/config/activity_answer/free_text_model_response');
+  $sync = \Drupal::service('config.storage.sync');
+  $manager = \Drupal::entityTypeManager();
+  foreach (['rubric_checks' => 'model_response_rubric_check', 'require_teacher_review' => 'boolean'] as $name => $type) {
+    $storage = FieldStorageConfig::loadByName('lms_activity', $name);
+    if ($storage === NULL) {
+      $config_name = 'field.storage.lms_activity.' . $name;
+      $values = $defaults->read($config_name);
+      $exported = $sync->read($config_name);
+      if (!empty($exported['uuid'])) {
+        $values['uuid'] = $exported['uuid'];
+      }
+      $storage = FieldStorageConfig::create($values);
+      $storage->save();
+    }
+    if ($storage->getType() !== $type || $storage->getCardinality() !== ($name === 'rubric_checks' ? 5 : 1)) {
+      throw new \RuntimeException('Unexpected storage definition for lms_activity.' . $name);
+    }
+  }
+  foreach ($manager->getStorage('lms_activity_type')->loadMultiple() as $activity_type) {
+    if ($activity_type->getPluginId() !== 'free_text_model_response') {
+      continue;
+    }
+    $bundle = $activity_type->id();
+    foreach (['rubric_checks', 'require_teacher_review'] as $name) {
+      if (FieldConfig::loadByName('lms_activity', $bundle, $name) === NULL) {
+        $values = $templates->read('field.field.lms_activity._bundle_placeholder_.' . $name);
+        $values['id'] = 'lms_activity.' . $bundle . '.' . $name;
+        $values['bundle'] = $bundle;
+        $values['dependencies']['config'] = [
+          'field.storage.lms_activity.' . $name,
+          'lms.lms_activity_type.' . $bundle,
+        ];
+        $exported = $sync->read('field.field.' . $values['id']);
+        if (!empty($exported['uuid'])) {
+          $values['uuid'] = $exported['uuid'];
+        }
+        FieldConfig::create($values)->save();
+      }
+    }
+    $display = EntityFormDisplay::load('lms_activity.' . $bundle . '.default');
+    if ($display !== NULL) {
+      foreach (['rubric_checks' => 'model_response_rubric_check', 'require_teacher_review' => 'boolean_checkbox'] as $name => $widget) {
+        if ($display->getComponent($name) === NULL) {
+          $display->setComponent($name, ['type' => $widget, 'weight' => $name === 'rubric_checks' ? 5 : 6]);
+        }
+      }
+      $display->save();
+    }
+    foreach ($manager->getStorage('entity_view_display')->loadByProperties(['targetEntityType' => 'lms_activity', 'bundle' => $bundle]) as $display) {
+      $display->removeComponent('rubric_checks')->removeComponent('require_teacher_review')->save();
+    }
+  }
+  $manager->getStorage('lms_activity')->resetCache();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 }

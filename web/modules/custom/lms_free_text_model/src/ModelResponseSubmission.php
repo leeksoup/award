@@ -17,10 +17,34 @@ use Drupal\lms_free_text_model\Plugin\ActivityAnswer\FreeTextModelResponse;
  */
 final class ModelResponseSubmission {
 
+  private \WeakMap $reviewScores;
+
   public function __construct(
     private readonly TrainingManager $trainingManager,
     private readonly PrivateTempStoreFactory $tempStoreFactory,
-  ) {}
+  ) {
+    $this->reviewScores = new \WeakMap();
+  }
+
+  /**
+   * Records only a real submission, never a teacher's later grading operation.
+   */
+  public function prepareReviewScore(Answer $answer, float $fraction): void {
+    $maximum = $this->trainingManager->getActivityMaxScore($answer->getLessonStatus()->getLesson(), $answer->getActivity());
+    $this->reviewScores[$answer] = (int) round($fraction * $maximum);
+  }
+
+  /**
+   * Overrides LMS's provisional full score before storage and total updates.
+   */
+  public function applyReviewScore(Answer $answer): void {
+    if (isset($this->reviewScores[$answer])) {
+      if (!$answer->isEvaluated()) {
+        $answer->setScore($this->reviewScores[$answer]);
+      }
+      unset($this->reviewScores[$answer]);
+    }
+  }
 
   /**
    * Checks the plugin rather than assuming a particular activity bundle name.

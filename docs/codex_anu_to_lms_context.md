@@ -147,6 +147,25 @@ the temporary admin-View bypass from update `10008`.
 
 ## Validated behavior versus pending behavior
 
+### Rubric coaching and partial credit (2026-11-09, pending kernel/staging validation)
+
+`lms_free_text_model` now adds up to five per-activity checks (three defaults on
+new activities), phrase/regex selection, relative weights, plain-text nudges,
+and an optional Require teacher review checkbox. Check Answer coaches without
+saving or revealing model text, patterns, labels, or scores. Submit retains the
+saved-answer review/Continue flow. Automatic evaluation is the default; teacher
+review keeps the rubric score unevaluated as the initial suggested grade, scoped
+to submission so later teacher edits are not overwritten.
+
+Update `10002` adds field storage, bundle instances and displays without
+populating old activities or rewriting answers. Empty rubrics, including those
+on activities 467-469, retain minimum-length/full-credit behavior. New fields
+are retained on rollback unless restoring the matching database backup; removing
+their field-type code while installed is unsafe. The formatted-field experiment
+remains stashed separately. Evaluator unit checks ran locally; new Drupal kernel
+tests and staging verification remain pending because this checkout lacks core
+and installed Composer dependencies. See the module README and runbook.
+
 ### Model response submission review (2026-11-09, pending staging validation)
 
 The user confirmed the new Questions activity works after resetting stale test

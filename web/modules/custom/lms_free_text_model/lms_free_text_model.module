@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\lms\Entity\Form\AnswerForm;
+use Drupal\lms\Entity\Answer;
 
 /**
  * Implements hook_form_alter().
@@ -39,4 +40,11 @@ function lms_free_text_model_validate_submission(array &$form, FormStateInterfac
  */
 function lms_free_text_model_after_submit(array &$form, FormStateInterface $form_state): void {
   \Drupal::service('lms_free_text_model.submission')->afterSubmit($form_state);
+}
+
+/**
+ * Implements hook_lms_answer_presave().
+ */
+function lms_free_text_model_lms_answer_presave(Answer $answer): void {
+  \Drupal::service('lms_free_text_model.submission')->applyReviewScore($answer);
 }

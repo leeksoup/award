@@ -522,47 +522,57 @@ No historical revisions are transferred. Keep import/export permissions with
 trusted administrators; the outstanding access concerns are documented in
 `docs/lms_content_sync_security_review.md`.
 
-### Optional: deploy model-response review after submission
+### Optional: deploy model-response rubric checks and saved-answer review
 
-For an existing `lms_free_text_model` installation, deploy the code and run:
+Back up the target database, deploy `lms_free_text_model` code and run:
 
 ```bash
 drush updb -y
 drush cr
 ```
 
-Module update `10001` changes the Model response field's authoring hint while
-preserving field IDs and values. This change adds a service and a route and
-does not convert the response field or rewrite saved answers. Export wanted
-configuration from the updated staging site and review it before production
-import. Do not deploy the separate unfinished formatted-field experiment.
+Update `10001` changes the Model response field hint. Update `10002` installs
+`rubric_checks` (maximum five custom field items) and `require_teacher_review`
+(boolean), adds them to the authoring form, and hides them in all existing
+activity view displays. It preserves storage and config IDs and uses sync UUIDs
+for new fields when available. No field conversion or answer migration is
+included. Export updated staging configuration and review it before production
+import; old configuration must not remove the new fields. The separate
+formatted-field experiment is not included.
 
-On staging, test a fresh learner attempt with a positive activity max score:
-no Check Answer button or model-response markup before submission; short
-answers fail validation; a valid answer saves unevaluated and then shows the
-model response. Continue must retain LMS navigation within lessons, across
-lessons, and on course completion. Refreshing review must not save again.
-Confirm learner revisits are read-only and a stale form in another tab cannot
-replace an already submitted answer. Teacher evaluation remains available.
+The update does not add checks to saved activities or rescore answers. Three
+prefilled checks apply only to newly created activities. Existing Questions
+activities with no rubric values, including 467, 468, and 469, retain full
+credit when minimum length is met. New submissions auto-evaluate unless the
+author checks Require teacher review; this keeps the rubric score as the initial
+unevaluated grade for Details > Evaluate. Historical evaluation flags are not
+changed. LMS always evaluates activities with a zero maximum score.
 
-Review access requires the saved answer's owner, matching course, model-response
-plugin, and normal Group `take` access. Test another account and another course
-ID against the review URL: neither may expose the response. If anonymous
-attempts are enabled, test isolation between browser sessions too. The module
-README includes the complete manual checklist and unit-test commands. No
-runtime pass is claimed until staging results are provided.
+On staging, verify the new defaults, valid/invalid regex authoring, five-item
+limit, weighted partial scores, blank-pattern skipping, and teacher review.
+Check Answer must show only plain-text nudges (or readiness), with no model,
+private labels/patterns, or score in either the page or AJAX response. Submit
+must validate minimum length even without Check Answer, save/score the answer,
+and then reveal the model. Continue must work within lessons, across lessons,
+and on course completion. Teacher grading must retain manually changed marks.
+The module README contains the full checklist and kernel/unit test commands.
 
-For editor testing, use Reset for updates only for the editor's own course
-progress. Editors need course membership and a synchronized role with course
-update access; `lms_teacher` alone is insufficient. Reset discards that user's
-saved course answers. Do not reset learner progress merely to deploy this
-change. Previously saved model-response answers become read-only in the learner
-form; their stored values and grading flags are retained.
+Review access requires the answer owner, matching course, this plugin, and
+normal Group take access. Another account or a mismatched course must not gain
+access. Refresh/back must not submit again, and old forms must not overwrite a
+saved response after its model is shown. Anonymous attempts, if enabled, require
+separate-session access tests. No kernel or staging pass is claimed from syntax
+or evaluator-only tests.
 
-For rollback, restore the previous module code and rebuild caches. The original
-answer form and Check Answer behavior return; no field data needs restoring.
-Any answers submitted during the deployment remain saved and learner progress
-already advanced by LMS is retained.
+Editors need course membership and an authorized synchronized Group role with
+course update access for Reset for updates. `lms_teacher` alone is insufficient.
+Reset only an editor's own test progress when needed; it deletes that user's
+saved course answers. Do not reset student progress to deploy this feature.
+
+Rollback requires the pre-deployment database backup and matching code. Do not
+remove the custom rubric field-type implementation while its storage/config
+remains installed, and do not delete field tables manually. Saved answers and
+course progress must be accounted for before restoring an older database.
 
 ## 4. Verify target configuration
 

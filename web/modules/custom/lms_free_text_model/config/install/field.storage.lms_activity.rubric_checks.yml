@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - lms
+    - lms_free_text_model
+id: lms_activity.rubric_checks
+field_name: rubric_checks
+entity_type: lms_activity
+type: model_response_rubric_check
+settings: {  }
+module: lms_free_text_model
+locked: true
+cardinality: 5
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

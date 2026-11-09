@@ -13,6 +13,7 @@ use Drupal\lms\Entity\ActivityInterface;
 use Drupal\lms\Entity\Answer;
 use Drupal\lms\Entity\CourseStatusInterface;
 use Drupal\lms\Entity\LessonStatusInterface;
+use Drupal\lms\Entity\LessonInterface;
 use Drupal\lms\TrainingManager;
 use Drupal\lms_free_text_model\ModelResponseSubmission;
 use Drupal\lms_free_text_model\Plugin\ActivityAnswer\FreeTextModelResponse;
@@ -90,6 +91,28 @@ final class ModelResponseSubmissionTest extends UnitTestCase {
     $state->method('getFormObject')->willReturn($form);
     $state->expects(self::once())->method('setErrorByName')->with('answer', self::anything());
     $submission->validateUnsubmitted($state);
+  }
+
+  /**
+   * Suggested partial marks are applied once and do not overwrite teacher work.
+   */
+  public function testReviewStartingScoreIsAppliedOnlyOnSubmission(): void {
+    $activity = $this->createMock(ActivityInterface::class);
+    $lesson = $this->createMock(LessonInterface::class);
+    $status = $this->createMock(LessonStatusInterface::class);
+    $status->method('getLesson')->willReturn($lesson);
+    $answer = $this->createMock(Answer::class);
+    $answer->method('getLessonStatus')->willReturn($status);
+    $answer->method('getActivity')->willReturn($activity);
+    $answer->method('isEvaluated')->willReturn(FALSE);
+    $answer->expects(self::once())->method('setScore')->with(3)->willReturnSelf();
+    $manager = $this->createMock(TrainingManager::class);
+    $manager->method('getActivityMaxScore')->with($lesson, $activity)->willReturn(10);
+    $submission = new ModelResponseSubmission($manager, $this->createMock(PrivateTempStoreFactory::class));
+    $submission->prepareReviewScore($answer, 0.25);
+    $submission->applyReviewScore($answer);
+    // No submission marker remains for a later teacher save.
+    $submission->applyReviewScore($answer);
   }
 
   /**

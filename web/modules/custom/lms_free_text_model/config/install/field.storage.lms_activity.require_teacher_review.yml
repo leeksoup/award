@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - lms
+    - lms_free_text_model
+id: lms_activity.require_teacher_review
+field_name: require_teacher_review
+entity_type: lms_activity
+type: boolean
+settings: {  }
+module: core
+locked: true
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

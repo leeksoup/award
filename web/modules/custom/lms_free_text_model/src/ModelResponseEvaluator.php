@@ -30,11 +30,14 @@ final class ModelResponseEvaluator {
   /**
    * Returns the fraction of the activity max score this answer earns.
    *
-   * An empty answer scores 0. Any other answer whose countable length meets
-   * the minimum scores 1. Submitted answers still require teacher grading;
-   * this helper does not assign the teacher's grade.
+   * Optional rubric checks produce weighted partial credit. Without active
+   * checks, a nonempty answer meeting the minimum scores 1. A short or empty
+   * answer scores 0. LMS uses this fraction for automatic or suggested marks.
    */
-  public function score(string $answer, int $minimum_characters): float {
+  public function score(string $answer, int $minimum_characters, array $checks = []): float {
+    if ($checks !== []) {
+      return (new RubricEvaluator())->evaluate($answer, $minimum_characters, $checks)['score'];
+    }
     if ($answer === '') {
       return 0.0;
     }

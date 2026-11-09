@@ -6,6 +6,8 @@ dependencies:
     - field.field.lms_activity._bundle_placeholder_.model_response_heading
     - field.field.lms_activity._bundle_placeholder_.question
     - lms.lms_activity_type._bundle_placeholder_
+    - field.field.lms_activity._bundle_placeholder_.rubric_checks
+    - field.field.lms_activity._bundle_placeholder_.require_teacher_review
   module:
     - lms_free_text_model
     - text
@@ -27,3 +29,5 @@ hidden:
   model_response_heading: true
   name: true
   uid: true
+  rubric_checks: true
+  require_teacher_review: true

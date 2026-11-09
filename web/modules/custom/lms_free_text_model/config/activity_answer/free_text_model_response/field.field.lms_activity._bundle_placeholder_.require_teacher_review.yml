@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.lms_activity.require_teacher_review
+    - lms.lms_activity_type._bundle_placeholder_
+  module:
+    - lms_free_text_model
+id: lms_activity._bundle_placeholder_.require_teacher_review
+field_name: require_teacher_review
+entity_type: lms_activity
+bundle: _bundle_placeholder_
+label: Require teacher review
+description: Keep the rubric score as a suggested grade pending teacher evaluation.
+required: false
+translatable: false
+default_value:
+  - value: false
+default_value_callback: ''
+settings:
+  on_label: Require teacher review
+  off_label: Automatic scoring
+field_type: boolean

@@ -6,6 +6,8 @@ dependencies:
     - field.field.lms_activity._bundle_placeholder_.model_response_heading
     - field.field.lms_activity._bundle_placeholder_.question
     - lms.lms_activity_type._bundle_placeholder_
+    - field.field.lms_activity._bundle_placeholder_.rubric_checks
+    - field.field.lms_activity._bundle_placeholder_.require_teacher_review
   module:
     - lms_free_text_model
     - text
@@ -52,6 +54,19 @@ content:
     settings:
       rows: 8
       placeholder: ''
+    third_party_settings: {  }
+  rubric_checks:
+    type: model_response_rubric_check
+    weight: 5
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  require_teacher_review:
+    type: boolean_checkbox
+    weight: 6
+    region: content
+    settings:
+      display_label: true
     third_party_settings: {  }
 hidden:
   created: true
