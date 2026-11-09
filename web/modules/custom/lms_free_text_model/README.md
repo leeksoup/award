@@ -24,10 +24,13 @@ module does not change that plugin, its fields, or its feedback headings.
 - The feedback uses the `model-response-feedback` classes and the normal text
   color. It does not use `correct-answer`, `wrong-answer`, or the matched and
   unmatched phrase sections.
-- An answer that meets the minimum length scores 1, so LMS records the
-  activity's full max score on submit. An empty answer scores 0. The answer is
-  evaluated when it is saved, which gives completion credit without a teacher
-  grade.
+- Check Answer uses the minimum length to reveal the model response. Submitted
+  answers require teacher grading. LMS initially stores the activity's maximum
+  score as a provisional value so the learner can continue, but marks the
+  answer unevaluated. Set a positive maximum score: LMS always treats zero-score
+  activities as evaluated, regardless of the plugin setting.
+- Deploying this change does not rewrite previously submitted answers or their
+  evaluation flags. Subsequent submissions follow the teacher-grading behavior.
 - The site-wide string overrides for "You seem to have a good understanding
   of:" and "You could have another look at:" do not apply here. Those source
   strings are not used.
@@ -152,8 +155,9 @@ vendor/bin/phpunit -c web/core \
 4. Check a longer answer that contains none of the old catch-all words. The
    page shows the configured heading and the model HTML, in the normal text
    color, without `correct-answer` or `wrong-answer`.
-5. Submit. The saved score equals the activity max score, and the lesson can
-   continue.
+5. Submit an activity with a positive maximum score. The answer remains
+   unevaluated pending teacher grading, and the lesson can continue. Its initial
+   score equals the activity max score provisionally.
 6. Clear the heading and check again. The model response remains and no
    heading is rendered.
 7. Open the answer in the teacher evaluation view. The student text is

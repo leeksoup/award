@@ -34,7 +34,8 @@ final class FreeTextModelResponse extends ActivityAnswerBase {
    * {@inheritdoc}
    */
   public function evaluatedOnSave(Answer $activity): bool {
-    return TRUE;
+    // Teacher grades the answer; the model response still shows on Check Answer.
+    return FALSE;
   }
 
   /**
