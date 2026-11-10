@@ -500,3 +500,8 @@ guarded command recreates its empty schema through Drupal's entity-definition
 update API immediately before Core validates and completes the uninstall. This
 applies to every missing static content-entity table provided by an anu_lms
 module.
+
+The related Commerce entitlement security work is tracked in the
+[remediation plan](commerce_lms_entitlements_security_remediation_plan.md).
+The PayPal plan policy tests passed locally. Validation of database and
+membership transitions still requires the bootstrapped staging site.

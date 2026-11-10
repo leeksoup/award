@@ -96,6 +96,9 @@ final class PayPalWebhookWorker extends QueueWorkerBase implements ContainerFact
         throw new \RuntimeException('Missing Commerce order for entitlement ' . $entitlement['eid']);
       }
       $gateway_id = $order->get('payment_gateway')->target_id ?? NULL;
+      if ((string) ($event['gateway_id'] ?? '') !== (string) $gateway_id) {
+        throw new \DomainException('The webhook gateway does not match the subscription order gateway.');
+      }
       $gateway ??= $gateway_id ? $this->entityTypeManager->getStorage('commerce_payment_gateway')->load($gateway_id) : NULL;
       if (!$gateway) { throw new \RuntimeException('Missing payment gateway for entitlement ' . $entitlement['eid']); }
       $remote ??= $this->paypalOperations->fetchSubscription($gateway, $entitlement['paypal_subscription_id']);

@@ -472,52 +472,160 @@ final class EntitlementManager {
    * cancelled subscription can retain access through the paid-through time.
    */
   public function applyRemoteSubscription(array $entitlement, array $remote): void {
-    $status = strtoupper((string) ($remote['status'] ?? ''));
-    $local = ['ACTIVE' => 'active', 'SUSPENDED' => 'suspended', 'CANCELLED' => 'cancelled', 'EXPIRED' => 'expired'][$status] ?? 'pending';
-    $through = !empty($remote['billing_info']['next_billing_time']) ? strtotime($remote['billing_info']['next_billing_time']) ?: NULL : NULL;
-    $values = ['status' => $local, 'access_through' => $through];
-    $remote_plan_id = (string) ($remote['plan_id'] ?? '');
-    $pending_change = $this->pendingPlanChange((int) $entitlement['eid']);
-    $allowed_plan_ids = array_filter([(string) ($entitlement['paypal_plan_id'] ?? '')]);
-    if ($pending_change) {
-      $allowed_plan_ids[] = (string) $pending_change['target_plan_id'];
+    // Serialize local reconciliation decisions for the same entitlement.
+    // The caller's copy may predate another worker or a local revocation.
+    $transaction = $this->database->startTransaction();
+    $entitlement = $this->database->select('commerce_lms_entitlement', 'e')
+      ->fields('e')
+      ->condition('eid', (int) $entitlement['eid'])
+      ->forUpdate()
+      ->execute()
+      ->fetchAssoc();
+    if (!$entitlement || !empty($entitlement['guarantee_requested'])
+      || !in_array($entitlement['status'], ['pending', 'active', 'suspended', 'cancelled', 'plan_mismatch'], TRUE)) {
+      return;
     }
-    if ($remote_plan_id !== '' && !in_array($remote_plan_id, $allowed_plan_ids, TRUE)) {
-      $this->logger->error('PayPal plan mismatch for entitlement @eid: expected @expected, received @remote.', [
-        '@eid' => $entitlement['eid'],
-        '@expected' => implode(' or ', $allowed_plan_ids),
-        '@remote' => $remote_plan_id,
-      ]);
-      throw new \DomainException('PayPal returned a plan that is not authorized for this entitlement.');
+    try {
+      $decision = $this->validateRemoteSubscription($entitlement, $remote);
     }
-    if ($pending_change && $pending_change['status'] === 'approval_pending' && $remote_plan_id === (string) $pending_change['target_plan_id']) {
-      $this->database->update('commerce_lms_plan_change')
-        ->fields(['status' => 'approved', 'changed' => $this->time->getRequestTime()])
-        ->condition('id', $pending_change['id'])
-        ->execute();
+    catch (\DomainException $e) {
+      $this->recordSubscriptionMismatch($entitlement, $remote, $e->getMessage());
+      unset($transaction);
+      throw $e;
     }
-    if ($remote_plan_id !== '') {
-      $values['paypal_plan_id'] = $remote_plan_id;
+    $local = ['ACTIVE' => 'active', 'SUSPENDED' => 'suspended', 'CANCELLED' => 'cancelled', 'EXPIRED' => 'expired'][$remote['status']] ?? 'pending';
+    $through = !empty($remote['billing_info']['next_billing_time']) ? strtotime((string) $remote['billing_info']['next_billing_time']) ?: NULL : NULL;
+    // PayPal can omit next_billing_time after cancellation. Fall back to the
+    // last accepted boundary when the validated response omits it.
+    if ($local === 'cancelled' && !$through) {
+      $through = $entitlement['access_through'] ?: NULL;
     }
-    $offer = $this->entityTypeManager->getStorage('commerce_lms_offer')->load($entitlement['offer_id']);
-    if ($offer && $remote_plan_id !== '' && $remote_plan_id === $this->vipPlanForEntitlement($entitlement, $offer)) {
-      $values['vip_selected'] = 1;
-      // Initial VIP subscriptions activate immediately. Revised upgrades are
-      // finalized separately only after their first VIP-priced payment.
-      if (!$this->pendingPlanChange((int) $entitlement['eid'])) {
-        $values['vip_active'] = 1;
+    $values = [
+      'status' => $local,
+      'access_through' => $through,
+      'paypal_plan_id' => $decision['plan_id'],
+      'vip_selected' => $decision['vip_active'] ? 1 : 0,
+      'vip_active' => $decision['vip_active'] ? 1 : 0,
+    ];
+    if ($local === 'active' && empty($entitlement['activated'])) {
+      $values['activated'] = $this->time->getRequestTime();
+    }
+    $capture = $remote['billing_info']['last_payment']['transaction_id'] ?? NULL;
+    if ($capture && empty($entitlement['initial_capture_id'])) {
+      $values['initial_capture_id'] = $capture;
+    }
+    // Commit the tier flags and membership removals together. A removal
+    // failure leaves the revision and ledger retryable on the next fetch.
+    try {
+      $this->update((int) $entitlement['eid'], $values);
+      $change = $decision['change'];
+      if ($change && $decision['on_target']) {
+        $updated = $this->database->update('commerce_lms_plan_change')
+          ->fields([
+            'status' => $decision['paid_change'] ? 'effective' : 'approved',
+            'changed' => $this->time->getRequestTime(),
+          ])
+          ->condition('id', $change['id'])
+          ->condition('status', ['approval_pending', 'approved'], 'IN')
+          ->execute();
+        if ($decision['paid_change'] && $updated !== 1) {
+          throw new \RuntimeException('The tier change was resolved by another request; reconcile again.');
+        }
+      }
+      $current = $this->load((int) $entitlement['eid']);
+      if (in_array($local, ['suspended', 'expired'], TRUE) || ($local === 'cancelled' && (!$through || $through <= $this->time->getRequestTime()))) {
+        $this->revoke($current);
+      }
+      elseif (!$decision['vip_active']) {
+        // Retry even when the flags are already clear: old releases or a
+        // failed removal may have left an active VIP ledger row behind.
+        $this->revokeBenefit($current, 'vip');
       }
     }
-    if ($local === 'active' && empty($entitlement['activated'])) { $values['activated'] = $this->time->getRequestTime(); }
-    $capture = $remote['billing_info']['last_payment']['transaction_id'] ?? NULL;
-    if ($capture && empty($entitlement['initial_capture_id'])) { $values['initial_capture_id'] = $capture; }
-    $this->update((int) $entitlement['eid'], $values);
-    $this->finalizeDuePlanChange((int) $entitlement['eid'], $remote);
-    $current = $this->load((int) $entitlement['eid']);
-    if ($local === 'active' && $current) {
+    catch (\Throwable $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
+    unset($transaction);
+    if ($local === 'active') {
       $this->grant($this->prepareActiveLearner($current));
     }
-    elseif (in_array($local, ['suspended', 'expired'], TRUE) || ($local === 'cancelled' && (!$through || $through <= $this->time->getRequestTime()))) { $this->revoke($current); }
+  }
+
+  /** Quarantines a mismatch without accepting a new paid-through date. */
+  private function recordSubscriptionMismatch(array $entitlement, array $remote, string $reason): void {
+    $this->update((int) $entitlement['eid'], ['status' => 'plan_mismatch']);
+    $this->logger->error('PayPal authorization mismatch for entitlement @eid, subscription @subscription, plan @plan: @reason', [
+      '@eid' => $entitlement['eid'],
+      '@subscription' => (string) ($remote['id'] ?? '(missing)'),
+      '@plan' => (string) ($remote['plan_id'] ?? '(missing)'),
+      '@reason' => $reason,
+    ]);
+    // Never extend access using a mismatched response. Retain only existing
+    // memberships until the previously verified local paid-through boundary.
+    if (empty($entitlement['access_through']) || (int) $entitlement['access_through'] <= $this->time->getRequestTime()) {
+      $this->revoke($entitlement);
+    }
+  }
+
+  /**
+   * Validates the original gateway and the configured standard/campaign plans.
+   *
+   * Shared with the read-only audit so runtime and staff use the same policy.
+   */
+  public function validateRemoteSubscription(array $entitlement, array $remote): array {
+    $offer = $this->entityTypeManager->getStorage('commerce_lms_offer')->load($entitlement['offer_id']);
+    $order = $this->entityTypeManager->getStorage('commerce_order')->load($entitlement['order_id']);
+    $gateway_id = (string) ($order?->get('payment_gateway')->target_id ?? '');
+    if (!$offer || $offer->getPurchaseType() !== 'recurring' || $gateway_id === '') {
+      throw new \DomainException('The recurring offer or original order gateway is missing.');
+    }
+    $sandbox = $gateway_id === $offer->getPayPalSandboxGatewayId();
+    $live = $gateway_id === $offer->getPayPalLiveGatewayId();
+    if ($sandbox === $live) {
+      throw new \DomainException('The order gateway must match exactly one offer environment.');
+    }
+    $gateway = $this->entityTypeManager->getStorage('commerce_payment_gateway')->load($gateway_id);
+    if (!$gateway || $gateway->getPluginId() !== 'paypal_checkout_subscriptions'
+      || $gateway->getPlugin()->getMode() !== ($live ? 'live' : 'test')) {
+      throw new \DomainException('The subscription gateway type or environment does not match the offer.');
+    }
+    // Changing the active checkout environment must not invalidate historical
+    // purchases in the other environment; use their original order gateway.
+    $standard = [
+      'base' => $live ? $offer->getPayPalLivePlanId() : $offer->getPayPalSandboxPlanId(),
+      'vip' => $live ? $offer->getPayPalLiveVipPlanId() : $offer->getPayPalSandboxVipPlanId(),
+    ];
+    $tiers = [];
+    $add_plan = static function (string $plan_id, string $tier) use (&$tiers): void {
+      if ($plan_id !== '') {
+        if (isset($tiers[$plan_id]) && $tiers[$plan_id] !== $tier) {
+          throw new \DomainException('Base and VIP plans must have distinct identifiers.');
+        }
+        $tiers[$plan_id] = $tier;
+      }
+    };
+    foreach ($standard as $tier => $plan_id) {
+      $add_plan($plan_id, $tier);
+    }
+    if (!empty($entitlement['subscription_campaign_id'])) {
+      $campaign = $this->entityTypeManager->getStorage(LmsSubscriptionCampaign::ENTITY_TYPE_ID)->load($entitlement['subscription_campaign_id']);
+      if (!$campaign instanceof LmsSubscriptionCampaign || !$campaign->getOfferMapping($offer->id())) {
+        throw new \DomainException('The purchased campaign mapping is missing.');
+      }
+      // Disabled campaigns still support existing purchases.
+      foreach (['base', 'vip'] as $tier) {
+        $add_plan($campaign->getPayPalPlanId($offer->id(), $live ? 'live' : 'sandbox', $tier === 'vip'), $tier);
+      }
+    }
+    return SubscriptionAccessPolicy::evaluate(
+      $entitlement,
+      $remote,
+      $tiers,
+      $standard,
+      $this->pendingPlanChange((int) $entitlement['eid']),
+      $this->time->getRequestTime(),
+    );
   }
 
   /**
@@ -528,12 +636,13 @@ final class EntitlementManager {
    */
   public function reconcile(): void {
     // Retry learner resolution or invitation delivery for any activation that
-    // outlived a transient mail/backend failure. This includes lifetime
-    // purchases, which have no remote subscription to refresh below.
+    // outlived a transient mail/backend failure. Recurring purchases retry
+    // only after their authoritative subscription is validated below.
     $learner_ids = $this->database
       ->select('commerce_lms_entitlement', 'e')
       ->fields('e', ['eid'])
       ->condition('status', 'active')
+      ->condition('purchase_type', 'lifetime')
       ->isNull('learner_uid')
       ->isNull('invitation_id')
       ->execute()
@@ -554,17 +663,33 @@ final class EntitlementManager {
 
     $ids = $this->database->select('commerce_lms_entitlement', 'e')->fields('e', ['eid'])->condition('status', 'cancelled')->condition('access_through', $this->time->getRequestTime(), '<=')->execute()->fetchCol();
     foreach ($ids as $id) { if ($entitlement = $this->load((int) $id)) { $this->revoke($entitlement); } }
+    $ids = $this->database->select('commerce_lms_entitlement', 'e')->fields('e', ['eid'])->condition('status', 'plan_mismatch')->execute()->fetchCol();
+    foreach ($ids as $id) {
+      try {
+        $entitlement = $this->load((int) $id);
+        if ($entitlement && $entitlement['status'] === 'plan_mismatch' && (empty($entitlement['access_through']) || (int) $entitlement['access_through'] <= $this->time->getRequestTime())) {
+          $this->revoke($entitlement);
+        }
+      }
+      catch (\Throwable $e) {
+        $this->logger->error('Mismatch expiry revocation failed for entitlement @eid: @message', ['@eid' => $id, '@message' => $e->getMessage()]);
+      }
+    }
     // Reconcile current remote state too: webhook delivery is not assumed to be
     // perfect, and PayPal remains the billing authority for recurring offers.
-    $ids = $this->database->select('commerce_lms_entitlement', 'e')->fields('e', ['eid'])->condition('purchase_type', 'recurring')->condition('paypal_subscription_id', NULL, 'IS NOT NULL')->condition('status', ['pending', 'active', 'suspended', 'cancelled'], 'IN')->execute()->fetchCol();
+    $ids = $this->database->select('commerce_lms_entitlement', 'e')->fields('e', ['eid'])->condition('purchase_type', 'recurring')->condition('paypal_subscription_id', NULL, 'IS NOT NULL')->condition('status', ['pending', 'active', 'suspended', 'cancelled', 'plan_mismatch'], 'IN')->execute()->fetchCol();
     foreach ($ids as $id) {
       try {
         $entitlement = $this->load((int) $id);
         $order = $entitlement ? $this->entityTypeManager->getStorage('commerce_order')->load($entitlement['order_id']) : NULL;
         $gateway_id = $order?->get('payment_gateway')->target_id;
         $gateway = $gateway_id ? $this->entityTypeManager->getStorage('commerce_payment_gateway')->load($gateway_id) : NULL;
-        if (!$entitlement || !$gateway) {
-          throw new \RuntimeException('Missing entitlement order or payment gateway.');
+        if (!$entitlement) {
+          continue;
+        }
+        if (!$gateway) {
+          $this->recordSubscriptionMismatch($entitlement, [], 'The original order or payment gateway is missing.');
+          continue;
         }
         $response = $this->sdkFactory->get($gateway->getPluginConfiguration())->getSubscription($entitlement['paypal_subscription_id']);
         $this->applyRemoteSubscription($entitlement, json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR));
@@ -580,63 +705,11 @@ final class EntitlementManager {
     $row = $this->database->select('commerce_lms_plan_change', 'p')
       ->fields('p')
       ->condition('eid', $eid)
-      ->condition('status', ['approval_pending', 'approved'], 'IN')
       ->orderBy('id', 'DESC')
       ->range(0, 1)
       ->execute()
       ->fetchAssoc();
-    return $row ?: NULL;
-  }
-
-  /** Applies an approved tier at its first successfully paid billing boundary. */
-  private function finalizeDuePlanChange(int $eid, array $remote): void {
-    $change = $this->pendingPlanChange($eid);
-    if (!$change || $change['status'] !== 'approved' || empty($change['effective'])) {
-      return;
-    }
-    $last_payment = !empty($remote['billing_info']['last_payment']['time'])
-      ? strtotime((string) $remote['billing_info']['last_payment']['time'])
-      : FALSE;
-    if (!$last_payment || $last_payment < (int) $change['effective']) {
-      return;
-    }
-    $vip = $change['to_tier'] === 'vip';
-    $this->update($eid, [
-      'paypal_plan_id' => $change['target_plan_id'],
-      'vip_selected' => $vip ? 1 : 0,
-      'vip_active' => $vip ? 1 : 0,
-    ]);
-    $this->database->update('commerce_lms_plan_change')
-      ->fields(['status' => 'effective', 'changed' => $this->time->getRequestTime()])
-      ->condition('id', $change['id'])
-      ->execute();
-    if (!$vip && ($entitlement = $this->load($eid))) {
-      $this->revokeBenefit($entitlement, 'vip');
-    }
-  }
-
-  /** Resolves the VIP plan from the subscription's original gateway. */
-  private function vipPlanForEntitlement(array $entitlement, object $offer): string {
-    $order = $this->entityTypeManager->getStorage('commerce_order')->load($entitlement['order_id']);
-    $gateway_id = (string) ($order?->get('payment_gateway')->target_id ?? '');
-    if (!empty($entitlement['subscription_campaign_id'])) {
-      $campaign = $this->entityTypeManager->getStorage(LmsSubscriptionCampaign::ENTITY_TYPE_ID)->load($entitlement['subscription_campaign_id']);
-      if ($campaign instanceof LmsSubscriptionCampaign) {
-        if ($gateway_id !== '' && $gateway_id === $offer->getPayPalSandboxGatewayId()) {
-          return $campaign->getPayPalPlanId($offer->id(), 'sandbox', TRUE);
-        }
-        if ($gateway_id !== '' && $gateway_id === $offer->getPayPalLiveGatewayId()) {
-          return $campaign->getPayPalPlanId($offer->id(), 'live', TRUE);
-        }
-      }
-    }
-    if ($gateway_id !== '' && $gateway_id === $offer->getPayPalSandboxGatewayId()) {
-      return $offer->getPayPalSandboxVipPlanId();
-    }
-    if ($gateway_id !== '' && $gateway_id === $offer->getPayPalLiveGatewayId()) {
-      return $offer->getPayPalLiveVipPlanId();
-    }
-    return '';
+    return $row && in_array($row['status'], ['approval_pending', 'approved'], TRUE) ? $row : NULL;
   }
 
   /** Immediately removes only memberships that this entitlement created. */

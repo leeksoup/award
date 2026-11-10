@@ -367,6 +367,27 @@ Required tests:
 - abandoned or superseded changes cannot alter access; and
 - reconciliation repairs missed valid events without accepting invalid plans.
 
+Implementation status (2026-11-10). Runtime and the read-only audit now check
+subscription identity, the original order gateway and its mode, and the offer
+or purchased campaign's configured plans. An unexpected response sets
+`plan_mismatch`. The module blocks new grants and keeps existing memberships
+only through the previously recorded paid-through date. Cron removes access
+at that date and continues to look for a valid response that can restore it.
+
+A tier change applies when an active subscription reports the approved target
+plan and a payment at or after the expected billing boundary. A failed VIP
+removal rolls back the tier transition for retry. Valid revisions recorded by
+earlier releases that stored the target before billing retain the paid source
+tier until the same checks pass.
+
+The Drupal MCP confirmed the Commerce gateway methods and the subscription
+plugin ID. The sandbox PayPal MCP endpoint returned HTTP 404. The
+[PayPal subscription details](https://developer.paypal.com/api/subscriptions/v1/subscriptions-get/)
+and [revision documentation](https://developer.paypal.com/docs/subscriptions/customize/revise-subscriptions/)
+were used to check the existing response fields and billing behavior. The
+standalone policy suite passed locally. The kernel suite and sandbox flows
+still need to run on staging before this item is marked validated.
+
 ### 6. Define immutable or reconcilable offer targets
 
 Affected code:

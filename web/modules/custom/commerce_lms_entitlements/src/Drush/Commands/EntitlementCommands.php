@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\commerce_lms_entitlements\Drush\Commands;
 
+use Drupal\commerce_lms_entitlements\EntitlementManager;
 use Drupal\commerce_lms_entitlements\Entity\LmsSubscriptionCampaign;
 use Drupal\commerce_lms_entitlements\PayPalCampaignPlanManager;
 use Drupal\commerce_lms_entitlements\PayPalPlanCatalog;
@@ -23,6 +24,7 @@ final class EntitlementCommands extends DrushCommands {
     private PayPalSubscriptionOperations $paypalOperations,
     private PayPalCampaignPlanManager $campaignPlanManager,
     private PayPalVipPlanManager $vipPlanManager,
+    private EntitlementManager $entitlements,
   ) {
     parent::__construct();
   }
@@ -69,7 +71,10 @@ final class EntitlementCommands extends DrushCommands {
       $this->output()->writeln('Learners with orphaned VIP bookings: ' . $orphaned);
     }
     $remote_plan_mismatches = 0;
-    foreach ($this->database->select('commerce_lms_entitlement', 'e')->fields('e')->condition('purchase_type', 'recurring')->condition('status', ['pending', 'active', 'suspended'], 'IN')->isNotNull('paypal_subscription_id')->execute()->fetchAllAssoc('eid') as $entitlement) {
+    $local_plan_mismatches = $this->database->select('commerce_lms_entitlement', 'e')
+      ->condition('status', 'plan_mismatch')->countQuery()->execute()->fetchField();
+    $this->output()->writeln('Entitlements awaiting plan mismatch recovery: ' . $local_plan_mismatches);
+    foreach ($this->database->select('commerce_lms_entitlement', 'e')->fields('e')->condition('purchase_type', 'recurring')->condition('status', ['pending', 'active', 'suspended', 'cancelled', 'plan_mismatch'], 'IN')->isNotNull('paypal_subscription_id')->execute()->fetchAllAssoc('eid') as $entitlement) {
       try {
         $order = $this->entityTypeManager->getStorage('commerce_order')->load($entitlement->order_id);
         $gateway_id = (string) ($order?->get('payment_gateway')->target_id ?? '');
@@ -78,17 +83,7 @@ final class EntitlementCommands extends DrushCommands {
           throw new \RuntimeException('missing payment gateway');
         }
         $remote = $this->paypalOperations->fetchSubscription($gateway, $entitlement->paypal_subscription_id);
-        $allowed = array_filter([(string) $entitlement->paypal_plan_id]);
-        if ($this->database->schema()->tableExists('commerce_lms_plan_change')) {
-          $pending = $this->database->select('commerce_lms_plan_change', 'p')->fields('p', ['target_plan_id'])->condition('eid', $entitlement->eid)->condition('status', ['approval_pending', 'approved'], 'IN')->execute()->fetchField();
-          if ($pending) {
-            $allowed[] = (string) $pending;
-          }
-        }
-        if (!in_array((string) ($remote['plan_id'] ?? ''), $allowed, TRUE)) {
-          $remote_plan_mismatches++;
-          $this->output()->writeln(sprintf('Remote PayPal plan mismatch [entitlement %d]: %s', $entitlement->eid, $remote['plan_id'] ?? '(empty)'));
-        }
+        $this->entitlements->validateRemoteSubscription((array) $entitlement, $remote);
       }
       catch (\Throwable $e) {
         $remote_plan_mismatches++;

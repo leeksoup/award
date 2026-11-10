@@ -31,6 +31,10 @@ final class PlanChangeManager {
       throw new \DomainException('VIP tier changes are not configured for this offer.');
     }
     [$gateway, $remote] = $this->gatewayAndRemote($entitlement);
+    $this->entitlements->validateRemoteSubscription($entitlement, $remote);
+    if ($remote['status'] !== 'ACTIVE') {
+      throw new \DomainException('PayPal must report an active subscription before changing tiers.');
+    }
     if (!empty($entitlement['subscription_campaign_id'])) {
       $trial_execution = NULL;
       foreach (($remote['billing_info']['cycle_executions'] ?? []) as $execution) {
@@ -67,7 +71,13 @@ final class PlanChangeManager {
     }
     $source_plan = $this->operations->fetchPlan($gateway, (string) $remote['plan_id']);
     $target_details = $this->operations->fetchPlan($gateway, $target_plan);
-    if (($target_details['status'] ?? '') !== 'ACTIVE' || ($source_plan['product_id'] ?? '') !== ($target_details['product_id'] ?? '')) {
+    $product_id = (string) ($source_plan['product_id'] ?? '');
+    $configured_product = (string) $gateway->id() === $offer->getPayPalSandboxGatewayId()
+      ? $offer->getPayPalSandboxProductId()
+      : $offer->getPayPalLiveProductId();
+    if (($target_details['status'] ?? '') !== 'ACTIVE' || $product_id === ''
+      || $product_id !== ($target_details['product_id'] ?? '')
+      || ($configured_product !== '' && $product_id !== $configured_product)) {
       throw new \DomainException('The target plan must be active and belong to the subscription’s current PayPal product.');
     }
     $source_cycle = $this->regularCycle($source_plan);
@@ -125,6 +135,10 @@ final class PlanChangeManager {
       // next reconciliation fetch can confirm it without losing the request.
       throw new \RuntimeException('PayPal approval is still being verified. Your existing access remains unchanged.');
     }
+    $decision = $this->entitlements->validateRemoteSubscription($entitlement, $remote);
+    if (!$decision['on_target'] || (int) $decision['change']['id'] !== (int) $change['id']) {
+      throw new \DomainException('This PayPal tier change is no longer authorized.');
+    }
     $this->mark((int) $change['id'], 'approved');
     return $change;
   }
@@ -155,7 +169,7 @@ final class PlanChangeManager {
   }
 
   private function mark(int $id, string $status, ?string $error = NULL): void {
-    $this->database->update('commerce_lms_plan_change')->fields(['status' => $status, 'error' => $error, 'changed' => $this->time->getRequestTime()])->condition('id', $id)->execute();
+    $this->database->update('commerce_lms_plan_change')->fields(['status' => $status, 'error' => $error, 'changed' => $this->time->getRequestTime()])->condition('id', $id)->condition('status', 'approval_pending')->execute();
   }
 
 }

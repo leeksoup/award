@@ -296,6 +296,7 @@ The required results include:
 
 ```text
 Failed webhook events: 0
+Entitlements awaiting plan mismatch recovery: 0
 Remote PayPal plan mismatches/errors: 0
 Unconfigured live PayPal mappings: 0
 Invalid live PayPal mappings: 0
@@ -303,6 +304,29 @@ Invalid subscription campaigns: 0
 ```
 
 Resolve any audit error before opening checkout to buyers.
+
+The audit uses the same subscription, gateway, and plan checks as webhook
+processing and cron. Keep the gateway and plan mappings for existing
+subscriptions when switching the active checkout environment or retiring a
+campaign. Investigate `plan_mismatch` records by checking the linked order,
+gateway mode, and plan ID in PayPal. Correct the confirmed mismatch and let
+cron reconcile the entitlement. Existing memberships expire at their last
+recorded paid-through date if the mismatch persists.
+
+On staging, run the subscription regression suites from the repository root
+with the site's kernel test database configured.
+
+```bash
+vendor/bin/phpunit -c web/core/phpunit.xml.dist \
+  web/modules/custom/commerce_lms_entitlements/tests/src/Unit/SubscriptionAccessPolicyTest.php
+vendor/bin/phpunit -c web/core/phpunit.xml.dist \
+  web/modules/custom/commerce_lms_entitlements/tests/src/Kernel/SubscriptionReconciliationTest.php
+```
+
+Complete sandbox base and VIP checkouts, then verify upgrade and downgrade
+before and after the target plan's first successful renewal. Run the audit
+and cron after a simulated mismatch. Verify Group membership and LMS `view`
+and `take` access as the learner before and after the recorded deadline.
 
 ## 10. Perform a controlled live test
 
