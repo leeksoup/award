@@ -503,5 +503,6 @@ module.
 
 The related Commerce entitlement security work is tracked in the
 [remediation plan](commerce_lms_entitlements_security_remediation_plan.md).
-The PayPal plan policy tests passed locally. Validation of database and
-membership transitions still requires the bootstrapped staging site.
+The PayPal plan policy tests passed locally, and the site owner reported
+4 passing kernel tests with 18 assertions. PayPal sandbox checkout and
+renewal verification remain open.

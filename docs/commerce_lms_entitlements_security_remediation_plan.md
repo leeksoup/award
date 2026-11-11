@@ -385,8 +385,9 @@ plugin ID. The sandbox PayPal MCP endpoint returned HTTP 404. The
 [PayPal subscription details](https://developer.paypal.com/api/subscriptions/v1/subscriptions-get/)
 and [revision documentation](https://developer.paypal.com/docs/subscriptions/customize/revise-subscriptions/)
 were used to check the existing response fields and billing behavior. The
-standalone policy suite passed locally. The kernel suite and sandbox flows
-still need to run on staging before this item is marked validated.
+standalone policy suite passed locally with 35 tests and 80 assertions. The
+site owner reported that the kernel suite passed with 4 tests and 18
+assertions. PayPal sandbox checkout and renewal verification remain open.
 
 ### 6. Define immutable or reconcilable offer targets
 

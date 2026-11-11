@@ -313,16 +313,19 @@ gateway mode, and plan ID in PayPal. Correct the confirmed mismatch and let
 cron reconcile the entitlement. Existing memberships expire at their last
 recorded paid-through date if the mismatch persists.
 
-On staging, run the subscription regression suites from the repository root
-with the site's kernel test database configured. Use an absolute path to the
-PHPUnit configuration so isolated kernel test processes can reopen it after
-the working directory changes.
+On staging, run the subscription regression suites from the repository root.
+The kernel command uses a disposable SQLite test database and requires
+`pdo_sqlite` in the PHP CLI. You can substitute a dedicated MariaDB test
+database URL for `SIMPLETEST_DB`. Use an absolute path to the PHPUnit
+configuration so isolated kernel test processes can reopen it after the
+working directory changes.
 
 ```bash
 award_root="$(pwd -P)"
 "$award_root/vendor/bin/phpunit" -c "$award_root/web/core/phpunit.xml.dist" \
   "$award_root/web/modules/custom/commerce_lms_entitlements/tests/src/Unit/SubscriptionAccessPolicyTest.php"
-"$award_root/vendor/bin/phpunit" -c "$award_root/web/core/phpunit.xml.dist" \
+SIMPLETEST_DB='sqlite://localhost/:memory:' \
+  "$award_root/vendor/bin/phpunit" -c "$award_root/web/core/phpunit.xml.dist" \
   "$award_root/web/modules/custom/commerce_lms_entitlements/tests/src/Kernel/SubscriptionReconciliationTest.php"
 ```
 
