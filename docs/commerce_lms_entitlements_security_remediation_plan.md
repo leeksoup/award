@@ -391,7 +391,7 @@ site owner reported that the updated subscription kernel suite passed with
 and 5 assertions. Sandbox checkout and both tier-change approval redirects
 were also confirmed. Renewal verification remains open. A request-session
 deprecation reported by the redirect test has been corrected using a mock
-session, with a staging rerun pending.
+session, and the site owner confirmed a clean staging rerun.
 
 ### 6. Define immutable or reconcilable offer targets
 

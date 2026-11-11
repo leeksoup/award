@@ -520,4 +520,4 @@ received from PayPal. A fifth test in `SubscriptionReconciliationTest` covers
 the form submission and response and passed in the site owner's kernel run.
 That run reported a request-without-session deprecation. The test now attaches
 a mock session before pushing its request, following Drupal's documented fix.
-The session adjustment awaits a staging rerun.
+The site owner confirmed that the staging rerun is clean.
