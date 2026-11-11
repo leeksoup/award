@@ -6,15 +6,19 @@ namespace Drupal\commerce_lms_entitlements\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /** Displays purchaser-scoped and operator entitlement audit tables. */
 final class EntitlementController extends ControllerBase {
-  public function __construct(private Connection $database) {}
+  public function __construct(
+    private Connection $database,
+    private DateFormatterInterface $dateFormatter,
+  ) {}
 
   public static function create(ContainerInterface $container): static {
-    return new static($container->get('database'));
+    return new static($container->get('database'), $container->get('date.formatter'));
   }
 
   public function mine(): array {
@@ -31,7 +35,7 @@ final class EntitlementController extends ControllerBase {
   private function table(array $records, bool $allow_cancel): array {
     $rows = [];
     foreach ($records as $record) {
-      $row = [(string) $record->eid, $record->offer_id, $record->source ?? 'commerce_paypal', $record->purchase_type, $record->status, $record->learner_uid ?: $this->t('Invitation pending'), $record->access_through ? $this->dateFormatter()->format($record->access_through, 'short') : $this->t('—')];
+      $row = [(string) $record->eid, $record->offer_id, $record->source ?? 'commerce_paypal', $record->purchase_type, $record->status, $record->learner_uid ?: $this->t('Invitation pending'), $record->access_through ? $this->dateFormatter->format((int) $record->access_through, 'short') : $this->t('—')];
       if ($allow_cancel) {
         $operations = [];
         $offer = $this->entityTypeManager()->getStorage('commerce_lms_offer')->load($record->offer_id);

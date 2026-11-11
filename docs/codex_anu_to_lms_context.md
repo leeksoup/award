@@ -506,3 +506,8 @@ The related Commerce entitlement security work is tracked in the
 The PayPal plan policy tests passed locally, and the site owner reported
 4 passing kernel tests with 18 assertions. PayPal sandbox checkout and
 renewal verification remain open.
+
+Browser testing exposed an undefined `dateFormatter()` call when the
+subscription page contains a paid-through date. The controller now injects
+`date.formatter`. The populated-row regression in
+`EntitlementControllerCacheTest` awaits staging execution.

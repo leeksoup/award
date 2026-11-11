@@ -327,6 +327,9 @@ award_root="$(pwd -P)"
 SIMPLETEST_DB='sqlite://localhost/:memory:' \
   "$award_root/vendor/bin/phpunit" -c "$award_root/web/core/phpunit.xml.dist" \
   "$award_root/web/modules/custom/commerce_lms_entitlements/tests/src/Kernel/SubscriptionReconciliationTest.php"
+SIMPLETEST_DB='sqlite://localhost/:memory:' \
+  "$award_root/vendor/bin/phpunit" -c "$award_root/web/core/phpunit.xml.dist" \
+  "$award_root/web/modules/custom/commerce_lms_entitlements/tests/src/Kernel/EntitlementControllerCacheTest.php"
 ```
 
 Complete sandbox base and VIP checkouts, then verify upgrade and downgrade
