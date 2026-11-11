@@ -526,6 +526,8 @@ The site owner selected live bundle reconciliation with automatic enrollment
 for security remediation item 6. The implementation now reconciles the current
 base and VIP target sets, including lifetime purchases and paid-through
 cancellations. The site owner reported that `EntitlementMembershipManagerTest`
-and `SubscriptionReconciliationTest` both pass on staging. Browser verification
-of adding and removing offer targets remains open. The production setup guide
-documents adding new courses to offers, removal, and rollback.
+and `SubscriptionReconciliationTest` both pass on staging. Using a labeled
+development test entitlement on the lifetime reconciliation path, the site
+owner also confirmed that adding a Course/Class target grants learner access
+and removing it revokes that access after reconciliation. The production
+setup guide documents adding new courses to offers, removal, and rollback.

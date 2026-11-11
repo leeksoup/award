@@ -431,8 +431,12 @@ Repository syntax, Composer validation, and whitespace checks passed. Kernel
 regressions cover target additions, removals, replacements, ordering, manual
 and overlapping memberships, movement between benefits, failed removal and
 retry, lifetime cron, and paid-through cancellation. The site owner reported
-that both kernel suites pass on staging. Browser verification of adding and
-removing offer targets remains open.
+that both kernel suites pass on staging. The site owner also confirmed the
+add/remove flow on dev using a labeled development test entitlement on the
+lifetime reconciliation path. Adding a Course/Class target granted access,
+and removing that target revoked access after reconciliation. This check
+validates bundle synchronization. PayPal renewal verification remains tracked
+separately under item 5.
 
 Required tests:
 
