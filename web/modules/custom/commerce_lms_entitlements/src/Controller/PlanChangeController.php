@@ -21,7 +21,7 @@ final class PlanChangeController extends ControllerBase {
   public function complete(string $token): RedirectResponse {
     try {
       $this->changes->complete($token, (int) $this->currentUser()->id(), FALSE);
-      $this->messenger()->addStatus($this->t('PayPal approved the tier change. Access will change after the next successful renewal.'));
+      $this->messenger()->addStatus($this->t('PayPal approved the tier change. Access will change upon the next successful renewal.'));
     }
     catch (\Throwable $e) {
       $this->messenger()->addWarning($e->getMessage());
