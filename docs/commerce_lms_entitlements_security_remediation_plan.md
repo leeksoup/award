@@ -408,21 +408,30 @@ Adding a target grants it to existing subscribers, while removing a target does
 not revoke the old membership. Changing the VIP hub has the same accumulation
 risk.
 
-Choose and document one model:
+Selected model: live bundle reconciliation with automatic enrollment.
+Existing bundle subscribers receive new courses as they are added to the
+offer's ordered Course/Class mapping. This choice was confirmed by the site
+owner. Newly published courses must be added to the intended offer mapping.
 
-1. Immutable purchase snapshot:
-   - store the ordered Course/Class target set on the entitlement at purchase;
-   - continue honoring that snapshot for the entitlement's life; and
-   - use a deliberate migration when products must change.
-2. Live bundle reconciliation:
-   - compute desired targets from current offer configuration;
-   - compare them with active ledger rows;
-   - grant missing targets; and
-   - transactionally revoke removed targets using the corrected ownership rules.
+Implementation computes the desired base and VIP targets, grants missing
+memberships, and transactionally removes obsolete ledger support. Desired
+memberships for both benefits are established before removing old targets,
+so a Class moving between benefits remains accessible. The existing ownership
+rules preserve manual memberships and access supported by other entitlements.
+Reconciliation rechecks eligibility under an entitlement row lock.
 
-The immutable snapshot is safer for an auditable purchased product. The live
-model may be appropriate if the business promise is that subscribers always
-receive the current bundle, but removal behavior must still be explicit.
+Cron reconciles active lifetime purchases, including those with resolved
+learners. Recurring purchases use validated PayPal subscription detail.
+Paid-through cancellations continue receiving bundle updates until their
+access deadline. A suspended or mismatched subscription receives no new
+bundle access. VIP hub changes use the same target comparison and preserve
+VIP benefit eligibility while replacing the hub membership.
+
+Repository syntax, Composer validation, and whitespace checks passed. Kernel
+regressions cover target additions, removals, replacements, ordering, manual
+and overlapping memberships, movement between benefits, failed removal and
+retry, lifetime cron, and paid-through cancellation. These new regressions
+still require execution on the bootstrapped staging site.
 
 Required tests:
 

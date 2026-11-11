@@ -344,6 +344,54 @@ entitlement and PayPal subscription before retrying. Confirm whether approval
 occurred before resolving the individual pending record. Preserve the paid
 tier while investigating.
 
+## Live bundle reconciliation
+
+Existing subscribers are automatically enrolled in the offer's current
+Course/Class targets. Add each new course and its intended Class to the
+appropriate LMS offer when it becomes available. Cron applies the change to
+eligible learners. Removing or replacing a target removes the entitlement's
+old ledger support, while preserving manual memberships and memberships
+supported by another entitlement. Updating the VIP hub uses the same rules.
+
+Before the first deployment, take a database backup and review the offer and
+VIP hub mappings. The first reconciliation can remove obsolete memberships
+left by earlier releases. Existing ownership flags retain their recorded
+values, including ambiguous historical flags described in the security plan.
+
+Run these kernel suites on staging after deploying the module and rebuilding
+caches. This slice uses the existing schema.
+
+```bash
+award_root="$(pwd -P)"
+SIMPLETEST_DB='sqlite://localhost/:memory:' \
+  "$award_root/vendor/bin/phpunit" -c "$award_root/web/core/phpunit.xml.dist" \
+  "$award_root/web/modules/custom/commerce_lms_entitlements/tests/src/Kernel/EntitlementMembershipManagerTest.php"
+SIMPLETEST_DB='sqlite://localhost/:memory:' \
+  "$award_root/vendor/bin/phpunit" -c "$award_root/web/core/phpunit.xml.dist" \
+  "$award_root/web/modules/custom/commerce_lms_entitlements/tests/src/Kernel/SubscriptionReconciliationTest.php"
+```
+
+Use a test offer and learner to check the full enrollment path. Add another
+valid Course/Class target, run staging cron, and verify that the learner can
+view and take the added course. Repeat for an active lifetime purchase. Remove
+or replace the test target, run cron again, and verify removal of access
+supported solely by that entitlement. Separately verify preservation of a
+manual membership and an overlapping entitlement. Test a VIP hub replacement
+with a VIP learner. Confirm that learners whose paid access has ended receive
+no new memberships.
+
+```bash
+drush cr
+drush cron
+drush queue:run commerce_lms_entitlements_reconcile
+drush commerce-lms-entitlements:audit
+```
+
+If a mapping change needs rollback, restore its previous Course/Class and VIP
+hub configuration and rerun reconciliation with this implementation. Verify
+the restored learner access before any code rollback. Ledger rows are retained
+and reactivated when their targets return.
+
 ## 10. Perform a controlled live test
 
 Enable only the coupon being tested and complete one real transaction. Verify:

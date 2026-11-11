@@ -22,6 +22,37 @@ final class EntitlementMembershipManager {
   ) {}
 
   /**
+   * Reconciles each benefit to its current ordered target list atomically.
+   *
+   * @param array $entitlement
+   *   The entitlement database row.
+   * @param \Drupal\user\UserInterface $account
+   *   The learner account.
+   * @param array<string, array<array{class_id: int, course_id?: int}>> $benefits
+   *   Desired targets keyed by benefit. An empty list removes that benefit's
+   *   support. Benefits absent from this map are left for their own lifecycle.
+   */
+  public function reconcileTargets(array $entitlement, UserInterface $account, array $benefits): void {
+    $transaction = $this->database->startTransaction();
+    try {
+      // Grant every desired benefit first so moving a shared Class between
+      // benefits cannot remove and recreate its membership unnecessarily.
+      foreach ($benefits as $benefit => $targets) {
+        $this->grantTargets($entitlement, $account, $targets, $benefit);
+      }
+      foreach ($benefits as $benefit => $targets) {
+        $class_ids = array_map(static fn (array $target): int => (int) $target['class_id'], $targets);
+        $this->revokeBenefit($entitlement, $benefit, $class_ids);
+      }
+    }
+    catch (\Throwable $exception) {
+      $transaction->rollBack();
+      throw $exception;
+    }
+    unset($transaction);
+  }
+
+  /**
    * Grants targets without discarding an existing ownership decision.
    *
    * @param array $entitlement
@@ -111,8 +142,15 @@ final class EntitlementMembershipManager {
    * A ledger row is changed and its Group membership is removed in the same
    * transaction. If Group removal fails, the active ledger state is restored
    * by rollback so a later reconciliation can retry it.
+   *
+   * @param array $entitlement
+   *   The entitlement database row.
+   * @param string|null $benefit
+   *   The benefit to revoke, or NULL for all benefits.
+   * @param array $retained_class_ids
+   *   Desired Classes whose benefit support should remain active.
    */
-  public function revokeBenefit(array $entitlement, ?string $benefit = NULL): void {
+  public function revokeBenefit(array $entitlement, ?string $benefit = NULL, array $retained_class_ids = []): void {
     $query = $this->database
       ->select('commerce_lms_entitlement_membership', 'm')
       ->fields('m', ['id'])
@@ -120,6 +158,9 @@ final class EntitlementMembershipManager {
       ->condition('active', 1);
     if ($benefit !== NULL) {
       $query->condition('benefit', $benefit);
+    }
+    if ($retained_class_ids !== []) {
+      $query->condition('class_id', $retained_class_ids, 'NOT IN');
     }
 
     foreach ($query->execute()->fetchCol() as $membership_id) {

@@ -521,3 +521,10 @@ the form submission and response and passed in the site owner's kernel run.
 That run reported a request-without-session deprecation. The test now attaches
 a mock session before pushing its request, following Drupal's documented fix.
 The site owner confirmed that the staging rerun is clean.
+
+The site owner selected live bundle reconciliation with automatic enrollment
+for security remediation item 6. The implementation now reconciles the current
+base and VIP target sets, including lifetime purchases and paid-through
+cancellations. New regression coverage in `EntitlementMembershipManagerTest`
+and `SubscriptionReconciliationTest` awaits staging execution. The production
+setup guide documents adding new courses to offers, removal, and rollback.

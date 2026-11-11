@@ -99,6 +99,15 @@ Each entitlement records whether it created a Class membership. Revocation
 never deletes a manual membership or one still supported by another active
 entitlement.
 
+Offers use live bundles with automatic enrollment. Add new courses to the
+offer's ordered Course/Class mapping when they become available. The next
+reconciliation enrolls eligible existing learners in the added Classes and
+removes module-owned access to targets removed from the offer. Active lifetime
+purchases receive the same updates through cron. Recurring subscriptions are
+validated against PayPal first, and paid-through cancellations remain eligible
+until their access deadline. VIP hub changes replace the old hub membership
+using the same ownership rules.
+
 ## Purchaser cancellation and guarantee
 
 Purchasers can review their entitlement records at `/my-lms-subscriptions`.

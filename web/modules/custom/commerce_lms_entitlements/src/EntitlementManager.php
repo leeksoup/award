@@ -547,7 +547,7 @@ final class EntitlementManager {
       throw $e;
     }
     unset($transaction);
-    if ($local === 'active') {
+    if ($local === 'active' || ($local === 'cancelled' && $through > $this->time->getRequestTime())) {
       $this->grant($this->prepareActiveLearner($current));
     }
   }
@@ -635,26 +635,24 @@ final class EntitlementManager {
    * gateway response cannot prevent unrelated expiry revocations.
    */
   public function reconcile(): void {
-    // Retry learner resolution or invitation delivery for any activation that
-    // outlived a transient mail/backend failure. Recurring purchases retry
-    // only after their authoritative subscription is validated below.
-    $learner_ids = $this->database
+    // Lifetime purchases also receive live bundle changes. Retry learner
+    // resolution and invitations here while reconciling their current targets.
+    // Recurring purchases reconcile after remote validation below.
+    $lifetime_ids = $this->database
       ->select('commerce_lms_entitlement', 'e')
       ->fields('e', ['eid'])
       ->condition('status', 'active')
       ->condition('purchase_type', 'lifetime')
-      ->isNull('learner_uid')
-      ->isNull('invitation_id')
       ->execute()
       ->fetchCol();
-    foreach ($learner_ids as $id) {
+    foreach ($lifetime_ids as $id) {
       try {
         if ($entitlement = $this->load((int) $id)) {
           $this->grant($this->prepareActiveLearner($entitlement));
         }
       }
       catch (\Throwable $e) {
-        $this->logger->error('Learner invitation retry failed for entitlement @eid: @message', [
+        $this->logger->error('Lifetime bundle reconciliation failed for entitlement @eid: @message', [
           '@eid' => $id,
           '@message' => $e->getMessage(),
         ]);
@@ -944,23 +942,51 @@ final class EntitlementManager {
     }
   }
   /**
-   * Grants this entitlement's bundle and records whether it created membership.
+   * Reconciles the live bundle and records membership ownership.
    *
    * A new ledger row does not claim an existing Group membership. A repeated
    * grant preserves the ownership decision already recorded in its ledger row.
    */
   private function grant(array $entitlement): void {
-    if (empty($entitlement['learner_uid'])) { return; }
-    $offer = $this->entityTypeManager->getStorage('commerce_lms_offer')->load($entitlement['offer_id']); if (!$offer) { throw new \RuntimeException('Missing offer ' . $entitlement['offer_id']); }
-    $this->validateTargets($offer);
-    $account = $this->entityTypeManager->getStorage('user')->load($entitlement['learner_uid']);
-    if (!$account) {
-      throw new \RuntimeException('Missing learner account ' . $entitlement['learner_uid']);
+    $transaction = $this->database->startTransaction();
+    try {
+      // Re-check eligibility under the same lock as membership reconciliation.
+      // A cancellation or refund may have changed the caller's earlier copy.
+      $entitlement = $this->database->select('commerce_lms_entitlement', 'e')
+        ->fields('e')
+        ->condition('eid', (int) $entitlement['eid'])
+        ->forUpdate()
+        ->execute()
+        ->fetchAssoc();
+      if (!$entitlement || !empty($entitlement['guarantee_requested']) || empty($entitlement['learner_uid'])) {
+        return;
+      }
+      $paid_through = $entitlement['status'] === 'cancelled'
+        && (int) $entitlement['access_through'] > $this->time->getRequestTime();
+      if ($entitlement['status'] !== 'active' && !$paid_through) {
+        return;
+      }
+      $offer = $this->entityTypeManager->getStorage('commerce_lms_offer')->load($entitlement['offer_id']);
+      if (!$offer) {
+        throw new \RuntimeException('Missing offer ' . $entitlement['offer_id']);
+      }
+      $this->validateTargets($offer);
+      $account = $this->entityTypeManager->getStorage('user')->load($entitlement['learner_uid']);
+      if (!$account) {
+        throw new \RuntimeException('Missing learner account ' . $entitlement['learner_uid']);
+      }
+      // Resolve and validate the entire desired set before changing membership.
+      $benefits = [
+        'base' => $offer->getCourseClassMap(),
+        'vip' => !empty($entitlement['vip_active']) ? [$this->vipTarget()] : [],
+      ];
+      $this->membershipManager->reconcileTargets($entitlement, $account, $benefits);
     }
-    $this->membershipManager->grantTargets($entitlement, $account, $offer->getCourseClassMap(), 'base');
-    if (!empty($entitlement['vip_active'])) {
-      $this->membershipManager->grantTargets($entitlement, $account, [$this->vipTarget()], 'vip');
+    catch (\Throwable $exception) {
+      $transaction->rollBack();
+      throw $exception;
     }
+    unset($transaction);
   }
 
   /** Resolves the single configured VIP LMS hub target. */

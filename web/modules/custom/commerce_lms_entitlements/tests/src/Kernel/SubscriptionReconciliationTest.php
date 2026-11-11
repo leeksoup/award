@@ -41,6 +41,7 @@ final class SubscriptionReconciliationTest extends KernelTestBase {
   private int $now = self::NOW;
   private Connection $database;
   private EntitlementManager $manager;
+  private LmsOffer $offer;
   private EntityTypeManagerInterface $entityTypeManager;
   private TimeInterface $time;
   private string $gatewayMode = 'test';
@@ -56,7 +57,7 @@ final class SubscriptionReconciliationTest extends KernelTestBase {
       $this->database->schema()->createTable($table, $schema[$table]);
     }
 
-    $offer = new LmsOffer([
+    $this->offer = new LmsOffer([
       'id' => 'monthly',
       'label' => 'Monthly',
       'vip_enabled' => TRUE,
@@ -67,6 +68,7 @@ final class SubscriptionReconciliationTest extends KernelTestBase {
       'paypal_live_gateway_id' => 'live',
       'paypal_live_plan_id' => 'P-LIVE',
     ], 'commerce_lms_offer');
+    $offer = $this->offer;
     $order = new class {
       public function get(string $field): object {
         return (object) ['target_id' => 'sandbox'];
@@ -94,6 +96,11 @@ final class SubscriptionReconciliationTest extends KernelTestBase {
     $user->method('id')->willReturn(7);
     $this->container->set('current_user', $user);
     $group = $this->createMock(GroupInterface::class);
+    $group->method('id')->willReturn(23);
+    $group->method('bundle')->willReturn('lms_class');
+    $group->method('addMember')->willReturnCallback(function (): void {
+      $this->vipMember = TRUE;
+    });
     $group->method('getMember')->willReturnCallback(fn (): object|false => $this->vipMember ? (object) [] : FALSE);
     $group->method('removeMember')->willReturnCallback(function (): void {
       if ($this->failRemoval) {
@@ -102,10 +109,33 @@ final class SubscriptionReconciliationTest extends KernelTestBase {
       $this->vipMember = FALSE;
     });
 
+    $course = new class($group) {
+      public function __construct(private GroupInterface $class) {}
+      public function bundle(): string {
+        return 'lms_course';
+      }
+      public function getRelationships(string $plugin): array {
+        return [new class($this->class) {
+          public function __construct(private GroupInterface $class) {}
+          public function getEntity(): GroupInterface {
+            return $this->class;
+          }
+        }];
+      }
+    };
     $storages = [];
     foreach (['commerce_lms_offer' => $offer, 'commerce_order' => $order, 'commerce_payment_gateway' => $gateway, 'user' => $user, 'group' => $group] as $type => $entity) {
       $storages[$type] = $this->createMock(EntityStorageInterface::class);
-      $storages[$type]->method('load')->willReturn($entity);
+      if ($type === 'group') {
+        $storages[$type]->method('load')->willReturnCallback(static fn ($id): ?object => match ((int) $id) {
+          10 => $course,
+          23 => $group,
+          default => NULL,
+        });
+      }
+      else {
+        $storages[$type]->method('load')->willReturn($entity);
+      }
     }
     $entity_type_manager = $this->createMock(EntityTypeManagerInterface::class);
     $entity_type_manager->method('getStorage')->willReturnCallback(static fn (string $type): EntityStorageInterface => $storages[$type]);
@@ -243,6 +273,59 @@ final class SubscriptionReconciliationTest extends KernelTestBase {
     self::assertSame(0, (int) $current['vip_active']);
     self::assertNull($this->manager->pendingPlanChange($eid));
     self::assertFalse($this->vipMember);
+  }
+
+  /** Cron updates lifetime purchases whose learners are already resolved. */
+  public function testLifetimeCronReconcilesLiveBundle(): void {
+    $this->vipMember = FALSE;
+    $this->offer->set('purchase_type', 'lifetime');
+    $eid = $this->insertEntitlement([
+      'purchase_type' => 'lifetime', 'paypal_subscription_id' => NULL,
+      'status' => 'active', 'activated' => self::NOW - 500,
+    ]);
+    $this->offer->set('course_class_map', [['course_id' => 10, 'class_id' => 23]]);
+    $this->manager->reconcile();
+    self::assertTrue($this->vipMember);
+    $this->manager->reconcile();
+    $ledger = $this->database->select('commerce_lms_entitlement_membership', 'm')->fields('m')->condition('eid', $eid)->execute()->fetchAssoc();
+    self::assertSame(1, (int) $ledger['membership_created']);
+    self::assertSame(1, (int) $ledger['active']);
+
+    $this->offer->set('course_class_map', []);
+    $this->manager->reconcile();
+    self::assertFalse($this->vipMember);
+    $active = $this->database->select('commerce_lms_entitlement_membership', 'm')->condition('eid', $eid)->condition('active', 1)->countQuery()->execute()->fetchField();
+    self::assertSame(0, (int) $active);
+  }
+
+  /** Paid-through cancellations receive new targets until their deadline. */
+  public function testPaidThroughCancellationReconcilesUntilExpiry(): void {
+    $this->vipMember = FALSE;
+    $this->offer->set('course_class_map', [['course_id' => 10, 'class_id' => 23]]);
+    $eid = $this->insertEntitlement([
+      'status' => 'cancelled', 'activated' => self::NOW - 500,
+      'access_through' => self::NOW + 100,
+    ]);
+    $remote = $this->remote('P-BASE');
+    $remote['status'] = 'CANCELLED';
+    unset($remote['billing_info']['next_billing_time']);
+    $this->manager->applyRemoteSubscription($this->manager->load($eid), $remote);
+    self::assertTrue($this->vipMember);
+    $this->now += 101;
+    $this->manager->applyRemoteSubscription($this->manager->load($eid), $remote);
+    self::assertFalse($this->vipMember);
+  }
+
+  /** A suspended subscription cannot gain newly added bundle targets. */
+  public function testSuspendedSubscriptionDoesNotGainNewTargets(): void {
+    $this->vipMember = FALSE;
+    $this->offer->set('course_class_map', [['course_id' => 10, 'class_id' => 23]]);
+    $eid = $this->insertEntitlement(['status' => 'active', 'activated' => self::NOW - 500]);
+    $remote = $this->remote('P-BASE');
+    $remote['status'] = 'SUSPENDED';
+    $this->manager->applyRemoteSubscription($this->manager->load($eid), $remote);
+    self::assertFalse($this->vipMember);
+    self::assertSame('suspended', $this->manager->load($eid)['status']);
   }
 
   private function insertEntitlement(array $overrides = []): int {

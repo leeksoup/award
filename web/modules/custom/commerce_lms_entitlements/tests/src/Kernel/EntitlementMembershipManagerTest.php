@@ -57,6 +57,15 @@ final class EntitlementMembershipManagerTest extends KernelTestBase {
    */
   private bool $failRemoval = FALSE;
 
+  /** @var array<int, \Drupal\group\Entity\GroupInterface> */
+  private array $classes = [];
+
+  /** @var array<int, array<int, object>> */
+  private array $extraMembers = [];
+
+  /** @var int[] */
+  private array $additionOrder = [];
+
   /**
    * {@inheritdoc}
    */
@@ -112,11 +121,10 @@ final class EntitlementMembershipManagerTest extends KernelTestBase {
       },
     );
 
+    $this->classes[23] = $this->class;
     $group_storage = $this->createMock(EntityStorageInterface::class);
     $group_storage->method('load')->willReturnCallback(
-      fn (int|string $id): ?GroupInterface => (int) $id === $this->class->id()
-        ? $this->class
-        : NULL,
+      fn (int|string $id): ?GroupInterface => $this->classes[(int) $id] ?? NULL,
     );
     $user_storage = $this->createMock(EntityStorageInterface::class);
     $user_storage->method('load')->willReturnCallback(
@@ -246,6 +254,145 @@ final class EntitlementMembershipManagerTest extends KernelTestBase {
     self::assertArrayNotHasKey(7, $this->members);
   }
 
+  /** Live bundle additions, replacements, and retries preserve ownership. */
+  public function testLiveBundleAddsAndReplacesTargets(): void {
+    $this->addClass(24);
+    $this->addClass(25);
+    $entitlement = ['eid' => 10];
+    $this->manager->reconcileTargets($entitlement, $this->account, ['base' => $this->targets()]);
+    $this->manager->reconcileTargets($entitlement, $this->account, ['base' => [['class_id' => 23], ['class_id' => 24]]]);
+    self::assertArrayHasKey(7, $this->members);
+    self::assertArrayHasKey(7, $this->extraMembers[24]);
+    self::assertSame(1, (int) $this->ledger(10)['membership_created']);
+    self::assertSame(1, (int) $this->ledger(10, 24)['membership_created']);
+
+    $this->manager->reconcileTargets($entitlement, $this->account, ['base' => [['class_id' => 25]]]);
+    self::assertArrayNotHasKey(7, $this->members);
+    self::assertArrayNotHasKey(7, $this->extraMembers[24]);
+    self::assertArrayHasKey(7, $this->extraMembers[25]);
+    self::assertSame(0, (int) $this->ledger(10)['active']);
+    self::assertSame(0, (int) $this->ledger(10, 24)['active']);
+    $this->manager->reconcileTargets($entitlement, $this->account, ['base' => [['class_id' => 25]]]);
+    self::assertSame(1, (int) $this->ledger(10, 25)['membership_created']);
+    self::assertSame(1, (int) $this->ledger(10, 25)['active']);
+  }
+
+  /** Removing a target preserves its pre-existing manual membership. */
+  public function testRemovedTargetPreservesManualMembership(): void {
+    $this->members[7] = (object) ['uid' => 7];
+    $entitlement = ['eid' => 11];
+    $this->manager->reconcileTargets($entitlement, $this->account, ['base' => $this->targets()]);
+    $this->manager->reconcileTargets($entitlement, $this->account, ['base' => []]);
+    self::assertArrayHasKey(7, $this->members);
+    self::assertSame(0, (int) $this->ledger(11)['active']);
+    self::assertSame(0, (int) $this->ledger(11)['membership_created']);
+  }
+
+  /** Removing a target cannot revoke another entitlement's support. */
+  public function testRemovedTargetPreservesOverlappingEntitlement(): void {
+    $this->manager->reconcileTargets(['eid' => 12], $this->account, ['base' => $this->targets()]);
+    $this->manager->reconcileTargets(['eid' => 13], $this->account, ['base' => $this->targets()]);
+    $this->manager->reconcileTargets(['eid' => 12], $this->account, ['base' => []]);
+    self::assertArrayHasKey(7, $this->members);
+    self::assertSame(0, (int) $this->ledger(12)['active']);
+    self::assertSame(1, (int) $this->ledger(13)['active']);
+    $this->manager->reconcileTargets(['eid' => 13], $this->account, ['base' => []]);
+    self::assertArrayNotHasKey(7, $this->members);
+  }
+
+  /** VIP hub changes remove the old hub and retain only the desired hub. */
+  public function testVipHubReplacement(): void {
+    $this->addClass(24);
+    $entitlement = ['eid' => 14];
+    $this->manager->reconcileTargets($entitlement, $this->account, ['vip' => $this->targets()]);
+    $this->manager->reconcileTargets($entitlement, $this->account, ['vip' => [['class_id' => 24]]]);
+    self::assertArrayNotHasKey(7, $this->members);
+    self::assertArrayHasKey(7, $this->extraMembers[24]);
+    self::assertSame(0, (int) $this->ledger(14, 23, 'vip')['active']);
+    self::assertSame(1, (int) $this->ledger(14, 24, 'vip')['active']);
+  }
+
+  /** A shared Class can move between benefits without recreating membership. */
+  public function testClassMovesBetweenBenefits(): void {
+    $entitlement = ['eid' => 15];
+    $this->manager->reconcileTargets($entitlement, $this->account, ['base' => $this->targets(), 'vip' => []]);
+    $this->class->expects(self::never())->method('removeMember');
+    $this->manager->reconcileTargets($entitlement, $this->account, ['base' => [], 'vip' => $this->targets()]);
+    self::assertArrayHasKey(7, $this->members);
+    self::assertSame(0, (int) $this->ledger(15)['active']);
+    self::assertSame(1, (int) $this->ledger(15, 23, 'vip')['active']);
+    $this->manager->reconcileTargets($entitlement, $this->account, ['base' => $this->targets(), 'vip' => $this->targets()]);
+    self::assertSame(1, (int) $this->ledger(15)['active']);
+    self::assertSame(1, (int) $this->ledger(15, 23, 'vip')['active']);
+  }
+
+  /** A failed removal leaves the old target active for a successful retry. */
+  public function testRemovedTargetFailureIsRetryable(): void {
+    $this->addClass(24);
+    $entitlement = ['eid' => 16];
+    $this->manager->reconcileTargets($entitlement, $this->account, ['base' => [['class_id' => 23], ['class_id' => 24]]]);
+    $this->failRemoval = TRUE;
+    try {
+      $this->manager->reconcileTargets($entitlement, $this->account, ['base' => [['class_id' => 24]]]);
+      self::fail('Expected removal failure.');
+    }
+    catch (\RuntimeException $exception) {
+      self::assertSame('Simulated membership removal failure.', $exception->getMessage());
+    }
+    self::assertSame(1, (int) $this->ledger(16)['active']);
+    self::assertSame(1, (int) $this->ledger(16, 24)['active']);
+    $this->failRemoval = FALSE;
+    $this->manager->reconcileTargets($entitlement, $this->account, ['base' => [['class_id' => 24]]]);
+    self::assertArrayNotHasKey(7, $this->members);
+    self::assertArrayHasKey(7, $this->extraMembers[24]);
+    self::assertSame(0, (int) $this->ledger(16)['active']);
+  }
+
+  /** An invalid replacement cannot delete existing access. */
+  public function testInvalidReplacementPreservesCurrentTarget(): void {
+    $entitlement = ['eid' => 17];
+    $this->manager->reconcileTargets($entitlement, $this->account, ['base' => $this->targets()]);
+    try {
+      $this->manager->reconcileTargets($entitlement, $this->account, ['base' => [['class_id' => 999]]]);
+      self::fail('Expected missing Class.');
+    }
+    catch (\RuntimeException $exception) {
+      self::assertSame('Missing LMS Class 999.', $exception->getMessage());
+    }
+    self::assertSame(1, (int) $this->ledger(17)['active']);
+    self::assertArrayHasKey(7, $this->members);
+  }
+
+  /** Targets are visited in offer order and duplicate Classes are idempotent. */
+  public function testNewTargetOrdering(): void {
+    $this->addClass(24);
+    $this->addClass(25);
+    $this->manager->reconcileTargets(['eid' => 18], $this->account, ['base' => [
+      ['class_id' => 25], ['class_id' => 24], ['class_id' => 25],
+    ]]);
+    self::assertSame([25, 24], $this->additionOrder);
+    self::assertSame(1, (int) $this->ledger(18, 25)['membership_created']);
+  }
+
+  /** Adds another mock Class to the storage used by membership operations. */
+  private function addClass(int $id): void {
+    $class = $this->createMock(GroupInterface::class);
+    $class->method('id')->willReturn($id);
+    $this->extraMembers[$id] = [];
+    $class->method('getMember')->willReturnCallback(fn (UserInterface $account): object|false => $this->extraMembers[$id][$account->id()] ?? FALSE);
+    $class->method('addMember')->willReturnCallback(function (UserInterface $account) use ($id): void {
+      $this->extraMembers[$id][$account->id()] = (object) ['uid' => $account->id()];
+      $this->additionOrder[] = $id;
+    });
+    $class->method('removeMember')->willReturnCallback(function (UserInterface $account) use ($id): void {
+      if ($this->failRemoval) {
+        throw new \RuntimeException('Simulated membership removal failure.');
+      }
+      unset($this->extraMembers[$id][$account->id()]);
+    });
+    $this->classes[$id] = $class;
+  }
+
   /**
    * Returns the one configured Class target.
    */
@@ -256,11 +403,13 @@ final class EntitlementMembershipManagerTest extends KernelTestBase {
   /**
    * Loads a ledger row for an entitlement.
    */
-  private function ledger(int $entitlement_id): array {
+  private function ledger(int $entitlement_id, int $class_id = 23, string $benefit = 'base'): array {
     $row = $this->database
       ->select('commerce_lms_entitlement_membership', 'm')
       ->fields('m')
       ->condition('eid', $entitlement_id)
+      ->condition('class_id', $class_id)
+      ->condition('benefit', $benefit)
       ->execute()
       ->fetchAssoc();
     self::assertIsArray($row);
