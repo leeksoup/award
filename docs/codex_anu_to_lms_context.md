@@ -504,16 +504,20 @@ module.
 The related Commerce entitlement security work is tracked in the
 [remediation plan](commerce_lms_entitlements_security_remediation_plan.md).
 The PayPal plan policy tests passed locally, and the site owner reported
-4 passing kernel tests with 18 assertions. PayPal sandbox checkout and
-renewal verification remain open.
+5 passing subscription kernel tests with 23 assertions and 3 controller
+kernel tests with 5 assertions. The site owner also confirmed sandbox
+checkouts and both tier-change redirects. Renewal verification remains open.
 
 Browser testing exposed an undefined `dateFormatter()` call when the
 subscription page contains a paid-through date. The controller now injects
 `date.formatter`, and the site owner confirmed that the page works. The
-populated-row regression in `EntitlementControllerCacheTest` awaits staging
-execution.
+populated-row regression in `EntitlementControllerCacheTest` passed in the
+site owner's kernel run.
 
 Tier-change browser testing then exposed Drupal's external redirect rejection.
 `ChangeTierForm` now returns a `TrustedRedirectResponse` for the approval URL
 received from PayPal. A fifth test in `SubscriptionReconciliationTest` covers
-the form submission and response. This new test awaits staging execution.
+the form submission and response and passed in the site owner's kernel run.
+That run reported a request-without-session deprecation. The test now attaches
+a mock session before pushing its request, following Drupal's documented fix.
+The session adjustment awaits a staging rerun.

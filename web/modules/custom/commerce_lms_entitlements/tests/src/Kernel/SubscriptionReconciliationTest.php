@@ -28,6 +28,8 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 
 /** Tests persisted subscription and membership transitions. */
 final class SubscriptionReconciliationTest extends KernelTestBase {
@@ -155,7 +157,9 @@ final class SubscriptionReconciliationTest extends KernelTestBase {
     $url_generator = $this->createMock(UrlGeneratorInterface::class);
     $url_generator->method('generateFromRoute')->willReturn('https://staging.example.com/revision-return');
     $this->container->set('url_generator', $url_generator);
-    $this->container->get('request_stack')->push(Request::create('/my-lms-subscriptions/' . $eid . '/change-tier'));
+    $request = Request::create('/my-lms-subscriptions/' . $eid . '/change-tier');
+    $request->setSession(new Session(new MockArraySessionStorage()));
+    $this->container->get('request_stack')->push($request);
     $form = new ChangeTierForm($this->manager, $changes);
     $form_state = new FormState();
     $build = $form->buildForm([], $form_state, $eid);
