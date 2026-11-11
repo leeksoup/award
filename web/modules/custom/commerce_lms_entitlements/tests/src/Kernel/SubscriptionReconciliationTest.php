@@ -7,17 +7,27 @@ namespace Drupal\Tests\commerce_lms_entitlements\Kernel;
 use Drupal\commerce_lms_entitlements\Entity\LmsOffer;
 use Drupal\commerce_lms_entitlements\EntitlementManager;
 use Drupal\commerce_lms_entitlements\EntitlementMembershipManager;
+use Drupal\commerce_lms_entitlements\Form\ChangeTierForm;
 use Drupal\commerce_lms_entitlements\Mailer\EntitlementMailerInterface;
+use Drupal\commerce_lms_entitlements\PayPalSubscriptionOperations;
+use Drupal\commerce_lms_entitlements\PlanChangeManager;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Form\FormState;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Routing\UrlGeneratorInterface;
+use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\user\UserInterface;
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Response;
 use Psr\Log\NullLogger;
+use Symfony\Component\HttpFoundation\Request;
 
 /** Tests persisted subscription and membership transitions. */
 final class SubscriptionReconciliationTest extends KernelTestBase {
@@ -29,6 +39,8 @@ final class SubscriptionReconciliationTest extends KernelTestBase {
   private int $now = self::NOW;
   private Connection $database;
   private EntitlementManager $manager;
+  private EntityTypeManagerInterface $entityTypeManager;
+  private TimeInterface $time;
   private string $gatewayMode = 'test';
   private bool $vipMember = TRUE;
   private bool $failRemoval = FALSE;
@@ -45,6 +57,7 @@ final class SubscriptionReconciliationTest extends KernelTestBase {
     $offer = new LmsOffer([
       'id' => 'monthly',
       'label' => 'Monthly',
+      'vip_enabled' => TRUE,
       'paypal_environment' => 'live',
       'paypal_sandbox_gateway_id' => 'sandbox',
       'paypal_sandbox_plan_id' => 'P-BASE',
@@ -69,11 +82,15 @@ final class SubscriptionReconciliationTest extends KernelTestBase {
         return ($this->mode)();
       }
       public function getPluginConfiguration(): array {
-        return [];
+        return ['mode' => 'test', 'client_id' => 'test-client', 'client_secret' => 'test-secret'];
+      }
+      public function id(): string {
+        return 'sandbox';
       }
     };
     $user = $this->createMock(UserInterface::class);
     $user->method('id')->willReturn(7);
+    $this->container->set('current_user', $user);
     $group = $this->createMock(GroupInterface::class);
     $group->method('getMember')->willReturnCallback(fn (): object|false => $this->vipMember ? (object) [] : FALSE);
     $group->method('removeMember')->willReturnCallback(function (): void {
@@ -90,8 +107,10 @@ final class SubscriptionReconciliationTest extends KernelTestBase {
     }
     $entity_type_manager = $this->createMock(EntityTypeManagerInterface::class);
     $entity_type_manager->method('getStorage')->willReturnCallback(static fn (string $type): EntityStorageInterface => $storages[$type]);
+    $this->entityTypeManager = $entity_type_manager;
     $time = $this->createMock(TimeInterface::class);
     $time->method('getRequestTime')->willReturnCallback(fn (): int => $this->now);
+    $this->time = $time;
     // Force a failed remote refresh after cron has checked the local deadline.
     $sdk_factory = new class {
       public function get(array $configuration): object {
@@ -110,6 +129,44 @@ final class SubscriptionReconciliationTest extends KernelTestBase {
       $this->createMock(EntitlementMailerInterface::class),
       $this->createMock(UrlGeneratorInterface::class),
     );
+  }
+
+  /** A normal tier-change submission can redirect to PayPal for approval. */
+  public function testTierChangeFormUsesTrustedApprovalRedirect(): void {
+    $eid = $this->insertEntitlement(['status' => 'active', 'activated' => self::NOW - 500]);
+    $approval = 'https://www.sandbox.paypal.com/webapps/billing/subscriptions/update?ba_token=test';
+    $plan = [
+      'status' => 'ACTIVE',
+      'product_id' => 'PROD-TEST',
+      'billing_cycles' => [[
+        'tenure_type' => 'REGULAR',
+        'frequency' => ['interval_unit' => 'MONTH', 'interval_count' => 1],
+      ]],
+    ];
+    $responses = [];
+    foreach ([$this->remote('P-BASE'), $plan, $plan, ['links' => [['rel' => 'approve', 'href' => $approval]]]] as $body) {
+      $responses[] = new Response(200, [], '{"access_token":"test-token"}');
+      $responses[] = new Response(200, [], json_encode($body, JSON_THROW_ON_ERROR));
+    }
+    $operations = new PayPalSubscriptionOperations(new Client([
+      'handler' => HandlerStack::create(new MockHandler($responses)),
+    ]));
+    $changes = new PlanChangeManager($this->database, $this->entityTypeManager, $this->time, $this->manager, $operations);
+    $url_generator = $this->createMock(UrlGeneratorInterface::class);
+    $url_generator->method('generateFromRoute')->willReturn('https://staging.example.com/revision-return');
+    $this->container->set('url_generator', $url_generator);
+    $this->container->get('request_stack')->push(Request::create('/my-lms-subscriptions/' . $eid . '/change-tier'));
+    $form = new ChangeTierForm($this->manager, $changes);
+    $form_state = new FormState();
+    $build = $form->buildForm([], $form_state, $eid);
+    $form->submitForm($build, $form_state);
+
+    $response = $form_state->getResponse();
+    self::assertInstanceOf(TrustedRedirectResponse::class, $response);
+    self::assertSame(303, $response->getStatusCode());
+    self::assertSame($approval, $response->getTargetUrl());
+    self::assertSame('approval_pending', $this->manager->pendingPlanChange($eid)['status']);
+    self::assertSame(0, (int) $this->manager->load($eid)['vip_active']);
   }
 
   /** An unexpected plan cannot activate a purchase; valid data recovers it. */

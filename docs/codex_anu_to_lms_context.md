@@ -509,5 +509,11 @@ renewal verification remain open.
 
 Browser testing exposed an undefined `dateFormatter()` call when the
 subscription page contains a paid-through date. The controller now injects
-`date.formatter`. The populated-row regression in
-`EntitlementControllerCacheTest` awaits staging execution.
+`date.formatter`, and the site owner confirmed that the page works. The
+populated-row regression in `EntitlementControllerCacheTest` awaits staging
+execution.
+
+Tier-change browser testing then exposed Drupal's external redirect rejection.
+`ChangeTierForm` now returns a `TrustedRedirectResponse` for the approval URL
+received from PayPal. A fifth test in `SubscriptionReconciliationTest` covers
+the form submission and response. This new test awaits staging execution.

@@ -8,6 +8,7 @@ use Drupal\commerce_lms_entitlements\EntitlementManager;
 use Drupal\commerce_lms_entitlements\PlanChangeManager;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -50,7 +51,7 @@ final class ChangeTierForm extends ConfirmFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     try {
       $approval = $this->changes->request((int) $this->entitlement['eid'], (int) $this->currentUser()->id());
-      $form_state->setRedirectUrl(Url::fromUri($approval));
+      $form_state->setResponse(new TrustedRedirectResponse($approval, 303));
     }
     catch (\Throwable $e) {
       $this->messenger()->addError($e->getMessage());

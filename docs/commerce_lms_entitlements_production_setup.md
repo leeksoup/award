@@ -337,6 +337,13 @@ before and after the target plan's first successful renewal. Run the audit
 and cron after a simulated mismatch. Verify Group membership and LMS `view`
 and `take` access as the learner before and after the recorded deadline.
 
+Tier-change submission uses a trusted redirect response for PayPal's approval
+URL. A redirect rejected by an earlier release can leave an `approval_pending`
+revision. If the purchaser now sees **VIP change pending**, inspect that
+entitlement and PayPal subscription before retrying. Confirm whether approval
+occurred before resolving the individual pending record. Preserve the paid
+tier while investigating.
+
 ## 10. Perform a controlled live test
 
 Enable only the coupon being tested and complete one real transaction. Verify:
