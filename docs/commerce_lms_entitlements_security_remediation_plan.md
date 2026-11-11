@@ -430,8 +430,9 @@ VIP benefit eligibility while replacing the hub membership.
 Repository syntax, Composer validation, and whitespace checks passed. Kernel
 regressions cover target additions, removals, replacements, ordering, manual
 and overlapping memberships, movement between benefits, failed removal and
-retry, lifetime cron, and paid-through cancellation. These new regressions
-still require execution on the bootstrapped staging site.
+retry, lifetime cron, and paid-through cancellation. The site owner reported
+that both kernel suites pass on staging. Browser verification of adding and
+removing offer targets remains open.
 
 Required tests:
 

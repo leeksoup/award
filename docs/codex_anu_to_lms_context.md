@@ -525,6 +525,7 @@ The site owner confirmed that the staging rerun is clean.
 The site owner selected live bundle reconciliation with automatic enrollment
 for security remediation item 6. The implementation now reconciles the current
 base and VIP target sets, including lifetime purchases and paid-through
-cancellations. New regression coverage in `EntitlementMembershipManagerTest`
-and `SubscriptionReconciliationTest` awaits staging execution. The production
-setup guide documents adding new courses to offers, removal, and rollback.
+cancellations. The site owner reported that `EntitlementMembershipManagerTest`
+and `SubscriptionReconciliationTest` both pass on staging. Browser verification
+of adding and removing offer targets remains open. The production setup guide
+documents adding new courses to offers, removal, and rollback.
