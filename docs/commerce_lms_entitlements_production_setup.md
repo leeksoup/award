@@ -314,13 +314,16 @@ cron reconcile the entitlement. Existing memberships expire at their last
 recorded paid-through date if the mismatch persists.
 
 On staging, run the subscription regression suites from the repository root
-with the site's kernel test database configured.
+with the site's kernel test database configured. Use an absolute path to the
+PHPUnit configuration so isolated kernel test processes can reopen it after
+the working directory changes.
 
 ```bash
-vendor/bin/phpunit -c web/core/phpunit.xml.dist \
-  web/modules/custom/commerce_lms_entitlements/tests/src/Unit/SubscriptionAccessPolicyTest.php
-vendor/bin/phpunit -c web/core/phpunit.xml.dist \
-  web/modules/custom/commerce_lms_entitlements/tests/src/Kernel/SubscriptionReconciliationTest.php
+award_root="$(pwd -P)"
+"$award_root/vendor/bin/phpunit" -c "$award_root/web/core/phpunit.xml.dist" \
+  "$award_root/web/modules/custom/commerce_lms_entitlements/tests/src/Unit/SubscriptionAccessPolicyTest.php"
+"$award_root/vendor/bin/phpunit" -c "$award_root/web/core/phpunit.xml.dist" \
+  "$award_root/web/modules/custom/commerce_lms_entitlements/tests/src/Kernel/SubscriptionReconciliationTest.php"
 ```
 
 Complete sandbox base and VIP checkouts, then verify upgrade and downgrade
