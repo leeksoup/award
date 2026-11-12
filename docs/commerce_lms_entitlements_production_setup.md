@@ -344,6 +344,52 @@ entitlement and PayPal subscription before retrying. Confirm whether approval
 occurred before resolving the individual pending record. Preserve the paid
 tier while investigating.
 
+## Webhook admission and retry checks
+
+The endpoint limits bodies to 1 MiB before JSON decoding and uses Drupal's
+flood service to allow up to 120 signature verification requests per source IP
+in 60 seconds. These limits are defined in `PayPalWebhookController`. Check
+trusted reverse-proxy configuration so Drupal identifies the sender correctly.
+PayPal deliveries can share source IPs. Review repeated 429 responses against
+legitimate delivery volume when tuning the application or proxy limits.
+
+Deploy the updated module and rebuild caches. Run the kernel suite with the
+site's test database configuration. It uses a simulated verifier and isolated
+test tables for storage and queue failure cases.
+
+```bash
+drush cr
+award_root="$(pwd -P)"
+SIMPLETEST_DB='sqlite://localhost/:memory:' \
+  "$award_root/vendor/bin/phpunit" -c "$award_root/web/core/phpunit.xml.dist" \
+  "$award_root/web/modules/custom/commerce_lms_entitlements/tests/src/Kernel/PayPalWebhookTest.php"
+```
+
+For integration validation on staging, resend an actual subscription event
+from PayPal Sandbox's webhook dashboard. Confirm a successful response and
+one persisted event row for its ID. Repeated deliveries of the same verified
+identity should succeed without adding queue items. Run the worker and check
+the corresponding entitlement and membership state, then run the audit.
+
+```bash
+drush queue:run commerce_lms_entitlements_webhook
+drush commerce-lms-entitlements:audit
+```
+
+Expected responses are 200 for accepted, ignored, or confirmed duplicate
+events, 400 for invalid JSON/event/signature input, 404 for an unavailable or
+unsupported gateway, 413 for oversized bodies, 429 for verification throttling,
+and 503 for backend failure. The 429 and 503 responses include `Retry-After`.
+Restricted logs identify the gateway, event, and exception class. Keep the
+default database queue backend for transactional event/queue persistence.
+Alternative queue backends require their own failure/retry validation.
+
+Review queued or failed events already stored by older releases if earlier
+queue errors occurred. This change prevents new partial writes. Existing
+events whose identity or gateway conflicts with a delivery require staff
+review. A code rollback restores the previous admission and error handling,
+so review webhook failures and redeliveries during any rollback.
+
 ## Live bundle reconciliation
 
 Existing subscribers are automatically enrolled in the offer's current

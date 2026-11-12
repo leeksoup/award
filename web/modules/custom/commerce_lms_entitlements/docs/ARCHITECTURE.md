@@ -364,9 +364,18 @@ POST /commerce-lms-entitlements/paypal/webhook/{commerce_payment_gateway ID}
 The route is intentionally public because PayPal cannot authenticate as a
 Drupal account. It is safe only because the controller requires the gateway’s
 webhook ID and calls the contributed SDK’s server-side signature-verification
-API with all PayPal transmission headers. Invalid JSON, wrong gateway plugin,
-missing configuration, invalid signature, and verification failures return 4xx
-and are logged. A successful duplicate returns success so PayPal stops retrying.
+API with all PayPal transmission headers. Invalid JSON, malformed event data,
+missing signature headers, and invalid signatures return 400. Wrong gateway
+plugins return 404. Missing configuration, verification-service failures, and
+storage/queue failures return 503 and are logged by gateway/event ID and
+exception class. Confirmed duplicates return 200 after checking their identity.
+
+The controller reads at most 1 MiB plus one overflow byte before decoding and
+returns 413 for oversized requests. Drupal flood control limits verification
+to 120 requests per 60 seconds per source IP, returning 429 when exceeded.
+The 429 and 503 responses include a retry interval. Event storage and the
+default database queue share a transaction so a failed queue write rolls back
+the event insert and leaves delivery retryable.
 
 The webhook route converts its gateway-ID path component into a Commerce
 payment-gateway entity before invoking the controller. Without that route

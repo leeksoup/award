@@ -10,6 +10,7 @@ use Drupal\commerce_lms_entitlements\Entity\LmsSubscriptionCampaign;
 use Drupal\commerce_lms_entitlements\Mailer\EntitlementMailerInterface;
 use Drupal\commerce_price\Calculator;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Database\IntegrityConstraintViolationException;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
@@ -381,19 +382,71 @@ final class EntitlementManager {
   }
 
   /**
-   * Records a signature-verified PayPal event once and enqueues asynchronous work.
+   * Stores and queues a verified event, acknowledging only known duplicates.
    *
-   * A database uniqueness exception means the event ID has already been
-   * accepted, which is a normal duplicate delivery rather than an error.
+   * A savepoint keeps uniqueness failures recoverable on PostgreSQL. Queue
+   * creation shares the transaction with the event insert so a queue failure
+   * cannot leave an accepted event with no work item on the database backend.
    */
   public function queueEvent(array $event, string $gateway_id): bool {
-    $event_id = (string) ($event['id'] ?? '');
-    if ($event_id === '') { throw new \InvalidArgumentException('PayPal event is missing its ID.'); }
+    $event_id = $event['id'] ?? NULL;
+    if (!is_string($event_id) || $event_id === '' || strlen($event_id) > 128) {
+      throw new \InvalidArgumentException('PayPal event is missing a valid ID.');
+    }
     $subscription_id = $this->extractPayPalSubscriptionId($event);
+    $event_type = (string) ($event['event_type'] ?? '');
+    $payload = json_encode($event, JSON_THROW_ON_ERROR);
     $now = $this->time->getRequestTime();
-    try { $this->database->insert('commerce_lms_entitlement_event')->fields(['event_id' => $event_id, 'paypal_subscription_id' => $subscription_id ?: NULL, 'gateway_id' => $gateway_id, 'event_type' => (string) ($event['event_type'] ?? ''), 'payload' => json_encode($event, JSON_THROW_ON_ERROR), 'created' => $now, 'changed' => $now])->execute(); }
-    catch (\Exception) { return FALSE; }
-    $this->queue->get('commerce_lms_entitlements_webhook')->createItem(['event_id' => $event_id]);
+    $queue = $this->queue->get('commerce_lms_entitlements_webhook');
+    // Initialize storage before the transaction. Lazy table creation can
+    // implicitly commit an in-flight transaction on MySQL/MariaDB.
+    $queue->createQueue();
+    $transaction = $this->database->startTransaction();
+    try {
+      $this->database->insert('commerce_lms_entitlement_event')->fields([
+        'event_id' => $event_id,
+        'paypal_subscription_id' => $subscription_id ?: NULL,
+        'gateway_id' => $gateway_id,
+        'event_type' => $event_type,
+        'payload' => $payload,
+        'created' => $now,
+        'changed' => $now,
+      ])->execute();
+    }
+    catch (IntegrityConstraintViolationException $exception) {
+      $transaction->rollBack();
+      $existing = $this->event($event_id);
+      // An integrity error alone does not prove the event ID was duplicated.
+      // Confirm the identity and gateway before acknowledging this delivery.
+      if ($existing && (string) $existing['gateway_id'] === $gateway_id
+        && (string) $existing['event_type'] === $event_type) {
+        $stored_subscription_id = (string) ($existing['paypal_subscription_id'] ?? '');
+        if ($stored_subscription_id !== $subscription_id) {
+          // Older releases stored a sale ID instead of its subscription ID.
+          $stored_payload = json_decode((string) $existing['payload'], TRUE, 512, JSON_THROW_ON_ERROR);
+          $stored_subscription_id = is_array($stored_payload) ? $this->extractPayPalSubscriptionId($stored_payload) : '';
+        }
+        if ($stored_subscription_id === $subscription_id) {
+          return FALSE;
+        }
+      }
+      throw $exception;
+    }
+    catch (\Throwable $exception) {
+      $transaction->rollBack();
+      throw $exception;
+    }
+    try {
+      $item_id = $queue->createItem(['event_id' => $event_id]);
+      if ($item_id === FALSE) {
+        throw new \RuntimeException('The PayPal event could not be queued.');
+      }
+    }
+    catch (\Throwable $exception) {
+      $transaction->rollBack();
+      throw $exception;
+    }
+    unset($transaction);
     return TRUE;
   }
 

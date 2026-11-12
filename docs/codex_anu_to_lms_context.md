@@ -531,3 +531,13 @@ development test entitlement on the lifetime reconciliation path, the site
 owner also confirmed that adding a Course/Class target grants learner access
 and removing it revokes that access after reconciliation. The production
 setup guide documents adding new courses to offers, removal, and rollback.
+
+Security remediation item 7 now distinguishes verified event duplicates from
+backend failures, bounds request bodies at 1 MiB, and applies Drupal flood
+control to signature verification at 120 requests per minute per source IP.
+Event storage and database queue creation share a transaction. New
+`PayPalWebhookTest` kernel coverage awaits execution on a bootstrapped site.
+The test uses a simulated verifier and can run on dev without a sandbox
+checkout. The sandbox PayPal MCP remained unavailable with HTTP 404, so the
+official webhook integration documentation was used alongside Drupal MCP API
+checks.

@@ -95,6 +95,13 @@ completed. Cron also queues reconciliation: it expires paid-through
 cancellations and refreshes each nonterminal recurring subscription from
 PayPal, so missed webhook deliveries can self-heal.
 
+The webhook endpoint accepts bodies up to 1 MiB and limits PayPal signature
+verification to 120 requests per 60 seconds per source IP through Drupal's
+flood service. Oversized requests return 413, and rate-limited requests return
+429 with a retry interval. Backend failures return 503. Verified duplicate
+event identities return 200. On the default database queue backend, event
+storage and queue creation share a transaction so failed queuing can retry.
+
 Each entitlement records whether it created a Class membership. Revocation
 never deletes a manual membership or one still supported by another active
 entitlement.

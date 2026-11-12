@@ -468,6 +468,29 @@ Implementation requirements:
 Tests must cover a duplicate event, database failure, malformed JSON, invalid
 signature, oversized body, unknown gateway, and a successful delivery.
 
+Implementation status. The event writer catches integrity violations and
+acknowledges a duplicate only after checking the stored event identity and
+gateway. Other storage failures reach the controller as errors. Event inserts
+and database queue writes share a transaction, including rollback when a queue
+backend returns FALSE. Legacy sale-ID rows can still be matched through their
+stored payload's subscription ID.
+
+The controller reads at most 1 MiB plus one overflow byte before decoding,
+validates the event shape and signature headers, and limits signature
+verification through Drupal's flood service to 120 requests per 60 seconds per
+source IP. It returns 413 for oversized requests, 429 for rate limits, 400 for
+invalid requests or signatures, and 503 for backend failures. Verified events
+and confirmed duplicates receive 200. Logs contain event and gateway IDs and
+the exception class while keeping event payloads out of error messages.
+
+The new `PayPalWebhookTest` kernel suite covers these paths, conflicting event
+identities, unrelated integrity failures, and queue rollback/retry. Syntax and
+repository checks passed. The new suite and signed sandbox redelivery check
+still require execution. The sandbox PayPal MCP returned HTTP 404. Drupal MCP
+confirmed database and flood APIs, and the
+[official webhook integration guide](https://developer.paypal.com/api/rest/webhooks/rest/)
+confirmed that non-2xx responses trigger redelivery.
+
 ### 8. Enforce VIP registrant policy below the form layer
 
 Affected code:
