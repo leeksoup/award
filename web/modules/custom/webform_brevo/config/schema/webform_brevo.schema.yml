@@ -1,0 +1,19 @@
+webform.handler.brevo:
+  type: webform.handler.remote_post
+  label: 'Brevo contact handler'
+  mapping:
+    api_key:
+      type: string
+      label: 'Brevo API key'
+    list_id:
+      type: integer
+      label: 'Brevo list ID'
+    completed_do:
+      type: boolean
+      label: 'Synchronize completed submissions'
+    updated_do:
+      type: boolean
+      label: 'Synchronize updated submissions'
+    deleted_do:
+      type: boolean
+      label: 'Synchronize deleted submissions'

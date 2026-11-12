@@ -1,0 +1,7 @@
+name: Webform Brevo
+type: module
+description: 'Adds Webform contacts to Brevo with controlled API error handling.'
+package: Webform
+core_version_requirement: ^10.3 || ^11
+dependencies:
+  - webform:webform

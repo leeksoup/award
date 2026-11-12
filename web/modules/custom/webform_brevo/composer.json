@@ -1,0 +1,11 @@
+{
+    "name": "drupal/webform_brevo",
+    "description": "Standalone Brevo handler for Webform.",
+    "type": "drupal-custom-module",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.1",
+        "drupal/webform": "^6.3",
+        "getbrevo/brevo-php": "^1.0"
+    }
+}

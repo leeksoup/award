@@ -1,0 +1,23 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\webform_brevo\Plugin\WebformHandler\WebformBrevoHandler;
+
+/**
+ * @file
+ * Plugin handover for the standalone Brevo integration.
+ */
+
+/**
+ * Implements hook_webform_handler_info_alter().
+ */
+function webform_brevo_webform_handler_info_alter(array &$definitions): void {
+  // Older deployments put a custom plugin inside the Webform contrib module.
+  // Select this module's implementation regardless of discovery order while
+  // that legacy file is being removed. Existing handler IDs stay intact.
+  if (isset($definitions['brevo'])) {
+    $definitions['brevo']['class'] = WebformBrevoHandler::class;
+    $definitions['brevo']['provider'] = 'webform_brevo';
+  }
+}

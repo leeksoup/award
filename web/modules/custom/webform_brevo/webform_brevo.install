@@ -1,0 +1,40 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Installation checks and configuration handover for Webform Brevo.
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+function webform_brevo_requirements($phase): array {
+  $available = class_exists(\Brevo\Client\Api\ContactsApi::class);
+  return [
+    'webform_brevo_sdk' => [
+      'title' => t('Brevo PHP SDK'),
+      'value' => $available ? t('Available') : t('Missing'),
+      'severity' => $available ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+      'description' => $available ? '' : t('Install the Composer dependency getbrevo/brevo-php before enabling Webform Brevo.'),
+    ],
+  ];
+}
+
+/**
+ * Implements hook_install().
+ */
+function webform_brevo_install(): void {
+  // Saving recalculates plugin-provider dependencies for existing Webforms.
+  // The plugin ID and each handler's settings remain those already stored.
+  $storage = \Drupal::entityTypeManager()->getStorage('webform');
+  foreach ($storage->loadMultiple() as $webform) {
+    foreach ($webform->get('handlers') ?? [] as $handler) {
+      if (($handler['id'] ?? '') === 'brevo') {
+        $webform->save();
+        break;
+      }
+    }
+  }
+}

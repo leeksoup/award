@@ -1,0 +1,4 @@
+services:
+  webform_brevo.contact_client:
+    class: Drupal\webform_brevo\BrevoContactClient
+    arguments: ['@http_client']
